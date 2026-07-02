@@ -52,6 +52,46 @@ This diagram maps the natural language test categories to their respective code 
 
 Sources: [test/TESTING.md 14-26](https://github.com/tenstorrent/tt-lang/blob/d76e6233/test/TESTING.md?plain=1#L14-L26)[test/lit.cfg.py 13-27](https://github.com/tenstorrent/tt-lang/blob/d76e6233/test/lit.cfg.py#L13-L27)[test/lit.cfg.py 98-102](https://github.com/tenstorrent/tt-lang/blob/d76e6233/test/lit.cfg.py#L98-L102)
 
+
+
+```mermaid
+graph TB
+    subgraph "Test_Suites_(Code_Entities)"
+        ["test/ttlang/ (*.mlir)"]
+        ["test/python/ (non-test_*.py)"]
+        ["test/python/ (test_*.py)"]
+        ["test/sim/"]
+        ["test/me2e/"]
+    end
+    
+    subgraph "Runners_&_Tools"
+        LitRunner["llvm-lit"]
+        PytestRunner["pytest"]
+        FileCheck["FileCheck"]
+        TTLangOpt["ttlang-opt"]
+        TTLangTranslate["ttlang-translate"]
+    end
+
+    subgraph "Hardware/Sim_Targets"
+        HW["Tenstorrent Hardware"]
+        SIM["ttlang-sim"]
+    end
+
+    ["test/ttlang/ (*.mlir)"] --> LitRunner
+    ["test/python/ (non-test_*.py)"] --> LitRunner
+    ["test/python/ (test_*.py)"] --> PytestRunner
+    ["test/sim/"] --> PytestRunner
+    ["test/me2e/"] --> PytestRunner
+
+    LitRunner --> FileCheck
+    LitRunner --> TTLangOpt
+    LitRunner --> TTLangTranslate
+    
+    PytestRunner --> HW
+    PytestRunner --> SIM
+```
+Sources: [test/TESTING.md:14-26](), [test/lit.cfg.py:13-27](), [test/lit.cfg.py:98-102]()
+```
 ### Summary of Test Categories
 
 | Target / Path | Runner | CMake Target | Primary Purpose |
@@ -77,6 +117,40 @@ The following diagram illustrates how the environment configuration connects the
 
 Sources: [env/activate.in 29-61](https://github.com/tenstorrent/tt-lang/blob/d76e6233/env/activate.in#L29-L61)[test/ttlang_test_utils.py 27-44](https://github.com/tenstorrent/tt-lang/blob/d76e6233/test/ttlang_test_utils.py#L27-L44)[test/TESTING.md 10-12](https://github.com/tenstorrent/tt-lang/blob/d76e6233/test/TESTING.md?plain=1#L10-L12)
 
+
+
+```mermaid
+graph LR
+    subgraph "Environment_Config"
+        Activate["env/activate.in"]
+        CMake["CMakeLists.txt"]
+    end
+
+    subgraph "Execution_Variables"
+        PH["PYTHONPATH"]
+        PT["PATH"]
+        TCO["TTLANG_COMPILE_ONLY"]
+        HAS_DEV["TTLANG_HAS_DEVICE"]
+    end
+
+    subgraph "Runners"
+        Lit["llvm-lit"]
+        Pytest["pytest"]
+        Sim["ttlang-sim"]
+    end
+
+    Activate --> PH
+    Activate --> PT
+    Activate --> HAS_DEV
+    
+    PH --> Pytest
+    PH --> Sim
+    PT --> Lit
+    HAS_DEV --> Lit
+    TCO --> Lit
+```
+Sources: [env/activate.in:29-61](), [test/ttlang_test_utils.py:27-44](), [test/TESTING.md:10-12]()
+```
 ### Discovery and Execution Rules
 
 *   **Lit Exclusion**: Files named `test_*.py` under `test/python/` are excluded from lit collection and are instead handled by `pytest`[test/TESTING.md 28-30](https://github.com/tenstorrent/tt-lang/blob/d76e6233/test/TESTING.md?plain=1#L28-L30)

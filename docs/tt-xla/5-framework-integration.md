@@ -177,11 +177,8 @@ Refresh this wiki
 
 Enter email to refresh
 
-## Additional Diagrams
 
-
-### Multi-Chip Execution Pattern
-
+### Related: Multi-Chip Execution Pattern
 
 ```mermaid
 graph TB
@@ -206,13 +203,6 @@ graph TB
     CreateMesh --> AxisNames
     EnableSPMD --> NumDevices
 ```
-
-SPMD requires explicit initialization via `xr.use_spmd()` and tensor sharding annotation using `xs.mark_sharding()`.
-```
-
-
-#### Shardy Sharding Collection
-
 
 ```mermaid
 graph TB
@@ -262,52 +252,7 @@ graph TB
     ConvertShardy --> ReturnShardings
 ```
 
-**Key Functions:**
-
-1. **getFirstShardyMeshOp()** at [pjrt_implementation/src/api/module_builder/module_builder.cc:1311-1349]():
-   ```cpp
-   module.walk([&](mlir::sdy::MeshOp op) {
-       if (!mesh_op) mesh_op = op;
-   });
-   ```
-   Returns the first `sdy::MeshOp` found, or `std::nullopt` if none exists.
-
-2. **Input Sharding Collection** at [pjrt_implementation/src/api/module_builder/module_builder.cc:470-500]():
-   - Extracts `sdy::TensorShardingAttr` from function argument attributes
-   - Uses attribute name `mlir::sdy::kShardingAttr` (which is `"sdy.sharding"`)
-   - If attribute is null, default unsharded configuration is used
-
-3. **Output Sharding Collection** at [pjrt_implementation/src/api/module_builder/module_builder.cc:533-584]():
-   - Searches for `sdy::ManualComputationOp` within the function body
-   - **Zero manual ops**: Execution is fully replicated, generate default shardings for all results
-   - **One manual op**: Extract `out_shardings` attribute containing per-output sharding specs
-   - **Multiple manual ops**: Unexpected state, return error
-
-4. **Sharding Conversion** at [pjrt_implementation/src/api/module_builder/module_builder.cc:709-744]():
-   ```cpp
-   mlir::LogicalResult createShardingsFromShardy(
-       std::vector<mlir::sdy::TensorShardingAttr> &shardy_attributes,
-       const mlir::sdy::MeshAttr &shardy_mesh,
-       std::vector<mlir::tt::sharding_utils::MeshSharding> &shardings)
-   ```
-   Converts Shardy-specific sharding attributes to TT-MLIR's unified `MeshSharding` representation using `mlir::tt::shardy_utils::ShardyMeshSharding::generate()`.
-
-**XLA Ingestion Cleaning:**
-
-When Shardy is used, the output shardings must be converted to XLA-compatible format. This is handled by `cleanForXlaIngestion()` at [pjrt_implementation/src/api/module_builder/frontend_passes/shlo_clean_for_xla_ingestion.cc:362-424](), which:
-1. Strips TT-specific dialect attributes (ttcore, ttir) from function arguments/results
-2. Strips location information via `createStripDebugInfoPass()`
-3. Extracts output shardings from `ManualComputationOp` and converts to HloShardingV2 format
-4. Injects output shardings as `mhlo.spmd_output_sharding` module attribute
-5. Removes `sdy::MeshOp` operations
-6. Simplifies the main function by replacing manual computation body with dummy outputs
-
-Sources: [pjrt_implementation/src/api/module_builder/module_builder.cc:470-500](), [pjrt_implementation/src/api/module_builder/module_builder.cc:533-584](), [pjrt_implementation/src/api/module_builder/module_builder.cc:709-744](), [pjrt_implementation/src/api/module_builder/module_builder.cc:1311-1349](), [pjrt_implementation/src/api/module_builder/frontend_passes/shlo_clean_for_xla_ingestion.cc:362-424]()
-```
-
-
-#### Composite Op Mechanism
-
+### Related: Composite Op Mechanism
 
 ```mermaid
 graph TB
@@ -345,10 +290,6 @@ graph TB
     CompLayerNorm --> CompOp
 ```
 
-
-#### Marker Insertion
-
-
 ```mermaid
 graph LR
     subgraph "Before"
@@ -365,10 +306,6 @@ graph LR
         Marker --> User2
     end
 ```
-
-
-#### Decomposition Registration
-
 
 ```mermaid
 graph TB
@@ -389,19 +326,6 @@ graph TB
     Step4 --> Step5
     Step5 --> Result
 ```
-
-**Diagram: Decomposition table construction pipeline**
-
-Notable removals from default decompositions:
-- `torch.ops.aten.einsum.default` - Removed because custom matmul decomposition uses einsum, and PyTorch's bmm folding breaks SPMD shard specs
-- `torch.ops.aten.dot.default` - Removed because StableHLO lowering was incorrect; replaced with custom dot→matmul decomposition
-
-Sources: [python_package/tt_torch/backend/decompositions.py:382-398]()
-```
-
-
-#### Composite Operation Pass
-
 
 ```mermaid
 graph TB
@@ -427,29 +351,6 @@ graph TB
     ReplaceMod --> IterNode
     IterNode --> Done
 ```
-
-**Diagram: Composite operation replacement logic**
-
-The replacements dictionary maps operations to their composite implementations:
-
-```python
-replacements = {
-    # Function replacements
-    torch.nn.functional.gelu: composite_gelu,
-    torch.rms_norm: composite_rms_norm,
-    torch.nn.functional.rms_norm: composite_rms_norm,
-    torch.nn.functional.layer_norm: composite_layer_norm,
-    # Module replacements
-    torch.nn.LayerNorm: replace_layer_norm_module,
-}
-```
-
-Sources: [python_package/tt_torch/backend/passes.py:34-58](), [python_package/tt_torch/composite_ops.py:194-202]()
-```
-
-
-#### LLM-Specific Parameterization
-
 
 ```mermaid
 graph TB
@@ -485,14 +386,7 @@ graph TB
     H --> I
 ```
 
-**LLM Test IDs**: LLM tests include the run phase (prefill/decode), sequence length, and batch size in the test ID. Only models with `load_inputs_prefill()` or `load_inputs_decode()` methods are included in the LLM test suite.
-
-Sources: [tests/runner/test_models.py:361-461](), [tests/runner/test_utils.py:38-44]()
-```
-
-
-#### Test Metadata Update Flow
-
+### Related: Test Metadata Update Flow
 
 ```mermaid
 graph TB
@@ -521,4 +415,3 @@ graph TB
     ExtractDetail --> SetAttrs
     SetAttrs --> TestMetadata
 ```
-

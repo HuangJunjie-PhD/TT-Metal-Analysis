@@ -130,11 +130,8 @@ Refresh this wiki
 
 Enter email to refresh
 
-## Additional Diagrams
 
-
-### Integration with Conversion Pipeline
-
+### Related: Integration with Conversion Pipeline
 
 ```mermaid
 graph LR
@@ -152,10 +149,6 @@ graph LR
     A --- TTLAssignDST_Pass
 ```
 
-
-#### Broadcast Dimensions
-
-
 ```mermaid
 graph LR
     UserDim["Python: dims=[0]"] --> RowBcast["ttl.block.broadcast<br/>(Row Expansion)"]
@@ -170,9 +163,7 @@ graph LR
     end
 ```
 
-
-### Hardware Profiling Execution Flow
-
+### Related: Hardware Profiling Execution Flow
 
 ```mermaid
 graph TD
@@ -210,10 +201,6 @@ graph TD
     PerfSum --> LogFile
 ```
 
-
-#### ME2E Execution Flow
-
-
 ```mermaid
 graph TD
     subgraph "ME2E Runner"
@@ -229,15 +216,6 @@ graph TD
     translate --> run
     run --> validate
 ```
-
-Sources: [test/me2e/runner.py:78-198](), [test/me2e/base.py:8-14](), [test/me2e/base.py:47-205]()
-
----
-```
-
-
-#### Dialect Relationship Diagram
-
 
 ```mermaid
 graph TB
@@ -279,9 +257,7 @@ graph TB
     EmitC --> CPP
 ```
 
-
-#### Layout and Sharding Mapping
-
+### Related: Layout and Sharding Mapping
 
 ```mermaid
 graph TB
@@ -305,7 +281,3 @@ graph TB
     TML --> B_SHARD
     TML --> ND_SHARD
 ```
-
-Sources: [python/sim/ttnnsim.py:112-125](), [python/sim/ttnnsim.py:59-67]()
-```
-

@@ -46,6 +46,52 @@ The following diagram illustrates the end-to-end flow of a model through the TT-
 
 **Sources:**[README.md 25-32](https://github.com/tenstorrent/tt-forge/blob/6f2d9645/README.md?plain=1#L25-L32)[docs/src/model-bring-up-guide.md 30-65](https://github.com/tenstorrent/tt-forge/blob/6f2d9645/docs/src/model-bring-up-guide.md?plain=1#L30-L65)[demos/README.md 5-18](https://github.com/tenstorrent/tt-forge/blob/6f2d9645/demos/README.md?plain=1#L5-L18)
 
+
+
+```mermaid
+graph TD
+    subgraph FrameworkSpace["Natural Language & Framework Space"]
+        PT["PyTorch"]
+        JX["JAX"]
+        ONNX["ONNX / TF / Paddle"]
+    end
+
+    subgraph FrontendLayer["Frontend Layer (Code Entities)"]
+        TTXLA["tt-xla (PJRT Plugin)"]
+        TTFORGEONNX["tt-forge-onnx (TVM-based)"]
+        TTTORCH["tt-torch (Deprecated)"]
+    end
+
+    subgraph CompilerLayer["TT-MLIR Compiler Layer"]
+        SHLO["StableHLO"]
+        TTIR["TTIR Dialect"]
+        TTNNIR["TTNN Dialect"]
+        TTMETALIR["TTMetal Dialect"]
+    end
+
+    subgraph RuntimeLayer["Runtime Layer (TT-Metalium)"]
+        TTNNLIB["ttnn Library"]
+        TTMETALSYS["tt-metal (Metal SDK)"]
+        LLK["LLK (Low Level Kernels)"]
+    end
+
+    PT -->|torch.compile| TTXLA
+    JX -->|jax.jit| TTXLA
+    ONNX --> TTFORGEONNX
+    
+    TTXLA -->|Produces| SHLO
+    TTFORGEONNX -->|Produces| TTIR
+    
+    SHLO --> TTIR
+    TTIR -->|Passes: Fusing/Sharding| TTNNIR
+    TTNNIR -->|Lowers to| TTMETALIR
+    
+    TTNNIR --> TTNNLIB
+    TTMETALIR --> TTMETALSYS
+    TTMETALSYS --> LLK
+    
+    LLK --> HW["Wormhole / Blackhole Hardware"]
+```
 ## Frontend Layer
 
 The Frontend Layer is the entry point for models. It abstracts the complexities of different ML frameworks and produces a standardized representation for the compiler.
@@ -85,6 +131,39 @@ For details, see [Runtime and Hardware Layers](https://deepwiki.com/tenstorrent/
 **Sources:**[README.md 15](https://github.com/tenstorrent/tt-forge/blob/6f2d9645/README.md?plain=1#L15-L15)[docs/src/model-bring-up-guide.md 57-64](https://github.com/tenstorrent/tt-forge/blob/6f2d9645/docs/src/model-bring-up-guide.md?plain=1#L57-L64)[docs/src/model-bring-up-guide.md 95-97](https://github.com/tenstorrent/tt-forge/blob/6f2d9645/docs/src/model-bring-up-guide.md?plain=1#L95-L97)
 
 ## Data and Execution Flow Architecture
+
+
+```mermaid
+graph TB
+    subgraph UserSpace["User Python Space"]
+        API["tt_torch / jax.jit"]
+        COMP["torch.compile(backend='tt')"]
+    end
+
+    subgraph CompilerEntities["Compiler Logic (tt-mlir)"]
+        OPT["optimization_level Pass"]
+        SHARD["Sharding / SPMD Pass"]
+        TILE["32x32 Tiling Engine"]
+    end
+
+    subgraph RuntimeEntities["Runtime & Drivers"]
+        UMD["UMD (User Mode Driver)"]
+        KMD["KMD (Kernel Mode Driver)"]
+        DEVICE["tt_metal::Device"]
+    end
+
+    API --> COMP
+    COMP -->|Calls| TTXLA["tt-xla / PJRT"]
+    TTXLA --> OPT
+    OPT --> SHARD
+    SHARD --> TILE
+    TILE -->|Generates| BIN["Device Binaries / Kernels"]
+    
+    BIN --> DEVICE
+    DEVICE --> UMD
+    UMD --> KMD
+    KMD --> HW["Tenstorrent ASIC"]
+```
 
 This diagram bridges the gap between the high-level Python API calls and the low-level hardware drivers.
 

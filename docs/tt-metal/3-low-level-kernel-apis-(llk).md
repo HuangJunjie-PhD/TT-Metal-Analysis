@@ -228,6 +228,26 @@ Dataflow kernels interact with the Network-on-Chip (NoC) using non-blocking APIs
 
 Newer architectures like Quasar introduce Dataflow Buffers for optimized data movement between producers and consumers. These are managed via `CreateDataflowBuffer` and bound to kernels using `BindDataflowBufferToProducerConsumerKernels`[tt_metal/impl/dataflow_buffer/dataflow_buffer.cpp 20-35](https://github.com/tenstorrent/tt-metal/blob/f30f8df0/tt_metal/impl/dataflow_buffer/dataflow_buffer.cpp#L20-L35)
 
+
+
+```mermaid
+graph TD
+    subgraph "Host Control"
+        DFB_CREATE["CreateDataflowBuffer"]
+        DFB_BIND["BindDataflowBufferToKernels"]
+    end
+
+    subgraph "Device Execution"
+        PRODUCER["DM Producer (BRISC)"]
+        CONSUMER["DM Consumer (NCRISC)"]
+        NOC_TRANS["NOC Transaction"]
+    end
+
+    DFB_CREATE --> DFB_BIND
+    DFB_BIND --> PRODUCER
+    PRODUCER --> NOC_TRANS
+    NOC_TRANS --> CONSUMER
+```
 ### Data Format Reconfiguration
 
 LLK supports dynamic reconfiguration of data formats (e.g., Float32 vs Bfloat16) to optimize for either precision or throughput. The `is_fp32_dest_acc_en` template parameter is frequently used to select precision-specific math paths [tt_metal/hw/ckernels/blackhole/metal/llk_api/llk_sfpu/ckernel_sfpu_exp.h 56-87](https://github.com/tenstorrent/tt-metal/blob/f30f8df0/tt_metal/hw/ckernels/blackhole/metal/llk_api/llk_sfpu/ckernel_sfpu_exp.h#L56-L87)
@@ -247,115 +267,3 @@ Dismiss
 Refresh this wiki
 
 Enter email to refresh
-
-## Additional Diagrams
-
-
-#### Transformation Flow
-
-
-```mermaid
-graph LR
-    subgraph "Logical_Space"
-        LogCore["Logical CoreCoord"]
-    end
-    
-    subgraph "Device_Abstraction [tt_metal/impl/device/device.cpp]"
-        L2V["worker_core_from_logical_core()"]
-        L2P["virtual_core_from_logical_core()"]
-    end
-    
-    subgraph "Hardware_Space"
-        VirtCore["Virtual CoreCoord<br/>(NOC Addressing)"]
-        PhysCore["Physical CoreCoord<br/>(Silicon)"]
-    end
-    
-    LogCore --> L2V
-    LogCore --> L2P
-    L2V --> VirtCore
-    L2P --> PhysCore
-    
-    VirtCore --> NOC["get_noc_unicast_encoding()"]
-```
-
-Sources: [tt_metal/api/tt-metalium/device.hpp:106-110](), [tt_metal/api/tt-metalium/device.hpp:138-139]()
-```
-
-
-#### Compute Hardware Startup Flow
-
-
-```mermaid
-graph TB
-    Start["compute_kernel_hw_startup(icb0, icb1, ocb)"]
-    
-    UnpackConfig["UNPACK Thread (TRISC0):<br/>llk_unpack_hw_configure(icb0, icb1)"]
-    
-    MathSync["MATH Thread (TRISC1):<br/>llk_math_pack_sync_init()"]
-    MathConfig["MATH Thread (TRISC1):<br/>llk_math_hw_configure(icb0, icb1)"]
-    
-    PackConfig["PACK Thread (TRISC2):<br/>llk_pack_hw_configure(ocb)"]
-    PackInit["PACK Thread (TRISC2):<br/>llk_pack_init(ocb)"]
-    
-    Sentinel["ComputeKernelSentinel:<br/>Record CB associations"]
-    
-    End["Initialization Complete"]
-    
-    Start --> UnpackConfig
-    UnpackConfig --> MathSync
-    MathSync --> MathConfig
-    MathConfig --> PackConfig
-    PackConfig --> PackInit
-    PackInit --> Sentinel
-    Sentinel --> End
-```
-
-Sources: [tt_metal/hw/firmware/src/tt-2xx/dm.cc:87-101](), [tt_metal/hw/firmware/src/tt-2xx/trisc.cc:98-109]()
-```
-
-
-#### Diagram: Tensix Core Kernel Execution Architecture and API Mapping
-
-
-```mermaid
-graph TB
-    subgraph "Tensix Core Processors"
-        BRISC["BRISC (RISCV_0)<br/>DM Processor"]
-        NCRISC["NCRISC (RISCV_1)<br/>DM Processor"]
-        TRISC0["TRISC0 (UNPACK)<br/>Compute Processor"]
-        TRISC1["TRISC1 (MATH)<br/>Compute Processor"]
-        TRISC2["TRISC2 (PACK)<br/>Compute Processor"]
-    end
-    
-    subgraph "Kernel APIs"
-        DM_API["Data Movement API<br/>(dataflow_api.h)"]
-        COMP_API["Compute API<br/>(SFPU & Math Ops)"]
-        METAL2_BINDINGS["Metal 2.0 Auto-Generated Bindings<br/>(DFB, Semaphores, Tensors)"]
-    end
-    
-    subgraph "Memory and Buffers"
-        CB_DATA["Circular Buffers (CB)"]
-        RTA_ARGS["Runtime Arguments (RTA/CRTA)"]
-        KERNEL_CONFIG["Kernel Configuration Slots"]
-    end
-    
-    BRISC --> DM_API
-    NCRISC --> DM_API
-    TRISC0 --> COMP_API
-    TRISC1 --> COMP_API
-    TRISC2 --> COMP_API
-    
-    DM_API --> CB_DATA
-    DM_API --> RTA_ARGS
-    DM_API --> KERNEL_CONFIG
-
-    COMP_API --> CB_DATA
-    METAL2_BINDINGS --> CB_DATA
-    METAL2_BINDINGS --> RTA_ARGS
-```
-
-Sources: [tt_metal/impl/program/program.cpp:107-114](), [tt_metal/impl/program/program.cpp:160-170](), [tt_metal/jit_build/genfiles.cpp:92-182](), [tt_metal/hw/inc/api/dataflow/dataflow_api.h:44-172](), [tt_metal/impl/kernels/kernel.cpp:42-90]()
-
----
-```
-

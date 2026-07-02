@@ -370,9 +370,6 @@ Refresh this wiki
 
 Enter email to refresh
 
-## Additional Diagrams
-
-
 ## Summary Diagram: Code Review and CI/CD Workflow Integration
 
 

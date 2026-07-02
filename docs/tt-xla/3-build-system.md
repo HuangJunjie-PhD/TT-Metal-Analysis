@@ -32,6 +32,67 @@ The TT-XLA build system consists of three main components: CMake-based native co
 
 **Sources:**[CMakeLists.txt 1-111](https://github.com/tenstorrent/tt-xla/blob/c77995f6/CMakeLists.txt#L1-L111)[python_package/setup.py 1-512](https://github.com/tenstorrent/tt-xla/blob/c77995f6/python_package/setup.py#L1-L512)[.github/build-docker-images.sh 1-107](https://github.com/tenstorrent/tt-xla/blob/c77995f6/.github/build-docker-images.sh#L1-L107)
 
+
+
+```mermaid
+graph TB
+    subgraph "Build Inputs"
+        SourceCode["Source Code<br/>src/common, src/tt"]
+        PythonPkg["Python Packages<br/>python_package/"]
+        ThirdParty["External Deps<br/>third_party/CMakeLists.txt"]
+        VenvActivate["venv/activate"]
+    end
+    
+    subgraph "CMake Build Layer"
+        RootCMake["CMakeLists.txt<br/>Root configuration"]
+        CommonCMake["src/common/CMakeLists.txt<br/>PJRT plugin build"]
+        ExtProjects["ExternalProject_Add<br/>tt-mlir, loguru"]
+        BuildDir["build/<br/>Intermediate objects"]
+    end
+    
+    subgraph "Python Packaging Layer"
+        SetupPy["python_package/setup.py<br/>SetupConfig, CMakeBuildPy"]
+        BdistWheel["bdist_wheel<br/>BdistWheel command"]
+        BuildLib["build/lib/<br/>Staging directory"]
+    end
+    
+    subgraph "Docker Build Layer"
+        Dockerfile[".github/Dockerfile<br/>Multi-stage builds"]
+        BuildScript[".github/build-docker-images.sh<br/>Build orchestration"]
+        DockerTag[".github/get-docker-tag.sh<br/>Tag computation"]
+    end
+    
+    subgraph "Build Outputs"
+        PJRTPlugin["pjrt_plugin_tt.so<br/>PJRT plugin library"]
+        TTMLIRLibs["libTTMLIRCompiler.so<br/>libTTMLIRRuntime.so"]
+        Wheel["pjrt_plugin_tt-*.whl<br/>Python wheel"]
+        DockerImages["Docker Images<br/>base, ci, ird, cibw"]
+    end
+    
+    SourceCode --> RootCMake
+    ThirdParty --> ExtProjects
+    VenvActivate --> SetupPy
+    
+    RootCMake --> CommonCMake
+    RootCMake --> ExtProjects
+    
+    ExtProjects --> TTMLIRLibs
+    CommonCMake --> PJRTPlugin
+    
+    SetupPy --> BdistWheel
+    BdistWheel --> BuildLib
+    BuildLib --> Wheel
+    
+    PJRTPlugin --> Wheel
+    TTMLIRLibs --> Wheel
+    PythonPkg --> Wheel
+    
+    Dockerfile --> BuildScript
+    BuildScript --> DockerTag
+    DockerTag --> DockerImages
+    
+    Wheel --> DockerImages
+```
 ## CMake Configuration
 
 ### Root CMakeLists.txt
@@ -82,6 +143,78 @@ If `TT_METAL_RUNTIME_ROOT` is not set, the build sets it to point to tt-metal wi
 
 **Sources:**[third_party/CMakeLists.txt 1-133](https://github.com/tenstorrent/tt-xla/blob/c77995f6/third_party/CMakeLists.txt#L1-L133)
 
+
+
+```mermaid
+graph TB
+    subgraph "Dependency Configuration"
+        ThirdPartyCMake["third_party/CMakeLists.txt"]
+        TT_MLIR_VERSION["TT_MLIR_VERSION<br/>SHA: 3019a7afc205..."]
+        LOGURU_VERSION["LOGURU_VERSION<br/>SHA: 4adaa185883e..."]
+    end
+    
+    subgraph "tt-mlir External Project"
+        GitClone["GIT_REPOSITORY<br/>tenstorrent/tt-mlir"]
+        PatchCmd["PATCH_COMMAND<br/>Install Python requirements"]
+        CMakeArgs["CMAKE_ARGS<br/>Configure tt-mlir build"]
+        BuildCmd["BUILD_COMMAND<br/>cmake --build with Ninja"]
+        InstallCmd["INSTALL_COMMAND<br/>Install SharedLib + DistributedRuntime"]
+    end
+    
+    subgraph "tt-mlir Build Products"
+        TTMLIRCompiler["libTTMLIRCompiler.so"]
+        TTMLIRRuntime["libTTMLIRRuntime.so"]
+        TTMetalRuntime["tt-metal runtime<br/>From tt-mlir dependency"]
+        TTNNDialect["TTNN dialect libraries"]
+    end
+    
+    subgraph "loguru External Project"
+        LoguruGit["GIT_REPOSITORY<br/>emilk/loguru"]
+        LoguruBuild["CMake build<br/>Static library"]
+        LoguruLib["libloguru.a"]
+    end
+    
+    TT_MLIR_VERSION --> GitClone
+    GitClone --> PatchCmd
+    PatchCmd --> CMakeArgs
+    CMakeArgs --> BuildCmd
+    BuildCmd --> InstallCmd
+    
+    InstallCmd --> TTMLIRCompiler
+    InstallCmd --> TTMLIRRuntime
+    InstallCmd --> TTMetalRuntime
+    InstallCmd --> TTNNDialect
+    
+    LOGURU_VERSION --> LoguruGit
+    LoguruGit --> LoguruBuild
+    LoguruBuild --> LoguruLib
+```
+
+**tt-mlir Configuration:**
+
+The tt-mlir dependency is built with extensive CMake arguments:
+
+- `CMAKE_BUILD_TYPE=${TTMLIR_BUILD_TYPE}`: Separate build type from main project
+- `CMAKE_CXX_COMPILER_LAUNCHER=ccache`: Enable build caching
+- `DTT_RUNTIME_ENABLE_TTNN=ON`: Enable TTNN backend
+- `DTTMLIR_ENABLE_STABLEHLO=ON`: Enable StableHLO frontend
+- `DTTMLIR_ENABLE_RUNTIME=ON`: Enable runtime libraries
+- `DTT_RUNTIME_DEBUG=${TT_RUNTIME_DEBUG}`: Debug mode for runtime
+- `DTTMLIR_ENABLE_OPMODEL=ON`: Enable operation model
+- `DTTMLIR_ENABLE_EXPLORER=${TTXLA_ENABLE_EXPLORER}`: Optional explorer tools
+- `DTTMLIR_ENABLE_TESTS=OFF`: Skip tests in external project
+
+The build process includes a `PATCH_COMMAND` that installs Python requirements for tt-mlir before building:
+
+```bash
+PATCH_COMMAND mkdir -p ${TTMLIR_BUILD_DIR}
+COMMAND TTPJRT_SOURCE_DIR=${TTPJRT_SOURCE_DIR} bash ${TTPJRT_SOURCE_DIR}/venv/install_ttmlir_requirements.sh
+```
+
+**Environment Variables:**
+
+If `TT_METAL_RUNTIME_ROOT` is not set, the build sets it to point to tt-metal within tt-mlir's build tree. This is handled via the `WITH_METAL_RUNTIME_ROOT_SET` variable.
+```
 ### Library Exposure
 
 After building external projects, the build system exposes tt-mlir's shared libraries as imported CMake targets:
@@ -120,6 +253,55 @@ This provides full traceability of the build artifacts.
 
 **Sources:**[python_package/setup.py 23-195](https://github.com/tenstorrent/tt-xla/blob/c77995f6/python_package/setup.py#L23-L195)
 
+
+
+```mermaid
+graph TB
+    subgraph "SetupConfig Dataclass"
+        BuildType["build_type<br/>release/codecov/debug/explorer"]
+        Version["version<br/>0.1.YYMMDD+dev.SHA"]
+        Requirements["requirements<br/>From requirements.txt"]
+        Description["description_with_versions<br/>Includes commit SHAs"]
+    end
+    
+    subgraph "Wheel Structure"
+        PJRTPackage["pjrt_plugin_tt/<br/>Main package"]
+        JAXPlugin["jax_plugin_tt/<br/>JAX wrapper"]
+        TorchPlugin["torch_plugin_tt/<br/>PyTorch wrapper"]
+        TracyModule["tracy/<br/>Profiler wrapper"]
+        TTNNModule["ttnn/<br/>TTNN wrapper"]
+    end
+    
+    subgraph "Package Contents"
+        PluginSO["pjrt_plugin_tt.so<br/>PJRT plugin binary"]
+        TTMetalDir["tt-metal/<br/>Runtime dependencies"]
+        LibDir["lib/<br/>Shared libraries"]
+        InitFiles["__init__.py files<br/>Plugin registration"]
+    end
+    
+    BuildType --> PJRTPackage
+    Version --> PJRTPackage
+    
+    PJRTPackage --> PluginSO
+    PJRTPackage --> TTMetalDir
+    PJRTPackage --> LibDir
+    
+    JAXPlugin --> InitFiles
+    TorchPlugin --> InitFiles
+```
+
+**Version Generation:**
+
+The wheel version follows the pattern `0.1.YYMMDD+dev.SHA` where:
+- `YYMMDD`: Date of the commit in format YYMMDD
+- `SHA`: Short Git commit hash
+
+This version is generated dynamically:
+
+```python
+short_hash = subprocess.check_output(["git", "rev-parse", "--short", "HEAD\
+1d:T4feb,
+```
 ### Custom Build Commands
 
 The wheel build process uses two custom setuptools commands:

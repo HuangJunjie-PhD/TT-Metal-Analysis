@@ -373,11 +373,8 @@ Refresh this wiki
 
 Enter email to refresh
 
-## Additional Diagrams
 
-
-#### Model Loading and Tracing
-
+### Related: Model Loading and Tracing
 
 ```mermaid
 graph LR
@@ -398,10 +395,6 @@ graph LR
     P_Loader --> P_Model --> P_Trace --> P_Compile
     O_Loader --> O_Tmp --> O_Model --> O_Compile
 ```
-
-
-### Integration with CI/CD Pipeline
-
 
 ```mermaid
 graph TB
@@ -425,12 +418,7 @@ graph TB
     Demo -->|Success| PyPI
 ```
 
-The workflow sets `TRACY_NO_INVARIANT_CHECK: 1` to ensure that Tracy profiler checks do not interfere with the rapid smoke test execution.
-```
-
-
-#### Version Tag Construction
-
+### Related: Version Tag Construction
 
 ```mermaid
 graph TB
@@ -453,13 +441,6 @@ graph TB
     StableFormat -->|"new_version_tag"| StableExample["Example: 0.1.0"]
     PatchFormat -->|"new_version_tag"| PatchExample["Example: 0.1.1"]
 ```
-
-Sources: [.github/actions/set-release-facts/action.yaml:140-212](), [RELEASE.md:570-590]()
-```
-
-
-#### set-release-facts Action
-
 
 ```mermaid
 graph TB
@@ -500,12 +481,7 @@ graph TB
     DraftTransform --> SetOutputs
 ```
 
-Sources: [.github/actions/set-release-facts/action.yaml:134-371]()
-```
-
-
-#### Repository-Specific Configuration
-
+### Related: Repository-Specific Configuration
 
 ```mermaid
 graph LR
@@ -538,12 +514,7 @@ graph LR
     RepoInput -->|"contains 'tt-forge'"| TTForge
 ```
 
-Sources: [.github/actions/set-release-facts/action.yaml:216-248]()
-```
-
-
-#### Version Increment Rules
-
+### Related: Version Increment Rules
 
 ```mermaid
 graph TB
@@ -574,13 +545,6 @@ graph TB
     IncrementPatch --> NewTag
 ```
 
-Sources: [RELEASE.md:244-250](), [RELEASE.md:322-333]()
-```
-
-
-#### Version Tags in release.yml
-
-
 ```mermaid
 graph TB
     WorkflowInput["release.yml inputs: release_type, new_version_tag, branch"]
@@ -608,12 +572,7 @@ graph TB
     SetFacts --> GitTag
 ```
 
-Sources: [.github/workflows/release.yml:95-102](), [.github/workflows/release.yml:140-150](), [.github/workflows/release.yml:178-183](), [.github/workflows/release.yml:303-315](), [.github/workflows/release.yml:329-338](), [.github/workflows/release.yml:340-353]()
-```
-
-
-#### Nightly Release Path
-
+### Related: Nightly Release Path
 
 ```mermaid
 graph TD
@@ -650,18 +609,6 @@ graph TD
     TestPhase --> PublishPhase
 ```
 
-**Characteristics:**
-- **Execution:** Always runs, regardless of draft mode [.github/workflows/daily-releaser.yml:84]().
-- **Source Branch:** `main` branch for all repositories [.github/workflows/daily-releaser.yml:95]().
-- **Version Format:** `X.Y.Z.devYYYYMMDD` (e.g., `0.1.0.dev20240315`).
-- **Overwrite Policy:** Creates new releases daily; checks for existing releases.
-- **Failure Handling:** Allows workflow failures when finding build artifacts.
-```
-
-
-#### RC and Stable Update Path
-
-
 ```mermaid
 graph TD
     UpdateReleases["update-releases Workflow<br/>Conditional: !draft"]
@@ -690,27 +637,6 @@ graph TD
     MatrixOutput --> MatrixJobs
     MatrixJobs --> ReleaseInvoke
 ```
-
-**Discovery Logic:**
-The `get-release-branches` action performs sophisticated analysis:
-1. **Branch Enumeration:** Finds all branches matching `release-X.Y` pattern.
-2. **Commit Comparison:** For each branch, determines if new commits exist since last release.
-3. **Release Type Determination:**
-   - If no releases exist for the branch → Create `rc1`.
-   - If `rcN` releases exist → Create `rcN+1`. 
-   - If stable release exists and new commits → Create patch release.
-4. **Skipping Logic:** Branches with no new commits are excluded from the matrix.
-
-**Conditional Execution:**
-```yaml
-if: ${{ !inputs.draft }}
-```
-The entire path is skipped when `draft=true`, preventing accidental RC/stable releases during testing [.github/workflows/daily-releaser.yml:69]().
-```
-
-
-#### Workflow Inputs and Triggers
-
 
 ```mermaid
 graph LR
@@ -747,10 +673,6 @@ graph LR
     latest_commit --> release
 ```
 
-
-#### Job Dependency Graph
-
-
 ```mermaid
 graph TB
     generate_seed["generate-seed<br/>────────<br/>Job: generate-seed<br/>Runner: ubuntu-latest<br/>Action: .github/actions/random"]
@@ -773,10 +695,6 @@ graph TB
     publish_release --> test_after_publish
 ```
 
-
-#### Test Phase
-
-
 ```mermaid
 graph LR
     test_release["test-release job"]
@@ -793,19 +711,7 @@ graph LR
     basic_tests -->|"wait-workflow action"| test_release
 ```
 
-**Test Workflow Parameters:**
-
-| Workflow | Parameters |
-|----------|-----------|
-| `basic-tests.yml` | `docker-image`, `project-filter`, `runner-filter` |
-| `demo-tests.yml` | `docker-image`, `project-filter`, `test-filter` |
-
-The `trigger-workflow` action (`.github/actions/trigger-workflow`) starts the workflow and optionally waits for completion. The `wait-workflow` action (`.github/actions/wait-workflow`) blocks until specified tests complete.
-```
-
-
-#### Cross-Repository Artifact Flow
-
+### Related: Cross-Repository Artifact Flow
 
 ```mermaid
 graph TB
@@ -839,10 +745,6 @@ graph TB
     forge_build -->|"publish"| tt_pypi
 ```
 
-
-#### Testing Gate Matrix
-
-
 ```mermaid
 graph LR
     subgraph "Pre-Publish Gates"
@@ -862,19 +764,7 @@ graph LR
     publish --> perf
 ```
 
-**Test Filtering for Draft Releases:**
-
-Draft releases (used for integration testing) use restricted test filters to reduce CI time:
-- `test_demo_filter = "bge_m3"` (single demo test)
-- `test_perf_filter = "resnet"` (single performance test)
-- `basic_tests_runner_filter = "tt-ubuntu-2204-n150-stable"` (single hardware type)
-
-[.github/actions/set-release-facts/action.yaml:256-264]()
-```
-
-
-#### Standard Artifact Uplift
-
+### Related: Standard Artifact Uplift
 
 ```mermaid
 graph TB
@@ -885,10 +775,6 @@ graph TB
     FindWorkflow --> GetRunID
     GetRunID --> DownloadArtifacts
 ```
-
-
-#### Commit-Based Artifact Uplift (tt-xla)
-
 
 ```mermaid
 graph TB
@@ -907,9 +793,7 @@ graph TB
     CheckArtifact -->|"not found"| Error["Exit with error"]
 ```
 
-
-### Testing Configuration for Nightly Releases
-
+### Related: Testing Configuration for Nightly Releases
 
 ```mermaid
 graph TB
@@ -930,12 +814,7 @@ graph TB
     WaitBasic --> ProceedPublish
 ```
 
-The demo tests run in parallel but don't block the release pipeline, while basic tests must complete successfully before publishing.
-```
-
-
-### Nightly Release Version Progression
-
+### Related: Nightly Release Version Progression
 
 ```mermaid
 graph TB
@@ -972,9 +851,7 @@ graph TB
     style NextNightly fill:#f9f9f9
 ```
 
-
-### Dependency Uplift Integration
-
+### Related: Dependency Uplift Integration
 
 ```mermaid
 graph TB
@@ -992,10 +869,6 @@ graph TB
     ApprovePR --> AutoMerge
 ```
 
-
-#### Patch Versions
-
-
 ```mermaid
 graph LR
     RC1["0.4.0rc1<br/>First RC"]
@@ -1012,9 +885,7 @@ graph LR
     Patch1 -->|"bump-version.yml"| Patch2
 ```
 
-
-#### Bump Version Workflow
-
+### Related: Bump Version Workflow
 
 ```mermaid
 graph TB
@@ -1033,13 +904,6 @@ graph TB
     IncrementRC --> TriggerRelease
     TriggerRelease --> CreateRelease
 ```
-
-The test lifecycle demonstrates this by simulating a second commit to the release branch and verifying the version bump [.github/workflows/test-rc-stable-release-lifecycle.yml:335-350]().
-```
-
-
-#### Promotion Process
-
 
 ```mermaid
 graph TB
@@ -1061,12 +925,7 @@ graph TB
     BuildPublish --> TagLatest
 ```
 
-When `release_type == "stable"`, the `set-release-facts` action sets `prerelease="false"` and `make_latest="true"` [.github/actions/set-release-facts/action.yaml:202-204](). The test lifecycle validates this promotion [.github/workflows/test-rc-stable-release-lifecycle.yml:352-368]().
-```
-
-
-#### Phase 1: Build Release
-
+### Related: Phase 1: Build Release
 
 ```mermaid
 graph TB
@@ -1084,12 +943,7 @@ graph TB
     BuildWheel --> BuildDocker
 ```
 
-[.github/workflows/release.yml:78-184]()
-```
-
-
-#### Phase 2: Test Release
-
+### Related: Phase 2: Test Release
 
 ```mermaid
 graph TB
@@ -1105,13 +959,6 @@ graph TB
     TriggerDemo --> DemoAsync
     WaitBasic --> ProceedToPublish["Proceed to publish phase"]
 ```
-
-[.github/workflows/release.yml:185-256]()
-```
-
-
-#### Phase 3: Publish Release
-
 
 ```mermaid
 graph TB
@@ -1133,12 +980,7 @@ graph TB
     PublishGH --> PerfTest
 ```
 
-[.github/workflows/release.yml:257-391]()
-```
-
-
-### Artifact Management
-
+### Related: Artifact Management
 
 ```mermaid
 graph LR
@@ -1154,12 +996,7 @@ graph LR
     Extraction --> Workspace
 ```
 
-For details, see [Artifact Management](#5.4.2).
-```
-
-
-#### Artifact Management Architecture
-
+### Related: Artifact Management Architecture
 
 ```mermaid
 graph TB
@@ -1193,12 +1030,7 @@ graph TB
     DownloadAction --> GitHub
 ```
 
-Sources: [.github/actions/download-artifact/action.yaml:1-34](), [.github/actions/download-artifact-test.yml:1-11]()
-```
-
-
-### Image Build Architecture
-
+### Related: Image Build Architecture
 
 ```mermaid
 graph TB
@@ -1242,14 +1074,7 @@ graph TB
     end
 ```
 
-Sources: [.github/workflows/release.yml:152-183]()
-
----
-```
-
-
-#### Base Image Build Step
-
+### Related: Base Image Build Step
 
 ```mermaid
 graph LR
@@ -1260,17 +1085,6 @@ graph LR
     CheckPythonVer -->|if python_version == 3.11| BuildBase
     BuildBase --> DetermineBase
 ```
-
-The build is executed in [.github/workflows/release.yml:152-170]():
-- **Condition**: Only builds if `python_version == '3.11'` (line 153)
-- **Action**: `docker-build-push` with specific parameters
-- **Caching**: Enabled via `cache_docker_tag: true` (line 158)
-- **Latest tag**: Always set to `true` for base images (line 159)
-```
-
-
-#### Slim Image Build Process
-
 
 ```mermaid
 graph TB
@@ -1304,33 +1118,6 @@ graph TB
     end
 ```
 
-The slim image build occurs at [.github/workflows/release.yml:172-183]():
-
-**Input Parameters**:
-- `image_name`: Constructed as `ghcr.io/tenstorrent/${repo_short}-slim`
-- `docker_tag`: The version tag from `gh_new_version_tag`
-- `make_latest`: Set to `false` during initial build (line 179)
-- `force_rebuild`: Equals `overwrite_releases` input (line 180)
-- `draft`: Draft mode flag (line 181)
-- `dockerfile`: `.github/Dockerfile.single-wheel-slim` (line 182)
-- `build_args`: Three build arguments passed to Dockerfile (line 183)
-
-**Build Arguments** (line 183):
-```
---build-arg REPO_SHORT=${{ repo_short }}
---build-arg WHEEL_FILES_PATH=${{ wheel_files_path }}
---build-arg DOCKER_BASE_IMAGE=${{ DOCKER_BASE_IMAGE }}
-```
-
-Sources: [.github/workflows/release.yml:172-183]()
-
----
-```
-
-
-### Image Tagging Strategy
-
-
 ```mermaid
 graph TB
     subgraph "Phase 1: Initial Build"
@@ -1361,9 +1148,7 @@ graph TB
     end
 ```
 
-
-#### Documentation Data Flow
-
+### Related: Documentation Data Flow
 
 ```mermaid
 graph TB
@@ -1407,9 +1192,7 @@ graph TB
     BuildMDB --> GitHubPages
 ```
 
-
-#### Test Workflow Sequence
-
+### Related: Test Workflow Sequence
 
 ```mermaid
 graph TB
@@ -1484,9 +1267,7 @@ graph TB
     ValidateTags --> DeleteArtifacts
 ```
 
-
-### Test Types Overview
-
+### Related: Test Types Overview
 
 ```mermaid
 graph TB
@@ -1514,4 +1295,3 @@ graph TB
     PerfBench --> CIExec
     CICDTests --> CIExec
 ```
-

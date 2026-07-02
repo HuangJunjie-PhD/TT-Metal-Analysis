@@ -66,6 +66,49 @@ Sources: [python/sim/ttlang_sim.py 30-42](https://github.com/tenstorrent/tt-lang
 
 * * *
 
+
+
+```mermaid
+graph TB
+    subgraph "User Code Space"
+        Kernel["@ttl.operation(grid='auto')<br/>Kernel Entry"]
+        ComputeThread["@ttl.compute()"]
+        DMThread["@ttl.datamovement()"]
+    end
+    
+    subgraph "Simulator Core (Code Entity Space)"
+        Program["Program Class<br/>python/sim/program.py"]
+        Scheduler["GreenletScheduler<br/>python/sim/greenlet_scheduler.py"]
+        Context["SimulatorContext<br/>python/sim/context_types.py"]
+    end
+    
+    subgraph "Resource Management"
+        DFB["DataflowBuffer<br/>python/sim/dfb.py"]
+        CopySystem["CopySystemState<br/>python/sim/context_types.py"]
+        PipeNet["PipeNet<br/>python/sim/pipe.py"]
+    end
+    
+    subgraph "Monitoring"
+        Trace["TraceEvent<br/>python/sim/context_types.py"]
+        Stats["tt-lang-sim-stats<br/>python/sim_stats"]
+    end
+    
+    Kernel --> Program
+    ComputeThread --> Program
+    DMThread --> Program
+    Program --> Context
+    Program --> Scheduler
+    Context --> CopySystem
+    Context --> Trace
+    Scheduler --> DFB
+    CopySystem --> PipeNet
+    Trace --> Stats
+```
+
+Sources: [python/sim/ttlang_sim.py:30-42](), [python/sim/program.py:23-25](), [python/sim/pipe.py:22-23]()
+
+---
+```
 ## Program Execution Model
 
 ### Program Class and Thread Registration
@@ -106,6 +149,35 @@ Sources: [python/sim/greenlet_scheduler.py 1-28](https://github.com/tenstorrent/
 
 * * *
 
+
+
+```mermaid
+graph LR
+    subgraph "Scheduler (python/sim/greenlet_scheduler.py)"
+        GS["GreenletScheduler"]
+        ActiveDict["_active: Dict[name, greenlet]"]
+    end
+    
+    subgraph "Thread Greenlets"
+        C0_MATH["Core 0: MATH"]
+        C0_BRISC["Core 0: BRISC"]
+        C0_NCRISC["Core 0: NCRISC"]
+    end
+    
+    GS --> ActiveDict
+    ActiveDict --> C0_MATH
+    ActiveDict --> C0_BRISC
+    ActiveDict --> C0_NCRISC
+    C0_MATH -- "yield/switch" --> GS
+    GS -- "switch" --> C0_BRISC
+```
+
+For details, see [Cooperative Scheduling with Greenlets](#6.3).
+
+Sources: [python/sim/greenlet_scheduler.py:1-28](), [python/sim/ttlang_sim.py:27-28]()
+
+---
+```
 ## CircularBuffer Simulation
 
 `DataflowBuffer` (DFB) simulates hardware circular buffers. The simulator tracks DFB occupancy and enforces hardware limits, such as the total L1 capacity used per core [docs/sphinx/simulator.md 97-106](https://github.com/tenstorrent/tt-lang/blob/d76e6233/docs/sphinx/simulator.md?plain=1#L97-L106)

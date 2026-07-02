@@ -55,6 +55,56 @@ Sources: [CMakeLists.txt 3-10](https://github.com/tenstorrent/tt-mlir/blob/c7d92
 
 * * *
 
+
+
+```mermaid
+graph TD
+    root["CMakeLists.txt"]
+    include["add_subdirectory(include)"]
+    lib["add_subdirectory(lib)"]
+    python["add_subdirectory(python)"]
+    test["add_subdirectory(test)"]
+    tools["add_subdirectory(tools)"]
+    runtime["add_subdirectory(runtime)"]
+    env["add_subdirectory(env)"]
+
+    root --> include
+    root --> lib
+    root --> python
+    root --> test
+    root --> tools
+    root --> runtime
+    root --> env
+```
+
+**lib/ Subdirectory Structure**
+
+```mermaid
+graph TD
+    lib_cmake["lib/CMakeLists.txt"]
+    opmodel["add_subdirectory(OpModel)"]
+    capi["add_subdirectory(CAPI)"]
+    conversion["add_subdirectory(Conversion)"]
+    dialect["add_subdirectory(Dialect)"]
+    target["add_subdirectory(Target)"]
+    scheduler["add_subdirectory(Scheduler)"]
+    support["add_subdirectory(Support)"]
+    transforms["add_subdirectory(Transforms)"]
+
+    lib_cmake --> opmodel
+    lib_cmake --> capi
+    lib_cmake --> conversion
+    lib_cmake --> dialect
+    lib_cmake --> target
+    lib_cmake --> scheduler
+    lib_cmake --> support
+    lib_cmake --> transforms
+```
+
+Sources: [CMakeLists.txt:3-10](), [lib/CMakeLists.txt:9-16](), [env/CMakeLists.txt:1-2](), [tools/ttnn-standalone/CMakeLists.txt:1-2]()
+
+---
+```
 ## Build Configuration Options
 
 Build options are declared to manage optional components and hardware dependencies.
@@ -105,6 +155,42 @@ Sources: [third_party/CMakeLists.txt 1-3](https://github.com/tenstorrent/tt-mlir
 
 * * *
 
+
+
+```mermaid
+graph TD
+    subgraph "Toolchain Dependencies (env/)"
+        llvm["llvm-project<br/>(4efe170)"]
+        stablehlo["stablehlo<br/>(0a4440a)"]
+        shardy["shardy<br/>(edfd673)"]
+        flatbuffers["flatbuffers<br/>(fb9afba)"]
+    end
+
+    subgraph "Hardware Backend (third_party/)"
+        ttmetal["tt-metal<br/>(c5ebc63)"]
+    end
+
+    ttmlir["tt-mlir Project"]
+    
+    llvm --> ttmlir
+    stablehlo --> ttmlir
+    shardy --> ttmlir
+    flatbuffers --> ttmlir
+    ttmetal --> ttmlir
+```
+
+| Dependency | Version (Commit) | Role |
+|---|---|---|
+| `tt-metal` | `c5ebc63...` | Hardware abstraction and kernel runtime [third_party/CMakeLists.txt:3]() |
+| `llvm-project` | `4efe170...` | Base MLIR/LLVM infrastructure [env/CMakeLists.txt:5]() |
+| `stablehlo` | `0a4440a...` | Input dialect for ML models [env/CMakeLists.txt:6]() |
+| `shardy` | `edfd673...` | Sharding and distributed IR [env/CMakeLists.txt:7]() |
+| `flatbuffers` | `fb9afba...` | Binary serialization format [env/CMakeLists.txt:4]() |
+
+Sources: [third_party/CMakeLists.txt:1-3](), [env/CMakeLists.txt:4-7]()
+
+---
+```
 ## Integrated Tools Build
 
 The project builds several standalone tools and libraries. A key architectural decision is the split between `TTMLIRCompilerStatic` for tools like `ttmlir-opt` and `TTMLIRCompiler` (shared) for JIT and Python frontends [lib/CMakeLists.txt 71-108](https://github.com/tenstorrent/tt-mlir/blob/c7d92e92/lib/CMakeLists.txt#L71-L108)
@@ -115,6 +201,31 @@ Sources: [tools/ttnn-standalone/CMakeLists.txt 120-125](https://github.com/tenst
 
 * * *
 
+
+
+```mermaid
+graph TD
+    ttnn_standalone["ttnn-standalone (Executable)"]
+    ttnn_dylib["ttnn-dylib (Shared Library)"]
+    
+    subgraph "External Linkage"
+        lib_tt_metal["libtt_metal.so"]
+        lib_tt_stl["libtt_stl.so"]
+        lib_ttnncpp["_ttnncpp.so"]
+    end
+
+    ttnn_standalone --> lib_tt_metal
+    ttnn_standalone --> lib_tt_stl
+    ttnn_standalone --> lib_ttnncpp
+    
+    ttnn_dylib --> lib_tt_metal
+    ttnn_dylib --> lib_ttnncpp
+```
+
+Sources: [tools/ttnn-standalone/CMakeLists.txt:120-125](), [tools/ttnn-standalone/CMakeLists.txt:161-175](), [lib/CMakeLists.txt:71-113]()
+
+---
+```
 ## Development Workflow: Environment Activation
 
 Development typically starts by sourcing an activation script which sets up the environment and validates the toolchain.

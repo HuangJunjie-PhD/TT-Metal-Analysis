@@ -44,6 +44,47 @@ The following diagram bridges the "Natural Language Space" of compiler concepts 
 
 **Sources**: [include/ttlang/Dialect/TTL/IR/TTLOps.td 1-154](https://github.com/tenstorrent/tt-lang/blob/d76e6233/include/ttlang/Dialect/TTL/IR/TTLOps.td#L1-L154)[lib/Dialect/TTL/Transforms/ConvertTTLToTTKernel.cpp 1-92](https://github.com/tenstorrent/tt-lang/blob/d76e6233/lib/Dialect/TTL/Transforms/ConvertTTLToTTKernel.cpp#L1-L92)[include/ttlang/Dialect/TTL/IR/TTL.h 1-170](https://github.com/tenstorrent/tt-lang/blob/d76e6233/include/ttlang/Dialect/TTL/IR/TTL.h#L1-L170)
 
+
+
+```mermaid
+graph TB
+    subgraph "Python DSL Layer"
+        Python["Python @ttl.kernel<br/>Functions"]
+    end
+    
+    subgraph "TTL Dialect [include/ttlang/Dialect/TTL/IR/TTLOps.td]"
+        HighLevel["High-Level Ops<br/>TTL_AddOp, TTL_ExpOp"]
+        Structured["Structured Compute<br/>TTL_ComputeOp"]
+        TileOps["Tile Operations<br/>TTL_TileAddOp, TTL_TileMulOp"]
+        CBOps["Circular Buffer Ops<br/>TTL_BindCBOp, TTL_CBWaitOp<br/>TTL_CBReserveOp, TTL_CBPushOp"]
+        DMAOps["Data Movement<br/>TTL_CopyOp, TTL_WaitOp<br/>TTL_TensorSliceOp"]
+    end
+    
+    subgraph "TTKernel Dialect [ttmlir/Dialect/TTKernel/IR/TTKernelOps.td]"
+        NOC["NOC Operations<br/>NocAsyncReadTileOp<br/>NocAsyncWriteTileOp"]
+        DST["DST Register Ops<br/>AddTilesOp<br/>MulTilesOp"]
+        CBLow["CB Hardware Ops<br/>CbWaitFrontOp<br/>CbReserveBackOp"]
+        Sync["Synchronization<br/>TileRegsAcquireOp<br/>NocAsyncReadBarrierOp"]
+    end
+    
+    subgraph "Code Generation [lib/Dialect/TTL/Transforms/]"
+        EmitC["LowerDPrintToEmitC<br/>LowerSignpostToEmitC"]
+        CPP["C++ Kernel Code"]
+    end
+    
+    Python --> HighLevel
+    HighLevel --> Structured
+    Structured --> TileOps
+    TileOps --> DST
+    CBOps --> CBLow
+    DMAOps --> NOC
+    TileOps --> Sync
+    DST --> EmitC
+    CBLow --> EmitC
+    NOC --> EmitC
+    Sync --> EmitC
+    EmitC --> CPP
+```
 ## TTL Dialect Operation Categories
 
 The TTL dialect organizes operations into functional categories based on their role in the computation pipeline.
@@ -136,6 +177,25 @@ Inserts both common inits (e.g., `init_sfpu`) and per-op inits (e.g., `exp_tile_
 
 **Sources**: [lib/Dialect/TTL/Transforms/ConvertTTLToCompute.cpp 1-185](https://github.com/tenstorrent/tt-lang/blob/d76e6233/lib/Dialect/TTL/Transforms/ConvertTTLToCompute.cpp#L1-L185)[include/ttlang/Dialect/TTL/IR/TTL.h 83-116](https://github.com/tenstorrent/tt-lang/blob/d76e6233/include/ttlang/Dialect/TTL/IR/TTL.h#L83-L116)[lib/Dialect/TTL/Transforms/ConvertTTLTileOpsToTTKernel.cpp 5-15](https://github.com/tenstorrent/tt-lang/blob/d76e6233/lib/Dialect/TTL/Transforms/ConvertTTLTileOpsToTTKernel.cpp#L5-L15)
 
+
+
+```mermaid
+graph LR
+    Python["Python AST"] -- "TTLGenericCompiler" --> TTL["TTL Dialect"]
+    TTL -- "ttl-insert-intermediate-dfbs" --> IDFB["DFB Materialization"]
+    IDFB -- "ttl-auto-sync" --> SYNC["CB Sync (Push/Pop)"]
+    SYNC -- "ttl-assign-dst" --> DST["DST Allocation"]
+    DST -- "convert-ttl-to-ttkernel" --> TTK["TTKernel Dialect"]
+    TTK -- "convert-ttkernel-to-emitc" --> CPP["C++ Code"]
+```
+
+| Pass Name | Role |
+|-----------|------|
+| `ttl-insert-intermediate-dfbs` | Materializes intermediate values to L1 via compiler-allocated DFBs at fusion split points [lib/Dialect/TTL/Transforms/TTLInsertIntermediateDFBs.cpp:9-13](). |
+| `ttl-insert-cb-sync` | Inserts missing `cb_push`/`cb_pop` for unmatched `cb_reserve`/`cb_wait` [include/ttlang/Dialect/TTL/Passes.td:6-12](). |
+| `ttl-coalesce-dfb-acquires` | Collapses consecutive same-DFB acquires into a single multi-tile acquire [include/ttlang/Dialect/TTL/Passes.td:28-48](). |
+| `ttl-assign-dst` | Maps mathematical operations to hardware DST registers [lib/Dialect/TTL/Pipelines/TTLPipelines.cpp:36-36](). |
+```
 ## Type System and Attributes
 
 ### TTL Types
@@ -158,6 +218,32 @@ The following diagram maps high-level compiler concepts to specific code entitie
 
 **Sources**: [include/ttlang/Dialect/TTL/IR/TTLOps.td 25-154](https://github.com/tenstorrent/tt-lang/blob/d76e6233/include/ttlang/Dialect/TTL/IR/TTLOps.td#L25-L154)[lib/Dialect/TTL/Transforms/ConvertTTLToTTKernel.cpp 65-96](https://github.com/tenstorrent/tt-lang/blob/d76e6233/lib/Dialect/TTL/Transforms/ConvertTTLToTTKernel.cpp#L65-L96)[include/ttlang/Dialect/TTL/IR/TTL.h 121-122](https://github.com/tenstorrent/tt-lang/blob/d76e6233/include/ttlang/Dialect/TTL/IR/TTL.h#L121-L122)
 
+
+
+```mermaid
+graph LR
+    subgraph "Logic Space"
+        CB["Circular Buffer"]
+        DMA["Data Movement"]
+        Compute["Tile Math"]
+        Sync["DST Sync"]
+        Red["Reduction"]
+    end
+
+    subgraph "Code Entity Space (TTL Dialect & Passes)"
+        CB_Op["TTL_BindCBOp<br/>ttl.bind_cb"]
+        DMA_Op["TTL_CopyOp<br/>ttl.copy"]
+        Math_Op["TTL_ComputeOp<br/>ttl.compute"]
+        Reg_Op["TTKernelTypeConverter<br/>TTLToTTKernelTypeConverter"]
+        L1Acc["L1AccLoopAttr<br/>ttl.l1_acc_loop"]
+    end
+
+    CB --> CB_Op
+    DMA --> DMA_Op
+    Compute --> Math_Op
+    Sync --> Reg_Op
+    Red --> L1Acc
+```
 ## Summary
 
 The TTL and TTKernel MLIR dialects provide a multi-level representation for Tenstorrent hardware compilation:

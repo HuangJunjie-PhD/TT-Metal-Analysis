@@ -24,6 +24,55 @@ This page provides a comprehensive reference for the TTExaLens Python library AP
 
 For interactive command-line usage, see [Command Line Interface](https://deepwiki.com/tenstorrent/tt-exalens/4-command-line-interface). For details on the underlying device architecture, see [Device Architecture](https://deepwiki.com/tenstorrent/tt-exalens/5-device-architecture). For advanced debugging features, see [Advanced Features](https://deepwiki.com/tenstorrent/tt-exalens/7-advanced-features).
 
+
+
+```mermaid
+graph TB
+  subgraph "ttexalens/register_store.py"
+    RD["RegisterDescription"]
+    CRD["ConfigurationRegisterDescription"]
+    DRD["DebugRegisterDescription"]
+    RCRD["RiscControlRegisterDescription"]
+    TGPRD["TensixGeneralPurposeRegisterDescription"]
+    NSR["NocStatusRegisterDescription"]
+    NCR["NocConfigurationRegisterDescription"]
+    NCTRL["NocControlRegisterDescription"]
+    ARRD["ArcResetRegisterDescription"]
+    RSI["RegisterStoreInitialization"]
+    RS["RegisterStore"]
+    RDT["REGISTER_DATA_TYPE"]
+    FRV["format_register_value()"]
+    PRV["parse_register_value()"]
+    RD --> CRD
+    RD --> DRD
+    RD --> RCRD
+    RD --> TGPRD
+    RD --> NSR
+    RD --> NCR
+    RD --> NCTRL
+    RD --> ARRD
+    RSI --> RS
+  end
+  subgraph "ttexalens/hardware/tensix_registers_description.py"
+    TRD["TensixRegisterDescription"]
+    TDBD["TensixDebugBusDescription"]
+  end
+  subgraph "ttexalens/hardware/wormhole/functional_worker_registers.py"
+    WH_MAP["register_map: dict[str, RegisterDescription]"]
+  end
+  subgraph "ttexalens/hardware/blackhole/functional_worker_registers.py"
+    BH_MAP["register_map: dict[str, RegisterDescription]"]
+  end
+  RS --> RD
+  RS --> RDT
+  WH_MAP --> RS
+  BH_MAP --> RS
+```
+
+Sources: [ttexalens/register_store.py:1-20](), [ttexalens/hardware/tensix_registers_description.py](), [ttexalens/hardware/wormhole/functional_worker_registers.py:1-15](), [ttexalens/hardware/blackhole/functional_worker_registers.py:1-15]()
+
+---
+```
 ## API Structure and Organization
 
 The TTExaLens Python library is organized around a set of public functions exported from the `ttexalens` module. All functions follow consistent parameter conventions and can operate with automatic context initialization.
@@ -34,6 +83,73 @@ The TTExaLens Python library is organized around a set of public functions expor
 
 Sources: [ttexalens/__init__.py 6-27](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/ttexalens/__init__.py#L6-L27)[ttexalens/tt_exalens_lib.py 1-856](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/ttexalens/tt_exalens_lib.py#L1-L856)
 
+
+
+```mermaid
+graph TB
+    subgraph "Context Management"
+        init["init_ttexalens()"]
+        init_remote["init_ttexalens_remote()"]
+        check["check_context()"]
+        set_ctx["set_active_context()"]
+    end
+    
+    subgraph "Coordinate Operations"
+        convert["convert_coordinate()"]
+    end
+    
+    subgraph "Memory Access"
+        read_word["read_word_from_device()"]
+        read_words["read_words_from_device()"]
+        read_bytes["read_from_device()"]
+        write_word["write_words_to_device()"]
+        write_bytes["write_to_device()"]
+    end
+    
+    subgraph "Register Access"
+        read_reg["read_register()"]
+        write_reg["write_register()"]
+    end
+    
+    subgraph "RISC-V Memory"
+        read_risc["read_riscv_memory()"]
+        write_risc["write_riscv_memory()"]
+    end
+    
+    subgraph "ELF Operations"
+        parse["parse_elf()"]
+        load["load_elf()"]
+        run["run_elf()"]
+    end
+    
+    subgraph "Debugging"
+        callstack_func["callstack()"]
+        top_callstack_func["top_callstack()"]
+        tensix["TensixState"]
+    end
+    
+    subgraph "ARC Communication"
+        arc["arc_msg()"]
+        telemetry["read_arc_telemetry_entry()"]
+    end
+    
+    subgraph "Code Coverage"
+        cov["coverage()"]
+    end
+    
+    init --> check
+    init_remote --> check
+    check --> Memory Access
+    check --> Register Access
+    check --> RISC-V Memory
+    check --> ELF Operations
+    check --> Debugging
+    check --> ARC Communication
+    check --> Code Coverage
+```
+
+Sources: [ttexalens/__init__.py:6-27](), [ttexalens/tt_exalens_lib.py:1-856]()
+```
 ## Core Data Types
 
 The API operates on three fundamental types that users interact with directly:
@@ -88,6 +204,29 @@ All API functions follow consistent parameter patterns:
 
 Sources: [ttexalens/tt_exalens_lib.py 110-292](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/ttexalens/tt_exalens_lib.py#L110-L292)
 
+
+
+```mermaid
+graph LR
+    Function["API Function"] --> location["location: str | OnChipCoordinate"]
+    Function --> device_id["device_id: int = 0"]
+    Function --> context["context: Context | None = None"]
+    Function --> optional["...operation-specific params"]
+    
+    context --> auto_init["Auto-initializes if None via check_context()"]
+    location --> coord_convert["Converts strings via convert_coordinate()"]
+```
+
+| Parameter | Type | Purpose |
+|-----------|------|---------|
+| `location` | `str \| OnChipCoordinate` | Target chip location |
+| `device_id` | `int` | Device ID (default: 0) |
+| `context` | `Context \| None` | Session context (auto-initializes if None) |
+| `noc_id` | `int \| None` | NOC selection (0 or 1, None uses context default) |
+| `safe_mode` | `bool \| None` | Memory access validation (None uses context default) |
+
+Sources: [ttexalens/tt_exalens_lib.py:110-292]()
+```
 ### Automatic Context Initialization
 
 Functions automatically initialize a context if none is provided, enabling simple one-line operations:
@@ -125,6 +264,43 @@ For detailed documentation, see [Memory Access Operations](https://deepwiki.com/
 
 Sources: [ttexalens/tt_exalens_lib.py 110-292](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/ttexalens/tt_exalens_lib.py#L110-L292)[test/ttexalens/unit_tests/test_lib.py 80-360](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/test/ttexalens/unit_tests/test_lib.py#L80-L360)
 
+
+
+```mermaid
+graph TB
+    User["User Code"] --> read_word["read_word_from_device()"]
+    User --> read_words["read_words_from_device()"]
+    User --> read_bytes["read_from_device()"]
+    User --> write_words["write_words_to_device()"]
+    User --> write_bytes["write_to_device()"]
+    
+    read_word --> coord["convert_coordinate()"]
+    read_words --> coord
+    read_bytes --> coord
+    write_words --> coord
+    write_bytes --> coord
+    
+    coord --> OnChipCoordinate["OnChipCoordinate.noc_read()"]
+    coord --> OnChipCoordinate_write["OnChipCoordinate.noc_write()"]
+    
+    OnChipCoordinate --> Device["Device.noc_read()"]
+    OnChipCoordinate_write --> Device_write["Device.noc_write()"]
+    
+    Device --> UmdDevice["UmdDevice.read()"]
+    Device_write --> UmdDevice_write["UmdDevice.write()"]
+```
+
+| Function | Purpose | Returns |
+|----------|---------|---------|
+| `read_word_from_device()` | Read single 4-byte word | `int` |
+| `read_words_from_device()` | Read multiple 4-byte words | `list[int]` |
+| `read_from_device()` | Read arbitrary byte count | `bytes` |
+| `write_words_to_device()` | Write one or more 4-byte words | `None` |
+| `write_to_device()` | Write arbitrary bytes | `None` |
+
+**Example:**
+```python
+```
 ### Register Access Operations
 
 Register access functions support both configuration registers (indexed with mask/shift) and debug registers (addressed by offset).
@@ -147,6 +323,43 @@ For detailed documentation, see [Register Access](https://deepwiki.com/tenstorre
 
 Sources: [ttexalens/tt_exalens_lib.py 497-572](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/ttexalens/tt_exalens_lib.py#L497-L572)[test/ttexalens/unit_tests/test_lib.py 361-522](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/test/ttexalens/unit_tests/test_lib.py#L361-L522)
 
+
+
+```mermaid
+graph TB
+    User["User Code"] --> read_reg["read_register()"]
+    User --> write_reg["write_register()"]
+    
+    read_reg --> coord["convert_coordinate()"]
+    write_reg --> coord
+    
+    coord --> RegisterStore["NocBlock.get_register_store()"]
+    
+    RegisterStore --> read_op["RegisterStore.read_register()"]
+    RegisterStore --> write_op["RegisterStore.write_register()"]
+    
+    read_op --> ConfigReg["ConfigurationRegisterDescription"]
+    read_op --> DebugReg["DebugRegisterDescription"]
+    read_op --> NameLookup["Register name lookup"]
+    
+    write_op --> ConfigReg
+    write_op --> DebugReg
+    write_op --> NameLookup
+```
+
+| Function | Purpose | Returns |
+|----------|---------|---------|
+| `read_register()` | Read configuration or debug register | `int` |
+| `write_register()` | Write configuration or debug register | `None` |
+
+**Register Description Types:**
+- `ConfigurationRegisterDescription(index, mask, shift)` - Configuration space register
+- `DebugRegisterDescription(offset)` - Debug space register  
+- `str` - Named register (e.g., `"ALU_FORMAT_SPEC_REG2_Dstacc"`)
+
+**Example:**
+```python
+```
 ### ELF Management Operations
 
 ELF functions handle firmware loading, parsing, and execution on RISC-V cores.
@@ -171,6 +384,46 @@ For detailed documentation, see [ELF Management](https://deepwiki.com/tenstorren
 
 Sources: [ttexalens/tt_exalens_lib.py 294-421](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/ttexalens/tt_exalens_lib.py#L294-L421)[ttexalens/elf_loader.py 1-233](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/ttexalens/elf_loader.py#L1-L233)[test/ttexalens/unit_tests/test_lib.py 821-932](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/test/ttexalens/unit_tests/test_lib.py#L821-L932)
 
+
+
+```mermaid
+graph TB
+    User["User Code"] --> parse["parse_elf()"]
+    User --> load["load_elf()"]
+    User --> run["run_elf()"]
+    
+    parse --> ReadElf["read_elf()"]
+    ReadElf --> ParsedElfFile["ParsedElfFile"]
+    
+    load --> GetRiscDebug["RiscDebug instance"]
+    run --> GetRiscDebug
+    
+    GetRiscDebug --> ElfLoader["ElfLoader"]
+    
+    ElfLoader --> LoadSections["load_elf_sections()"]
+    ElfLoader --> RunElf["run_elf()"]
+    
+    LoadSections --> MemoryAccess["write_block()"]
+    LoadSections --> Verify["read_block() for verification"]
+    
+    RunElf --> SetReset["set_reset_signal()"]
+```
+
+| Function | Purpose | Parameters | Returns |
+|----------|---------|------------|---------|
+| `parse_elf()` | Parse ELF file and DWARF symbols | `elf_path: str` | `ParsedElfFile` |
+| `load_elf()` | Load ELF to RISC core (core in reset) | `elf_file, location, risc_name` | `None \| int \| list[int]` |
+| `run_elf()` | Load and execute ELF (takes core out of reset) | `elf_file, location, risc_name` | `None` |
+
+**Location Formats:**
+- `"all"` - All functional worker cores
+- `"X,Y"` - Single core
+- `["X,Y", "X2,Y2", ...]` - List of cores
+- `OnChipCoordinate` - Single coordinate object
+
+**Example:**
+```python
+```
 ### RISC-V Core Control Operations
 
 RISC-V memory access functions provide direct access to private memory regions not accessible via NOC.
@@ -192,6 +445,37 @@ For detailed documentation, see [RISC-V Core Control](https://deepwiki.com/tenst
 
 Sources: [ttexalens/tt_exalens_lib.py 712-770](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/ttexalens/tt_exalens_lib.py#L712-L770)[test/ttexalens/unit_tests/test_lib.py 554-778](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/test/ttexalens/unit_tests/test_lib.py#L554-L778)
 
+
+
+```mermaid
+graph TB
+    User["User Code"] --> read_risc["read_riscv_memory()"]
+    User --> write_risc["write_riscv_memory()"]
+    
+    read_risc --> GetRiscDebug["NocBlock.get_risc_debug()"]
+    write_risc --> GetRiscDebug
+    
+    GetRiscDebug --> EnsureHalt["ensure_private_memory_access()"]
+    
+    EnsureHalt --> ReadMem["RiscDebug.read_memory_bytes()"]
+    EnsureHalt --> WriteMem["RiscDebug.write_memory_bytes()"]
+    
+    ReadMem --> DebugInterface["Debug register interface"]
+    WriteMem --> DebugInterface
+```
+
+| Function | Purpose | Returns |
+|----------|---------|---------|
+| `read_riscv_memory()` | Read from RISC-V private memory via debug interface | `int` |
+| `write_riscv_memory()` | Write to RISC-V private memory via debug interface | `None` |
+
+**Private Memory Regions:**
+- Data Private: `0xFFB00000` - `0xFFB0FFFF` (varies by architecture)
+- Code Private: `0xFFC00000` - `0xFFC3FFFF` (varies by architecture)
+
+**Example:**
+```python
+```
 ### Debugging and Callstack Operations
 
 Debugging functions enable call stack inspection and frame unwinding using DWARF debug information.
@@ -216,6 +500,47 @@ For detailed documentation, see [Debugging and Callstacks](https://deepwiki.com/
 
 Sources: [ttexalens/tt_exalens_lib.py 587-690](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/ttexalens/tt_exalens_lib.py#L587-L690)[test/ttexalens/unit_tests/test_lib.py 933-1082](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/test/ttexalens/unit_tests/test_lib.py#L933-L1082)
 
+
+
+```mermaid
+graph TB
+    User["User Code"] --> callstack["callstack()"]
+    User --> top_callstack["top_callstack()"]
+    
+    callstack --> ParseElfs["Parse ELF files"]
+    top_callstack --> ParseElfs
+    
+    ParseElfs --> RiscDebug["RiscDebug.get_callstack()"]
+    top_callstack --> RiscDebugFrame["RiscDebug.get_frame_callstack()"]
+    
+    RiscDebug --> ReadPC["read_register_value('pc')"]
+    RiscDebug --> ReadSP["read_register_value('sp')"]
+    RiscDebug --> UnwindFrames["Frame unwinding loop"]
+    
+    RiscDebugFrame --> FindFrame["_find_elf_and_frame_description()"]
+    
+    UnwindFrames --> FrameInspection["FrameInspection"]
+    FindFrame --> FrameDescription["FrameDescription (DWARF CFI)"]
+    
+    FrameInspection --> CallstackEntry["CallstackEntry objects"]
+    FrameDescription --> CallstackEntry
+```
+
+| Function | Purpose | Returns |
+|----------|---------|---------|
+| `callstack()` | Full callstack with frame unwinding | `list[CallstackEntry]` |
+| `top_callstack()` | Top frame only (no stack walking) | `list[CallstackEntry]` |
+
+**CallstackEntry Fields:**
+- `function_name` - Function name from symbols
+- `file_name` - Source file path
+- `line_number` - Source line number
+- `pc` - Program counter value
+- `inlined` - Whether function is inlined
+
+**Example:**
+```python
+```
 ### ARC Communication Operations
 
 ARC functions provide communication with the ARC processor for device management and telemetry.
@@ -267,6 +592,49 @@ For detailed documentation, see [Tensix Core Debugging](https://deepwiki.com/ten
 
 Sources: [ttexalens/tt_exalens_lib.py 772-856](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/ttexalens/tt_exalens_lib.py#L772-L856)[ttexalens/debug_tensix.py 1-356](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/ttexalens/debug_tensix.py#L1-L356)[test/ttexalens/unit_tests/test_tensix_debug.py 1-215](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/test/ttexalens/unit_tests/test_tensix_debug.py#L1-L215)
 
+
+
+```mermaid
+graph TB
+    User["User Code"] --> TensixState["TensixState"]
+    
+    TensixState --> GetTensixDebug["TensixDebug(location)"]
+    
+    GetTensixDebug --> ReadALU["read_alu_config()"]
+    GetTensixDebug --> ReadPack["read_pack_config()"]
+    GetTensixDebug --> ReadUnpack["read_unpack_config()"]
+    GetTensixDebug --> ReadGPR["read_gpr()"]
+    GetTensixDebug --> ReadRWC["read_rwc()"]
+    GetTensixDebug --> ReadADC["read_adc()"]
+    
+    ReadGPR --> InjectInsn["inject_instruction()"]
+    ReadGPR --> ReadRegfile["read_regfile()"]
+    
+    ReadRegfile --> DirectRead["direct_dest_read() (Blackhole)"]
+    ReadRegfile --> IndirectRead["read_regfile_data() (Wormhole)"]
+```
+
+**TensixState Methods:**
+- `read_alu_config()` - ALU format configuration
+- `read_pack_config()` - Packer configuration
+- `read_unpack_config()` - Unpacker configuration  
+- `read_gpr(thread_id)` - General purpose registers
+- `read_rwc(thread_id)` - Register window counters
+- `read_adc(l1_address)` - ADC state (requires L1 sampling)
+
+**Example:**
+```python
+from ttexalens import TensixState
+
+state = TensixState("0,0")
+alu_config = state.read_alu_config()
+gpr = state.read_gpr(thread_id=0)
+```
+
+For detailed documentation, see [Tensix Core Debugging](#7.6).
+
+Sources: [ttexalens/tt_exalens_lib.py:772-856](), [ttexalens/debug_tensix.py:1-356](), [test/ttexalens/unit_tests/test_tensix_debug.py:1-215]()
+```
 ## Common Usage Patterns
 
 ### Basic Memory Inspection

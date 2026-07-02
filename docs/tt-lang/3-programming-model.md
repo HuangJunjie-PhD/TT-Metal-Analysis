@@ -109,6 +109,26 @@ The following diagram associates the logical stages of the compilation pipeline 
 
 **Sources:**[python/ttl/ttl_api.py 39-68](https://github.com/tenstorrent/tt-lang/blob/d76e6233/python/ttl/ttl_api.py#L39-L68)[lib/Dialect/TTL/Pipelines/TTLPipelines.cpp 19-75](https://github.com/tenstorrent/tt-lang/blob/d76e6233/lib/Dialect/TTL/Pipelines/TTLPipelines.cpp#L19-L75)[python/ttl/_src/ttl_ast.py 128-168](https://github.com/tenstorrent/tt-lang/blob/d76e6233/python/ttl/_src/ttl_ast.py#L128-L168)
 
+
+
+```mermaid
+graph LR
+    subgraph "User Space"
+        req["'Test Add on 2x2 grid'"]
+    end
+
+    subgraph "Code Entity Space"
+        factory["make_binary_kernel()"]
+        template["BINARY_KERNEL_TEMPLATE"]
+        cache["_kernel_cache"]
+        importlib["importlib.util"]
+    end
+
+    req --> factory
+    factory --> template
+    factory --> cache
+    factory --> importlib
+```
 ### Stage Boundaries
 
 | Stage | Input | Output | Primary Component |
@@ -233,11 +253,8 @@ Refresh this wiki
 
 Enter email to refresh
 
-## Additional Diagrams
 
-
-#### Build Architecture
-
+### Related: Build Architecture
 
 ```mermaid
 graph LR
@@ -258,9 +275,7 @@ graph LR
     ["third-party/tt-metal"] --> ["check-ttlang-python-bindings"]
 ```
 
-
-#### Pipes and PipeNet
-
+### Related: Pipes and PipeNet
 
 ```mermaid
 graph LR
@@ -279,13 +294,6 @@ graph LR
     P_DST -->|"ttl.copy(pipe, block)"| B_DST
 ```
 
-For details, see [Copy Operations and Synchronization](#2.2.3) and [Pipes and Inter-core Communication](#2.2.4).
-```
-
-
-### Circular Buffer Lifecycle
-
-
 ```mermaid
 graph TB
     Bind["TTL_BindCBOp<br/>Declare CB slot usage<br/>(kernel scope)"]
@@ -300,23 +308,6 @@ graph TB
     Use --> Release
     Release -.->|"Next iteration"| Acquire
 ```
-
-**Lifecycle Stages:**
-
-1.  **Binding** (`ttl.bind_cb`): Declares that a kernel will use a specific hardware slot (0-31). This op produces an SSA handle (`!ttl.cb`) but does not allocate memory [include/ttlang/Dialect/TTL/IR/TTLOps.td:25-49]().
-2.  **Attachment** (`ttl.attach_cb`): Associates a tensor value with a CB handle. This allows the compiler to trace back from a `ttl.compute` or `ttl.copy` operation to the specific hardware CB slot [include/ttlang/Dialect/TTL/IR/TTLOps.td:52-76]().
-3.  **Acquisition**:
-    *   **Producers** call `ttl.cb_reserve` to get writable space in L1 [include/ttlang/Dialect/TTL/IR/TTLOps.td:638-654]().
-    *   **Consumers** call `ttl.cb_wait` to ensure data is available for reading [include/ttlang/Dialect/TTL/IR/TTLOps.td:687-703]().
-4.  **Use**: Operations like `ttl.tile_store` or `ttl.copy` act on the "view" (tensor) returned by the acquisition phase [test/ttlang/Dialect/TTL/IR/cb_ops.mlir:95-101]().
-5.  **Release**:
-    *   **Producers** call `ttl.cb_push` to signal data is ready for the consumer [include/ttlang/Dialect/TTL/IR/TTLOps.td:664-678]().
-    *   **Consumers** call `ttl.cb_pop` to free the space in L1 [include/ttlang/Dialect/TTL/IR/TTLOps.td:712-726]().
-```
-
-
-### DST Capacity and Pressure Calculation
-
 
 ```mermaid
 graph TB
@@ -344,12 +335,7 @@ graph TB
     Capacity8 --> Unroll
     Pressure1 --> Unroll
     Pressure3 --> Unroll
-``` |
 ```
-
-
-#### Loop Nest Construction
-
 
 ```mermaid
 graph TD
@@ -366,19 +352,6 @@ graph TD
     F --> G
 ```
 
-**Diagram: Loop nest construction flow**
-
-Key characteristics:
-- **Side-effect-only loops**: No `iter_args`, no tensor results from `scf.for` [lib/Dialect/TTL/Transforms/ConvertTTLComputeToSCF.cpp:49-50]().
-- **Perfect nesting**: Inner loops are the only operations in outer loop bodies.
-- **Indexing Mapping**: Uses `extractTilesAtIndices` to resolve tile coordinates [lib/Dialect/TTL/Transforms/ConvertTTLComputeToSCF.cpp:56-59]().
-- **IterIndex Resolution**: `IterIndexOp` values are replaced by induction variables during cloning [lib/Dialect/TTL/Transforms/ConvertTTLComputeToSCF.cpp:66-74]().
-```
-
-
-### Handling Accumulating Computes
-
-
 ```mermaid
 graph TD
     A["Detect Reduction Dims"] --> B["Separate Parallel vs Reduction"]
@@ -389,14 +362,7 @@ graph TD
     D --> G["Store Ops (after reduction)"]
 ```
 
-**Diagram: Accumulating loop structure with dst_section**
-
-The `generateAccumulatingLoops` function [lib/Dialect/TTL/Transforms/ConvertTTLComputeToSCF.cpp:100-132]() wraps the reduction loop and stores in a `dst_section` to ensure the `DST` register contents persist across reduction iterations before being packed. Reduction loops are identified by checking the `iterator_types` for "reduction" [lib/Dialect/TTL/Transforms/ConvertTTLComputeToSCF.cpp:108-114]().
-```
-
-
-#### Type Conversion Architecture
-
+### Related: Type Conversion Architecture
 
 ```mermaid
 graph TB
@@ -445,14 +411,7 @@ graph TB
     Converter --> TargetMat
 ```
 
-Sources: [include/ttlang/Dialect/TTL/IR/TTLOpsTypes.td:31-67](), [include/ttlang/Dialect/TTL/IR/TTLOpsTypes.td:102-128](), [include/ttlang/Dialect/Utils/ConversionUtils.h:74-107]()
-
----
-```
-
-
-#### CB Lifecycle Operations
-
+### Related: CB Lifecycle Operations
 
 ```mermaid
 graph TD
@@ -478,10 +437,6 @@ graph TD
     ReserveOp -- "returns" --> Block
 ```
 
-
-#### Error: Debugging with Source Locations
-
-
 ```mermaid
 graph TD
     MLIRErr["MLIR Diagnostic Stream"]
@@ -501,13 +456,6 @@ graph TD
         SrcDiag
     end
 ```
-
-Multiple unrelated violations are rendered as separate `error:` blocks rather than being folded into a single primary error. The `format_mlir_error` function in `python/ttl/diagnostics.py` handles this grouping and source mapping.
-```
-
-
-#### Per-Node Context Building
-
 
 ```mermaid
 graph TB
@@ -536,9 +484,7 @@ graph TB
     NodeNum0 --> Ctx0
 ```
 
-
-### Profiling System Architecture
-
+### Related: Profiling System Architecture
 
 ```mermaid
 graph TB
@@ -565,18 +511,7 @@ graph TB
     end
 ```
 
-**Diagram: Profiling System Data Flow**
-
-The system operates in four phases:
-1. **Compilation**: The `TTLGenericCompiler` [python/ttl/_src/ttl_ast.py:128]() emits signpost operations and tracks source line mappings via `SourceLineMapper` [python/ttl/_src/auto_profile.py:57-63]().
-2. **MLIR Transformation**: `SignpostOp` [lib/Dialect/TTL/Transforms/LowerSignpostToEmitC.cpp:149]() operations are lowered to C++ profiler instrumentation via the `TTLLowerSignpostToEmitCPass` [lib/Dialect/TTL/Transforms/LowerSignpostToEmitC.cpp:142-143]().
-3. **Runtime**: Device profiler captures zone timestamps during kernel execution, dumping to `profile_log_device.csv` [python/ttl/_src/auto_profile.py:126-129]().
-4. **Analysis**: Post-execution tools like `parse_device_profile_csv()` [python/ttl/_src/auto_profile.py:126-129]() and `parse_signpost_zones()` [python/ttl/_src/signpost_profile.py:28-30]() parse profiler data and generate reports.
-```
-
-
-#### Signpost Generation Strategy
-
+### Related: Signpost Generation Strategy
 
 ```mermaid
 graph LR
@@ -591,12 +526,7 @@ graph LR
     [ZONE_END] --> [Duration]
 ```
 
-**Diagram: Auto-Profiling Signpost Hierarchy**
-```
-
-
-#### Environment Mapping
-
+### Related: Environment Mapping
 
 ```mermaid
 graph LR
@@ -628,12 +558,6 @@ graph LR
     HAS_DEV --> Lit
     TCO --> Lit
 ```
-Sources: [env/activate.in:29-61](), [test/ttlang_test_utils.py:27-44](), [test/TESTING.md:10-12]()
-```
-
-
-#### DFB Shape Configuration
-
 
 ```mermaid
 graph TB
@@ -660,15 +584,6 @@ graph TB
     Bcast --> Store
 ```
 
-The DFB shapes are configured using `ttl.make_dataflow_buffer_like` with specific `shape` overrides:
-
-```python
-```
-
-
-#### Profiling Pipeline Entity Mapping
-
-
 ```mermaid
 graph TD
     subgraph "Python DSL Space"
@@ -694,13 +609,8 @@ graph TD
     ReadDevice --> ParseCSV
     ParseCSV --> Report
 ```
-Sources: [python/ttl/ttl_api.py:133-158](), [python/ttl/ttl_api.py:166-235](), [python/ttl/_src/ttl_ast.py:160-165]()
-5f:T2a55,
-```
 
-
-#### Context Resolution during AST Lowering
-
+### Related: Context Resolution during AST Lowering
 
 ```mermaid
 graph TB
@@ -730,17 +640,7 @@ graph TB
     OpBuilder --> TTCoreDialect
 ```
 
-**Compiler Behavior**:
-The `TTLGenericCompiler` maintains a `CompilerContext` which stores the `grid` dimensions [python/ttl/_src/ttl_ast.py:119-126](). This context is initialized during compiler instantiation [python/ttl/_src/ttl_ast.py:141-145](). When generating MLIR, the compiler uses these dimensions to build `RankedTensorType` with appropriate `TTLLayoutAttr` encoding [python/ttl/_src/ttl_ast.py:69-116]().
-
-Sources: [python/ttl/_src/ttl_ast.py:119-145](), [lib/Dialect/TTL/Pipelines/TTLPipelines.cpp:47-51]()
-
----
-```
-
-
-#### Type Relationships
-
+### Related: Type Relationships
 
 ```mermaid
 graph TB
@@ -775,9 +675,7 @@ graph TB
     Pipe -->|used by| Copy
 ```
 
-
-### Hardware Mapping and Code Generation
-
+### Related: Hardware Mapping and Code Generation
 
 ```mermaid
 graph TB
@@ -817,12 +715,7 @@ graph TB
     TTK_READ --> CPP_READ
 ```
 
-Sources: [lib/Dialect/TTL/Transforms/ConvertTTLToTTKernel.cpp:9-17](), [lib/Dialect/TTKernel/Transforms/TTKernelInsertInits.cpp:104-115]()
-```
-
-
-### Type Converter Architecture
-
+### Related: Type Converter Architecture
 
 ```mermaid
 graph TB
@@ -845,9 +738,7 @@ graph TB
     ["TTLToTTKernelTypeConverter"] --> ["TargetMat"]
 ```
 
-
-### Example: Type Transformation from TTL to TTKernel Dialect
-
+### Related: Example: Type Transformation from TTL to TTKernel Dialect
 
 ```mermaid
 graph LR
@@ -863,9 +754,3 @@ graph LR
         ["KAcc"] -- "ttkernel::TensorAccessorType" --> ["Final"]
     end
 ```
-
-**Implementation**:
-- `lookupAndConvertCB`: Traces an operand back to its defining `bind_cb` and converts the type [lib/Dialect/TTL/Transforms/ConvertTTLTileOpsToTTKernel.cpp:157-175]().
-- `computeCBTileIndex`: Calculates the linear index into a CB by tracing through `tensor.extract` and applying slice offsets [lib/Dialect/TTL/Transforms/ConvertTTLTileOpsToTTKernel.cpp:133-153]().
-```
-

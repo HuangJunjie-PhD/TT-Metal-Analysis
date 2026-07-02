@@ -289,11 +289,6 @@ Refresh this wiki
 
 Enter email to refresh
 
-## Additional Diagrams
-
-
-#### Installed Wheel Structure
-
 
 ```mermaid
 graph TD
@@ -319,10 +314,6 @@ graph TD
     Init3 --> Setup2["Import and setup PJRT plugin for PyTorch/XLA"]
 ```
 
-
-#### Container Architecture
-
-
 ```mermaid
 graph TB
     subgraph Host["Host System"]
@@ -347,9 +338,7 @@ graph TB
     DockerDaemon --> Container
 ```
 
-
-### Installation Approach Decision Guide
-
+### Related: Installation Approach Decision Guide
 
 ```mermaid
 graph TD
@@ -387,10 +376,6 @@ graph TD
     Verify --> Done["Ready to run models"]
 ```
 
-
-#### Hugepages Configuration
-
-
 ```mermaid
 graph LR
     subgraph "System Memory"
@@ -409,13 +394,6 @@ graph LR
     A -.->|"Not Used for<br/>Device I/O"| D
 ```
 
-Hugepages reduce TLB (Translation Lookaside Buffer) misses during DMA operations, improving data transfer performance between host and device memory.
-```
-
-
-### Example Test Patterns
-
-
 ```mermaid
 graph LR
     OpTest["run_op_test()"]
@@ -432,13 +410,6 @@ graph LR
     GraphTest --> CompConfig
     ModelTest --> Evaluator
 ```
-
-The test infrastructure provides reusable patterns for validating model compilation and output correctness.
-```
-
-
-### Wheel Layout
-
 
 ```mermaid
 graph TD
@@ -460,52 +431,6 @@ graph TD
     TTNN --> TTNN_ORIG["_original/ (wrapped ttnn from tt-metal)"]
     TOOLS --> SFPI["install_sfpi.py (tt-forge-install entrypoint)"]
 ```
-
-Sources: [python_package/setup.py:22-43]()
-
----
-```
-
-
-#### Package Layout
-
-
-```mermaid
-graph TB
-    subgraph "Wheel Package: pjrt_plugin_tt-*.whl"
-        subgraph "pjrt_plugin_tt/"
-            Init1["__init__.py"]
-            PluginSO["pjrt_plugin_tt.so<br/>PJRT C API"]
-            TTMetal["tt-metal/<br/>Runtime dependencies"]
-            Libs["lib/<br/>Shared libraries<br/>libTTMLIR*.so"]
-        end
-        
-        subgraph "jax_plugin_tt/"
-            Init2["__init__.py<br/>JAX registration"]
-        end
-        
-        subgraph "torch_plugin_tt/"
-            Init3["__init__.py<br/>PyTorch registration"]
-        end
-    end
-    
-    subgraph "JAX Framework"
-        JAXRuntime["JAX Runtime"]
-        PluginRegistry["XLA Plugin Registry"]
-    end
-    
-    Init2 --> |"imports and<br/>configures"| Init1
-    Init2 --> |"registers with"| PluginRegistry
-    PluginRegistry --> |"loads"| PluginSO
-    JAXRuntime --> |"uses"| PluginRegistry
-```
-
-**Wheel Package Structure and Loading Flow**
-```
-
-
-#### Core Execution Steps
-
 
 ```mermaid
 graph TB
@@ -571,15 +496,6 @@ graph TB
     Q --> S
 ```
 
-**Execution Steps**: After initialization and configuration, the model is executed on CPU to establish a baseline, then on TT device for comparison. Results are validated and recorded, with appropriate pytest markers applied based on status.
-
-Sources: [tests/infra/testers/single_chip/model/model_tester.py:1-250](), [tests/runner/test_utils.py:483-628]()
-```
-
-
-#### ComponentChecker Enum
-
-
 ```mermaid
 graph TB
     Exception["Exception Raised"]
@@ -602,9 +518,7 @@ graph TB
     style ComponentChecker fill:#f9f9f9
 ```
 
-
-#### Available Preset Files
-
+### Related: Available Preset Files
 
 ```mermaid
 graph TB
@@ -628,45 +542,6 @@ graph TB
         VLLMTests["vllm-model-tests.json<br/>vLLM plugin tests"]
     end
 ```
-
-
-#### End-to-End Flow
-
-
-```mermaid
-graph TB
-    subgraph "Matrix Generation"
-        Preset["Load Preset JSON<br/>model-test-passing.json"] --> ParseEntries["Parse Matrix Entries<br/>3 jobs for n150<br/>4 jobs for n300-llmbox"]
-    end
-    
-    subgraph "Job Preparation"
-        ParseEntries --> CreateJobs["Create Parallel Jobs<br/>strategy.matrix<br/>fail-fast: false"]
-        CreateJobs --> DownloadWheel["Download Wheel<br/>gh run download"]
-        DownloadWheel --> InstallWheel["Install Wheel<br/>uv pip install"]
-    end
-    
-    subgraph "Test Collection"
-        InstallWheel --> CheckRerun["Check Rerun Attempt<br/>.pytest_tests_to_run"]
-        CheckRerun --> CollectTests["Collect Tests<br/>pytest --collect-only"]
-        CollectTests --> CalculateTimeout["Calculate Timeout<br/>calculate_test_timeout.py"]
-    end
-    
-    subgraph "Test Execution"
-        CalculateTimeout --> SplitTests["Split Tests<br/>pytest-split<br/>least_duration"]
-        SplitTests --> RunPytest["Run pytest<br/>--forked (torch)<br/>--splits N --group M"]
-        RunPytest --> GenerateReport["Generate JUnit XML<br/>--junitxml=report.xml"]
-    end
-    
-    subgraph "Result Upload"
-        GenerateReport --> UploadLog["Upload Test Log<br/>pytest.log"]
-        UploadLog --> UploadReport["Upload Test Report<br/>test-reports-hash-attempt.index-*"]
-        UploadReport --> UploadPerf["Upload Perf Report<br/>perf-reports-*"]
-    end
-```
-
-
-#### CMake Directory Structure
-
 
 ```mermaid
 graph TB
@@ -713,4 +588,3 @@ graph TB
     style SRC fill:#e8f5e9
     style THIRD fill:#e8f5e9
 ```
-

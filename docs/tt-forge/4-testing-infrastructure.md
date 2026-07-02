@@ -35,12 +35,96 @@ The testing system implements a multi-tier validation strategy optimized for fee
 
 **Sources:**[.github/workflows/basic-tests.yml 1-57](https://github.com/tenstorrent/tt-forge/blob/6f2d9645/.github/workflows/basic-tests.yml#L1-L57)[.github/workflows/demo-tests.yml 1-53](https://github.com/tenstorrent/tt-forge/blob/6f2d9645/.github/workflows/demo-tests.yml#L1-L53)[.github/workflows/demo-tests.yml 85-132](https://github.com/tenstorrent/tt-forge/blob/6f2d9645/.github/workflows/demo-tests.yml#L85-L132)[.github/workflows/demo-tests.yml 133-191](https://github.com/tenstorrent/tt-forge/blob/6f2d9645/.github/workflows/demo-tests.yml#L133-L191)
 
+
+
+```mermaid
+graph TB
+    subgraph "Test Workflow Tiers"
+        BasicTests["basic-tests.yml<br/>─────────────<br/>Trigger: Pull requests, pushes<br/>Duration: Minutes<br/>Purpose: Rapid smoke testing"]
+        DemoTests["demo-tests.yml<br/>─────────────<br/>Trigger: workflow_call, workflow_dispatch<br/>Duration: ~30 minutes<br/>Purpose: End-to-end model validation"]
+    end
+    
+    subgraph "Workflow Invocation Paths"
+        PREvent["Pull Request Event"]
+        PushEvent["Push to main"]
+        DailyReleaser["daily-releaser.yml<br/>Scheduled: 04:00 UTC"]
+        ManualDispatch["workflow_dispatch<br/>Manual trigger"]
+    end
+    
+    subgraph "Shared Infrastructure"
+        FilterMatrix["filter-test-matrix.py<br/>─────────────<br/>flatten_matrix()<br/>filter_matrix()<br/>update_runners()"]
+        MatrixJSON["Test Matrix Files<br/>─────────────<br/>models-matrix.json"]
+        
+        MatrixJSON --> FilterMatrix
+    end
+    
+    subgraph "Execution Layer"
+        RunnerN150["tt-ubuntu-2204-n150-stable<br/>Wormhole hardware"]
+        RunnerP150["tt-ubuntu-2204-p150b-stable<br/>Blackhole hardware"]
+        DockerContainer["Docker Container<br/>─────────────<br/>Device: /dev/tenstorrent<br/>Volumes: hugepages, modules"]
+    end
+    
+    subgraph "Result Processing"
+        FailNotify["fail-notify job<br/>─────────────<br/>re-actors/alls-green@release/v1<br/>Aggregate pass/fail status"]
+        FailSendMsg["fail-send-msg job<br/>─────────────<br/>Conditional Slack notification<br/>Channel: C088QN7E0R3"]
+        ProduceData["produce-data job<br/>─────────────<br/>Trigger produce_data.yml<br/>Store test results"]
+    end
+    
+    PREvent --> BasicTests
+    PushEvent --> BasicTests
+    DailyReleaser --> DemoTests
+    ManualDispatch --> DemoTests
+    
+    BasicTests --> FilterMatrix
+    DemoTests --> FilterMatrix
+    
+    FilterMatrix --> RunnerN150
+    FilterMatrix --> RunnerP150
+    
+    RunnerN150 --> DockerContainer
+    RunnerP150 --> DockerContainer
+    
+    DockerContainer --> FailNotify
+    FailNotify --> FailSendMsg
+    FailSendMsg --> ProduceData
+```
 ## Test Matrix Filtering System
 
 The `filter-test-matrix.py` script provides a unified interface for test selection across all testing workflows. It transforms hierarchical test configurations into flat matrices suitable for GitHub Actions parallel execution.
 
 ### Matrix Filtering Flow
 
+
+
+```mermaid
+graph LR
+    subgraph "Input Configuration"
+        MatrixFile["Matrix JSON File<br/>─────────────<br/>models-matrix.json"]
+        ProjectFilter["Project Filter<br/>─────────────<br/>tt-forge-onnx<br/>tt-torch<br/>tt-xla<br/>tt-forge"]
+        TestFilter["Test Filter<br/>─────────────<br/>Optional name substring"]
+        ShRunner["Shared Runner Flag<br/>─────────────<br/>--sh-runner"]
+    end
+    
+    subgraph "Processing Functions"
+        Flatten["flatten_matrix(data)<br/>─────────────<br/>Merge test-defaults<br/>Expand runs-on arrays<br/>Add project attribute"]
+        Filter["filter_matrix(matrix)<br/>─────────────<br/>Filter by project<br/>Filter by name<br/>Return filtered list"]
+        UpdateRunner["update_runners(matrix)<br/>─────────────<br/>Map: n150 → n150-perf<br/>Map: p150 → p150b<br/>Store original in runs-on-original"]
+    end
+    
+    subgraph "Output"
+        MatrixJSON["JSON Output<br/>─────────────<br/>{matrix: [...], matrix_skip: bool}"]
+        GitHubOutput["GITHUB_OUTPUT<br/>─────────────<br/>matrix=$matrix<br/>matrix_skip=$matrix_skip"]
+    end
+    
+    MatrixFile --> Flatten
+    ProjectFilter --> Filter
+    TestFilter --> Filter
+    Flatten --> Filter
+    Filter --> UpdateRunner
+    ShRunner --> UpdateRunner
+    UpdateRunner --> MatrixJSON
+    MatrixJSON --> GitHubOutput
+```
 ### Special Filtering Rules
 
 The filter logic implements special handling for the `tt-forge` project filter. In `demo-tests.yml`, the filter script is called using inputs from the workflow trigger to select specific models from `models-matrix.json`[.github/workflows/demo-tests.yml 69-84](https://github.com/tenstorrent/tt-forge/blob/6f2d9645/.github/workflows/demo-tests.yml#L69-L84)
@@ -53,6 +137,52 @@ The `basic-tests.yml` workflow provides rapid validation for pull requests and c
 
 ### Basic Tests Architecture
 
+
+
+```mermaid
+graph TB
+    subgraph "Workflow Inputs"
+        DockerImage["docker-image<br/>Default: tt-forge-slim:nightly-latest"]
+        ProjectFilter["project-filter<br/>tt-forge-onnx | tt-torch | tt-xla | tt-forge"]
+        RunnerFilter["runner-filter<br/>n150 | p150 | All"]
+    end
+    
+    subgraph "Job: build_matrix"
+        SetMatrix["set-matrix step<br/>─────────────<br/>Bash script builds JSON<br/>For each frontend in frontends<br/>For each runner in runs_on<br/>Add to json_matrix"]
+        MatrixOutput["Outputs:<br/>json_matrix"]
+    end
+    
+    subgraph "Job: basic-test"
+        MatrixStrategy["Strategy: fail-fast: false<br/>matrix: include from json_matrix"]
+        
+        CheckoutRepo["Checkout repository"]
+        FixHome["Fix HOME Directory<br/>─────────────<br/>Issue: actions/runner#863"]
+        RunTest["Run tests for frontend<br/>─────────────<br/>python basic_tests/{frontend}/demo_test.py"]
+    end
+    
+    subgraph "Container Configuration"
+        ContainerImage["image: docker-image input"]
+        DeviceMount["options: --device /dev/tenstorrent"]
+        Volumes["volumes:<br/>/dev/hugepages<br/>/lib/modules"]
+        RunsOn["runs-on: matrix.runs_on"]
+    end
+    
+    DockerImage --> SetMatrix
+    ProjectFilter --> SetMatrix
+    RunnerFilter --> SetMatrix
+    
+    SetMatrix --> MatrixOutput
+    MatrixOutput --> MatrixStrategy
+    
+    MatrixStrategy --> CheckoutRepo
+    CheckoutRepo --> FixHome
+    FixHome --> RunTest
+    
+    ContainerImage --> RunTest
+    DeviceMount --> RunTest
+    Volumes --> RunTest
+    RunsOn --> RunTest
+```
 ### Test Execution
 
 Each test executes a frontend-specific Python script located at `basic_tests/${{ matrix.frontend }}/demo_test.py`[.github/workflows/basic-tests.yml 153](https://github.com/tenstorrent/tt-forge/blob/6f2d9645/.github/workflows/basic-tests.yml#L153-L153) These scripts typically perform minimal operations to ensure the backend is reachable:
@@ -65,6 +195,34 @@ For details, see [Basic Tests Workflow](https://deepwiki.com/tenstorrent/tt-forg
 
 **Sources:**[.github/workflows/basic-tests.yml 1-154](https://github.com/tenstorrent/tt-forge/blob/6f2d9645/.github/workflows/basic-tests.yml#L1-L154)[basic_tests/tt-torch/demo_test.py 1-19](https://github.com/tenstorrent/tt-forge/blob/6f2d9645/basic_tests/tt-torch/demo_test.py#L1-L19)[basic_tests/tt-xla/demo_test.py 1-22](https://github.com/tenstorrent/tt-forge/blob/6f2d9645/basic_tests/tt-xla/demo_test.py#L1-L22)[basic_tests/tt-forge-onnx/demo_test.py 1-27](https://github.com/tenstorrent/tt-forge/blob/6f2d9645/basic_tests/tt-forge-onnx/demo_test.py#L1-L27)
 
+
+
+```mermaid
+graph TB
+    Trigger["Push/PR to release code<br/>or workflow_dispatch"]
+    
+    TestWorkflow["test-nightly-releaser.yml<br/>────────────<br/>Single job:<br/>test-daily-nightly-releaser"]
+    
+    DailyReleaser["Calls daily-releaser.yml<br/>────────────<br/>with:<br/>  draft: true<br/>  overwrite_releases: false<br/>  repo: optional filter"]
+    
+    GetRepos["daily-releaser:<br/>get-repos job<br/>────────────<br/>Lists all repos or filtered repo"]
+    
+    NightlyPath["For each repo:<br/>Calls release.yml<br/>────────────<br/>type: nightly<br/>draft: true"]
+    
+    RCStablePath["For each repo:<br/>Calls update-releases.yml<br/>────────────<br/>draft: true"]
+    
+    DraftArtifacts["Creates draft artifacts:<br/>────────────<br/>Draft nightly releases<br/>Draft RC/stable updates<br/>Draft branches"]
+    
+    Trigger --> TestWorkflow
+    TestWorkflow --> DailyReleaser
+    DailyReleaser --> GetRepos
+    
+    GetRepos --> NightlyPath
+    GetRepos --> RCStablePath
+    
+    NightlyPath --> DraftArtifacts
+    RCStablePath --> DraftArtifacts
+```
 ## Demo Tests Workflow
 
 The `demo-tests.yml` workflow executes comprehensive model demonstrations to validate end-to-end functionality. It supports both manual dispatch and programmatic invocation from the release pipeline.

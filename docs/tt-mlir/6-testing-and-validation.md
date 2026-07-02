@@ -71,6 +71,51 @@ The builder tests are pytest suites that programmatically construct MLIR modules
 
 Sources: [tools/builder/base/builder.py 38-117](https://github.com/tenstorrent/tt-mlir/blob/c7d92e92/tools/builder/base/builder.py#L38-L117)[tools/builder/ttir/ttir_builder.py 25-156](https://github.com/tenstorrent/tt-mlir/blob/c7d92e92/tools/builder/ttir/ttir_builder.py#L25-L156)[tools/builder/stablehlo/stablehlo_builder.py 26-205](https://github.com/tenstorrent/tt-mlir/blob/c7d92e92/tools/builder/stablehlo/stablehlo_builder.py#L26-L205)[tools/builder/ttnn/ttnn_builder.py 22-137](https://github.com/tenstorrent/tt-mlir/blob/c7d92e92/tools/builder/ttnn/ttnn_builder.py#L22-L137)
 
+
+
+```mermaid
+graph TB
+    subgraph "Base Layer"
+        Builder["Builder<br/>(tools/builder/base/builder.py)"]
+    end
+    
+    subgraph "Dialect Builders"
+        TTIRBuilder["TTIRBuilder<br/>(tools/builder/ttir/ttir_builder.py)"]
+        StableHLOBuilder["StableHLOBuilder<br/>(tools/builder/stablehlo/stablehlo_builder.py)"]
+        TTNNBuilder["TTNNBuilder<br/>(tools/builder/ttnn/ttnn_builder.py)"]
+        D2MBuilder["D2MBuilder<br/>(tools/builder/d2m/d2m_builder.py)"]
+    end
+    
+    Builder --> TTIRBuilder
+    Builder --> StableHLOBuilder
+    Builder --> TTNNBuilder
+    Builder --> D2MBuilder
+    
+    Builder -.->|"manages"| GoldenStorage["_goldens: Dict[Operand, GoldenMapTensor]"]
+    Builder -.->|"tracks"| FuncOps["_func_ops_generated"]
+    Builder -.->|"provides"| GoldenMap["golden_map property"]
+```
+
+**Builder Base Class Responsibilities** [tools/builder/base/builder.py:39-57]():
+- **Golden tensor management**: Maps MLIR operands to reference tensor values via `_goldens` dictionary [tools/builder/base/builder.py:80-80]().
+- **Function tracking**: Maintains ordered lists of inputs/outputs per function in `_func_ops_generated` [tools/builder/base/builder.py:74-74]().
+- **Mesh configuration**: Stores multi-device mesh topology for distributed execution [tools/builder/base/builder.py:106-122]().
+- **Metadata storage**: Tracks operand locations, bypass operations, and deallocation points [tools/builder/base/builder.py:89-101]().
+
+**Key Builder Methods** [tools/builder/base/builder.py:186-253]():
+
+| Method | Purpose |
+|--------|---------|
+| `set_goldens(inputs, outputs)` | Associate PyTorch tensors with MLIR operands [tools/builder/base/builder.py:255-277]() |
+| `set_goldens_to_check(operands)` | Mark specific operands for validation [tools/builder/base/builder.py:283-284]() |
+| `golden_map` | Extract golden tensors organized by program and location [tools/builder/base/builder.py:186-228]() |
+| `preshard_arg(operand, shard_dims)` | Pre-shard input tensors for multi-device execution [tools/builder/base/builder.py:240-253]() |
+| `bypass(operand)` | Skip golden comparison for specific operations [tools/builder/base/builder.py:279-281]() |
+
+Sources: [tools/builder/base/builder.py:39-284]()
+
+---
+```
 ### Compile-and-Execute Flow
 
 Each test defines a `module` function that accepts a builder and calls `@builder.func(...)` to generate an MLIR function. The top-level entry points are:

@@ -47,6 +47,26 @@ The following diagram maps the flow from host PyTorch tensors to device executio
 
 * * *
 
+
+
+```mermaid
+graph TB
+    subgraph "Host_Space_(Python/PyTorch)"
+        [torch_Tensor] -- "ttnn.from_torch" --> [ttnn_Tensor]
+    end
+    
+    subgraph "TT-Lang_Compilation_Space"
+        [ttnn_Tensor] -- "TTLGenericCompiler" --> [CompiledTTNNKernel]
+    end
+    
+    subgraph "TTNN_Runtime_Space"
+        [CompiledTTNNKernel] -- "run_kernel_on_device" --> [ttnn_generic_op]
+    end
+    
+    subgraph "Hardware_Space_(Device)"
+        [ttnn_generic_op] -- "Metal_Runtime" --> [BRISC_NCRISC_TRISC]
+    end
+```
 ## Tensor Interoperability
 
 `tt-lang` kernels operate on `ttnn.Tensor` objects. The integration relies on lazy loading of the `ttnn` module via `_ensure_ttnn()` to avoid triggering heavy dependencies during initial module load [python/ttl/ttl_api.py 20-36](https://github.com/tenstorrent/tt-lang/blob/d76e6233/python/ttl/ttl_api.py#L20-L36)
@@ -76,6 +96,16 @@ The system uses a caching mechanism to avoid redundant compilations. The `_make_
 
 **Sources:**[python/ttl/ttl_api.py 133-158](https://github.com/tenstorrent/tt-lang/blob/d76e6233/python/ttl/ttl_api.py#L133-L158)[python/ttl/ttl_api.py 90-95](https://github.com/tenstorrent/tt-lang/blob/d76e6233/python/ttl/ttl_api.py#L90-L95)[python/ttl/ttl_api.py 166-180](https://github.com/tenstorrent/tt-lang/blob/d76e6233/python/ttl/ttl_api.py#L166-L180)
 
+
+
+```mermaid
+graph LR
+    [ttl_kernel_decorator] -- "check_cache" --> [make_cache_key]
+    [make_cache_key] -- "cache_miss" --> [TTLGenericCompiler]
+    [TTLGenericCompiler] -- "returns" --> [CompiledTTNNKernel]
+    [CompiledTTNNKernel] -- "dispatch" --> [run_kernel_on_device]
+    [run_kernel_on_device] -- "post_execution" --> [run_profiling_pipeline]
+```
 ### Execution Paths
 
 *   **Hardware**: If actual `ttnn.Tensor` objects are passed, the kernel is compiled (if not cached) and dispatched to the device using `run_kernel_on_device`[python/ttl/ttl_api.py 90-95](https://github.com/tenstorrent/tt-lang/blob/d76e6233/python/ttl/ttl_api.py#L90-L95)

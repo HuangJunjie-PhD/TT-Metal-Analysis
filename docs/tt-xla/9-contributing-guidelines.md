@@ -70,6 +70,45 @@ The copyright checker validates header presence across all source files.
 
 * * *
 
+
+
+```mermaid
+graph TB
+    subgraph "Pre-Commit Workflow"
+        Commit["git commit"]
+        PreCommit["pre-commit hooks"]
+        
+        Black["black<br/>Python formatter"]
+        Isort["isort<br/>Import sorting"]
+        ClangFormat["clang-format<br/>C++ formatter"]
+        Copyright["check-copyright<br/>SPDX headers"]
+        Hooks["pre-commit-hooks<br/>whitespace, EOF, YAML"]
+    end
+    
+    subgraph "Validation Results"
+        Pass["All checks pass<br/>→ Commit succeeds"]
+        Fail["Any check fails<br/>→ Commit blocked"]
+        AutoFix["Auto-fixed files<br/>→ Review & re-commit"]
+    end
+    
+    Commit --> PreCommit
+    PreCommit --> Black
+    PreCommit --> Isort
+    PreCommit --> ClangFormat
+    PreCommit --> Copyright
+    PreCommit --> Hooks
+    
+    Black --> Pass
+    Black --> AutoFix
+    Isort --> Pass
+    Isort --> AutoFix
+    ClangFormat --> Pass
+    ClangFormat --> AutoFix
+    Copyright --> Pass
+    Copyright --> Fail
+    Hooks --> Pass
+    Hooks --> Fail
+```
 ## Testing Requirements
 
 All contributions must include appropriate tests and pass existing test suites before merge.
@@ -116,6 +155,41 @@ The CI system runs tests on multiple device types (`n150`, `p150`, `n300`, `llmb
 
 * * *
 
+
+
+```mermaid
+graph LR
+    subgraph "Local Testing"
+        DevTest["Run pytest locally<br/>Single device"]
+        ValidatePass["Verify test passes<br/>Check PCC/ATOL"]
+        UpdateConfig["Update test config YAML<br/>Set status"]
+    end
+    
+    subgraph "CI Testing"
+        PRSubmit["Submit Pull Request"]
+        MatrixGen["Generate test matrix<br/>From JSON presets"]
+        ParallelExec["Parallel execution<br/>n150/p150/n300"]
+        Results["Test results<br/>JUnit XML"]
+    end
+    
+    subgraph "Test Validation"
+        PCCCheck["PCC validation<br/>Numerical accuracy"]
+        IRCheck["FileCheck tests<br/>IR validation"]
+        PerfCheck["Performance check<br/>Duration tracking"]
+    end
+    
+    DevTest --> ValidatePass
+    ValidatePass --> UpdateConfig
+    UpdateConfig --> PRSubmit
+    
+    PRSubmit --> MatrixGen
+    MatrixGen --> ParallelExec
+    ParallelExec --> Results
+    
+    Results --> PCCCheck
+    Results --> IRCheck
+    Results --> PerfCheck
+```
 ## Pull Request Process
 
 ### Change Detection and CI Triggers
@@ -175,6 +249,53 @@ Reviewers may request changes or additional tests based on the contribution scop
 
 * * *
 
+
+
+```mermaid
+graph TB
+    subgraph "PR Lifecycle"
+        Create["Create Pull Request"]
+        PreCommitCheck["Pre-commit hooks run"]
+        CITrigger["CI workflows triggered"]
+        
+        Build["Build Stage<br/>Docker images + wheel"]
+        Test["Test Stage<br/>Parallel execution"]
+        Validate["Validation<br/>PCC + IR checks"]
+        
+        Review["Code Review"]
+        Changes["Requested Changes"]
+        Approve["Approval"]
+        Merge["Merge to main"]
+    end
+    
+    subgraph "CI Validation"
+        InspectChanges["inspect-changes<br/>Analyze modified files"]
+        BuildSkip{"Skip build?"}
+        RunBuild["build-ttxla<br/>Compile wheel"]
+        RunTest["run-tests<br/>Test matrix"]
+        Reports["Test reports<br/>JUnit XML"]
+    end
+    
+    Create --> PreCommitCheck
+    PreCommitCheck --> CITrigger
+    CITrigger --> InspectChanges
+    
+    InspectChanges --> BuildSkip
+    BuildSkip -->|"No skip"| RunBuild
+    BuildSkip -->|"Skip"| Reports
+    RunBuild --> RunTest
+    RunTest --> Reports
+    
+    Reports --> Build
+    Build --> Test
+    Test --> Validate
+    Validate --> Review
+    
+    Review --> Changes
+    Review --> Approve
+    Changes --> Create
+    Approve --> Merge
+```
 ## Contribution Types and Guidelines
 
 ### Framework Integration (PyTorch, JAX, vLLM)
@@ -277,6 +398,54 @@ See [Debugging Compilation and Performance](https://deepwiki.com/tenstorrent/tt-
 
 * * *
 
+
+
+```mermaid
+graph TB
+    subgraph "Development Iteration"
+        Clone["Clone repository"]
+        Branch["Create feature branch<br/>git checkout -b feature"]
+        
+        Code["Implement changes"]
+        LocalTest["Run tests locally<br/>pytest tests/..."]
+        PreCommit["Pre-commit checks<br/>pre-commit run"]
+        
+        Commit["git commit"]
+        Push["git push origin feature"]
+        PR["Create Pull Request"]
+        
+        CIWait["Wait for CI<br/>20-40 min"]
+        ReviewAddr["Address review comments"]
+        Iterate["Iterate on feedback"]
+    end
+    
+    subgraph "Quality Gates"
+        StyleCheck["Code style<br/>black + clang-format"]
+        TestPass["Test passing<br/>PCC validation"]
+        BuildSuccess["Build success<br/>Wheel creation"]
+        ReviewApprove["Review approval<br/>2+ reviewers"]
+    end
+    
+    Clone --> Branch
+    Branch --> Code
+    Code --> LocalTest
+    LocalTest --> PreCommit
+    PreCommit --> Commit
+    Commit --> Push
+    Push --> PR
+    
+    PR --> CIWait
+    CIWait --> StyleCheck
+    CIWait --> TestPass
+    CIWait --> BuildSuccess
+    
+    StyleCheck --> ReviewAddr
+    TestPass --> ReviewAddr
+    BuildSuccess --> ReviewAddr
+    ReviewAddr --> ReviewApprove
+    ReviewApprove --> Iterate
+    Iterate --> Code
+```
 ## Special Considerations
 
 ### Performance-Sensitive Changes

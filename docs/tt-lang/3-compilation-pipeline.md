@@ -36,6 +36,80 @@ The following diagram associates the logical stages of the compilation pipeline 
 
 **Sources:**[python/ttl/ttl_api.py 39-68](https://github.com/tenstorrent/tt-lang/blob/d76e6233/python/ttl/ttl_api.py#L39-L68)[lib/Dialect/TTL/Pipelines/TTLPipelines.cpp 19-75](https://github.com/tenstorrent/tt-lang/blob/d76e6233/lib/Dialect/TTL/Pipelines/TTLPipelines.cpp#L19-L75)[python/ttl/_src/ttl_ast.py 128-168](https://github.com/tenstorrent/tt-lang/blob/d76e6233/python/ttl/_src/ttl_ast.py#L128-L168)
 
+
+
+```mermaid
+graph LR
+    subgraph "User_Space"
+        PyTorch["torch.Tensor"]
+        TTLKernel["@ttl.kernel"]
+    end
+    
+    subgraph "TTNN_Runtime"
+        FromTorch["ttnn.from_torch()"]
+        TTNNTensor["ttnn.Tensor"]
+        ToTorch["ttnn.to_torch()"]
+        Device["ttnn.open_device()"]
+    end
+    
+    subgraph "TT_Lang_Compiler"
+        Compiler["TTLGenericCompiler"]
+        PassMgr["PassManager"]
+        EmitC["TTKernelToEmitC"]
+    end
+    
+    subgraph "Hardware_Execution"
+        HW["Tenstorrent_Hardware"]
+    end
+    
+    PyTorch --> FromTorch
+    FromTorch --> TTNNTensor
+    Device --> TTNNTensor
+    
+    TTLKernel --> Compiler
+    Compiler --> PassMgr
+    PassMgr --> EmitC
+    
+    TTNNTensor --> HW
+    EmitC --> HW
+    HW --> TTNNTensor
+    TTNNTensor --> ToTorch
+    ToTorch --> PyTorch
+```
+
+
+```mermaid
+graph TD
+    subgraph "Python Frontend"
+        Decorator["@ttl.kernel<br/>ttl_api.py"]
+        ASTCompiler["TTLGenericCompiler<br/>python/ttl/_src/ttl_ast.py"]
+    end
+
+    subgraph "MLIR TTL Dialect (High-Level)"
+        TTLIR["TTL Dialect Ops<br/>ttl.compute, ttl.copy<br/>ttl.bind_cb"]
+        Pipeline["createTTLToTTKernelPipeline<br/>TTLPipelines.cpp"]
+    end
+
+    subgraph "MLIR TTKernel Dialect (Hardware-Mapped)"
+        TTKIR["TTKernel Dialect Ops<br/>ttk.NocAsyncReadTile<br/>ttk.AddBinaryTiles"]
+        Inits["TTKernelInsertInits<br/>TTKernelInsertInits.cpp"]
+        Packer["TTKernelCombinePackTiles<br/>TTKernelCombinePackTiles.cpp"]
+    end
+
+    subgraph "C++ Backend"
+        EmitC["TTKernelToEmitC<br/>TTKernelToEmitC.cpp"]
+        CPP["Final C++ Source<br/>(noc_async_read, etc)"]
+    end
+
+    Decorator --> ASTCompiler
+    ASTCompiler --> TTLIR
+    TTLIR --> Pipeline
+    Pipeline --> TTKIR
+    TTKIR --> Inits
+    Inits --> Packer
+    Packer --> EmitC
+    EmitC --> CPP
+```
 ### Stage Boundaries
 
 | Stage | Input | Output | Primary Component |
@@ -53,6 +127,23 @@ The `TTLGenericCompiler` class implements an AST visitor pattern to transform Py
 
 **Sources:**[python/ttl/_src/ttl_ast.py 128-200](https://github.com/tenstorrent/tt-lang/blob/d76e6233/python/ttl/_src/ttl_ast.py#L128-L200)[include/ttlang/Dialect/TTL/IR/TTLOps.td 79-112](https://github.com/tenstorrent/tt-lang/blob/d76e6233/include/ttlang/Dialect/TTL/IR/TTLOps.td#L79-L112)
 
+
+
+```mermaid
+graph TB
+    subgraph "TTLGenericCompiler Entity"
+        Visitor["visit_Call / visit_Assign<br/>python/ttl/_src/ttl_ast.py"]
+        Ctx["CompilerContext<br/>(grid, memory_space)"]
+    end
+    
+    subgraph "MLIR Generation"
+        TensorType["_build_tensor_type<br/>python/ttl/_src/ttl_ast.py"]
+        Layout["LayoutAttr<br/>include/ttlang/Dialect/TTL/IR/TTLOps.td"]
+    end
+    
+    Visitor --> TensorType
+    TensorType --> Layout
+```
 ### Key Compiler Components
 
 **TTLGenericCompiler** ([python/ttl/_src/ttl_ast.py 128-168](https://github.com/tenstorrent/tt-lang/blob/d76e6233/python/ttl/_src/ttl_ast.py#L128-L168)):

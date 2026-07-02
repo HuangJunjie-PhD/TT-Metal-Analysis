@@ -84,6 +84,29 @@ TT-Lang primarily operates on tensors in `ttnn.TILE_LAYOUT`. Data is moved in bl
 
 * * *
 
+
+
+```mermaid
+graph TD
+    subgraph "Natural_Language_Space"
+        UserTensor["TTNN_Tensor_(DRAM/L1)"]
+        SubRegion["Tensor_Block_(e.g._2x2_tiles)"]
+        TileData["32x32_Tile_Unit"]
+    end
+
+    subgraph "Code_Entity_Space"
+        Op_Func["@ttl.kernel"]
+        DFB_Obj["ttl.make_dataflow_buffer_like"]
+        Block_Obj["ttl.Block"]
+        Tile_Op["ttl.math.reduce_sum"]
+    end
+
+    UserTensor --> Op_Func
+    UserTensor --> DFB_Obj
+    SubRegion --> Block_Obj
+    TileData --> Tile_Op
+    DFB_Obj --> Block_Obj
+```
 ## Hardware Architecture Notes
 
 Brief notes on the Tenstorrent architecture relevant to DSL programming. For details, see [Hardware Architecture Notes](https://deepwiki.com/tenstorrent/tt-lang/13.3-hardware-architecture-notes).
@@ -94,6 +117,33 @@ The architecture relies on the coordination of three RISC threads. Data movement
 
 **Diagram: Hardware Thread Interaction**
 
+
+
+```mermaid
+graph LR
+    subgraph "Data_Movement_(BRISC/NCRISC)"
+        NOC_In["ttl.copy"]
+        Reserve["ttl.Block.reserve"]
+        Push["ttl.Block.push"]
+    end
+
+    subgraph "L1_Memory_(DFB/CB)"
+        CB_Storage[("Circular_Buffer_Slots")]
+    end
+
+    subgraph "Compute_(MATH)"
+        Wait["ttl.Block.wait"]
+        Pop["ttl.Block.pop"]
+        DST_Reg["DST_Register_File"]
+    end
+
+    NOC_In --> Reserve
+    Reserve --> CB_Storage
+    CB_Storage --> Wait
+    Wait --> DST_Reg
+    Push -.-> Wait
+    Pop -.-> Reserve
+```
 ### Resource Constraints
 
 *   **Dataflow Buffers:** The simulator enforces limits on the number of DFBs and L1 space usage [CHANGELOG.md 73-74](https://github.com/tenstorrent/tt-lang/blob/d76e6233/CHANGELOG.md?plain=1#L73-L74)[examples/README.md 69](https://github.com/tenstorrent/tt-lang/blob/d76e6233/examples/README.md?plain=1#L69-L69)

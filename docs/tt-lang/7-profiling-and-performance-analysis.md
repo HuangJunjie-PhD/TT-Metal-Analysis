@@ -58,6 +58,41 @@ The system operates in four phases:
 
 * * *
 
+
+
+```mermaid
+graph TB
+    subgraph "Compilation Phase"
+        [TTLGenericCompiler] -->|"line-based signposts"| [is_auto_profile_enabled]
+        [is_auto_profile_enabled] -->|"track mapping"| [SourceLineMapper]
+    end
+    
+    subgraph "MLIR Transformation"
+        [SignpostOp] -->|"pass"| [TTLLowerSignpostToEmitCPass]
+        [TTLLowerSignpostToEmitCPass] -->|"generate"| [DeviceZoneScopedN]
+    end
+    
+    subgraph "Runtime Execution"
+        [DeviceZoneScopedN] -->|"execute on"| [DeviceProfiler]
+        [DeviceProfiler] -->|"dump"| [profile_log_device_csv]
+    end
+    
+    subgraph "Analysis & Visualization"
+        [profile_log_device_csv] -->|"read"| [parse_device_profile_csv]
+        [profile_log_device_csv] -->|"read"| [parse_signpost_zones]
+        [parse_device_profile_csv] -->|"generate"| [print_profile_report]
+        [SourceLineMapper] -->|"source mapping"| [print_profile_report]
+    end
+```
+
+**Diagram: Profiling System Data Flow**
+
+The system operates in four phases:
+1. **Compilation**: The `TTLGenericCompiler` [python/ttl/_src/ttl_ast.py:128]() emits signpost operations and tracks source line mappings via `SourceLineMapper` [python/ttl/_src/auto_profile.py:57-63]().
+2. **MLIR Transformation**: `SignpostOp` [lib/Dialect/TTL/Transforms/LowerSignpostToEmitC.cpp:149]() operations are lowered to C++ profiler instrumentation via the `TTLLowerSignpostToEmitCPass` [lib/Dialect/TTL/Transforms/LowerSignpostToEmitC.cpp:142-143]().
+3. **Runtime**: Device profiler captures zone timestamps during kernel execution, dumping to `profile_log_device.csv` [python/ttl/_src/auto_profile.py:126-129]().
+4. **Analysis**: Post-execution tools like `parse_device_profile_csv()` [python/ttl/_src/auto_profile.py:126-129]() and `parse_signpost_zones()` [python/ttl/_src/signpost_profile.py:28-30]() parse profiler data and generate reports.
+```
 ## Auto-Profiling System
 
 Auto-profiling automatically instruments every source line and operation with profiler zones, providing detailed cycle counts without manual instrumentation. For details, see [Auto-Profiling System](https://deepwiki.com/tenstorrent/tt-lang/7.1-auto-profiling-system).
@@ -79,6 +114,23 @@ Auto-profiling uses a naming convention to correlate hardware timestamps with so
 
 * * *
 
+
+
+```mermaid
+graph LR
+    subgraph "Source Code Line 42"
+        [LineSignpost] -->|"contains"| [CBWait]
+        [LineSignpost] -->|"contains"| [CBPop]
+    end
+    
+    [CBWait] -->|"emit"| [ZONE_START]
+    [CBWait] -->|"emit"| [ZONE_END]
+    [ZONE_START] --> [Duration]
+    [ZONE_END] --> [Duration]
+```
+
+**Diagram: Auto-Profiling Signpost Hierarchy**
+```
 ## Performance Trace Visualization
 
 The trace visualization system converts device profiler data to Chrome Trace Event format for visualization in tools like Perfetto UI. For details, see [Performance Trace Visualization](https://deepwiki.com/tenstorrent/tt-lang/7.2-performance-trace-visualization).

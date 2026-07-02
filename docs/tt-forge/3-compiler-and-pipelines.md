@@ -164,11 +164,6 @@ Refresh this wiki
 
 Enter email to refresh
 
-## Additional Diagrams
-
-
-### Compilation Flow
-
 
 ```mermaid
 graph TB
@@ -196,12 +191,7 @@ graph TB
     Metalium --> HW
 ```
 
-**Diagram: System-wide Compilation Flow**
-```
-
-
-#### Compiler Configuration Structure
-
+### Related: Compiler Configuration Structure
 
 ```mermaid
 graph TB
@@ -237,10 +227,6 @@ graph TB
     CC -.->|"Used in"| ForgeCompile["forge.compile()"]
     DS -.->|"Applied after compile"| ConfigDevices
 ```
-
-
-#### Input Data Flow
-
 
 ```mermaid
 graph TB
@@ -292,9 +278,7 @@ graph TB
     FormatCheck --> Float32
 ```
 
-
-#### Performance Metrics Collection
-
+### Related: Performance Metrics Collection
 
 ```mermaid
 graph TB
@@ -346,10 +330,6 @@ graph TB
     EvalClass --> Accuracy
     TaskType -->|na| NoAccuracy
 ```
-
-
-#### Result Dictionary Schema
-
 
 ```mermaid
 graph TB
@@ -404,10 +384,6 @@ graph TB
     DeviceInfo --> Chips["chips"]
 ```
 
-
-#### Pearson Correlation Coefficient
-
-
 ```mermaid
 graph TB
     Inputs["Golden Output<br/>Device Output"]
@@ -425,10 +401,6 @@ graph TB
     Validate -->|Yes| Pass
     Validate -->|No| Fail
 ```
-
-
-#### Benchmark Result Schema
-
 
 ```mermaid
 graph TD
@@ -459,10 +431,6 @@ graph TD
     DeviceInfo --> ResultDict
 ```
 
-
-#### Metrics Aggregation Pipeline
-
-
 ```mermaid
 graph TB
     subgraph "Data Collection Workflow"
@@ -480,15 +448,7 @@ graph TB
     Collect --> SFTP_PERF
 ```
 
-**Implementation Details:**
-- **Trigger**: Automatically runs when the "Performance Benchmark External Trigger" workflow completes [.github/workflows/produce_data.yml:28-32]().
-- **Action**: Uses `tenstorrent/tt-github-actions/.github/actions/collect_data` [.github/workflows/produce_data.yml:46]().
-- **Destinations**: Distinguishes between standard CI/CD data and specialized performance data via separate SFTP host secrets [.github/workflows/produce_data.yml:51-54]().
-```
-
-
-#### Matrix Filtering Flow
-
+### Related: Matrix Filtering Flow
 
 ```mermaid
 graph LR
@@ -520,9 +480,7 @@ graph LR
     MatrixJSON --> GitHubOutput
 ```
 
-
-### Orchestration Architecture
-
+### Related: Orchestration Architecture
 
 ```mermaid
 graph TD
@@ -587,19 +545,7 @@ graph TD
     FailSendMsg --> SlackNotification
 ```
 
-**Orchestration Flow:**
-1. **Trigger Layer**: Workflow activated via cron schedule or manual dispatch [.github/workflows/daily-releaser.yml:4-9]().
-2. **Discovery Phase**: `get-repos` job identifies all repositories to process [.github/workflows/daily-releaser.yml:56-66]().
-3. **Parallel Execution**: Two independent paths execute simultaneously:
-   - **Nightly Path**: Always runs for all repositories [.github/workflows/daily-releaser.yml:84-98]().
-   - **RC/Stable Path**: Conditionally runs (skipped in draft mode) [.github/workflows/daily-releaser.yml:68-82]().
-4. **Aggregation**: `fail-notify` job waits for all parallel jobs to complete [.github/workflows/daily-releaser.yml:101-118]().
-5. **Notification**: Slack alert sent only for main branch scheduled failures [.github/workflows/daily-releaser.yml:119-136]().
-```
-
-
-#### Failure Aggregation
-
+### Related: Failure Aggregation
 
 ```mermaid
 graph TD
@@ -628,21 +574,7 @@ graph TD
     AllsGreen --> FailedOutput
 ```
 
-**Execution Characteristics:**
-- **Trigger Condition:** `if: always()` - Runs regardless of job failures [.github/workflows/daily-releaser.yml:102]().
-- **Dependency Analysis:** Waits for `release-nightly` [.github/workflows/daily-releaser.yml:101]().
-- **Status Detection:** Uses `re-actors/alls-green@release/v1` action to check job outcomes [.github/workflows/daily-releaser.yml:115-117]().
-
-**Branch Detection Logic:**
-```bash
-IS_MAIN=$(if [ '${{ github.ref }}' == 'refs/heads/main' ]; then echo true; else echo false; fi)
-```
-[.github/workflows/daily-releaser.yml:108-111]()
-```
-
-
-### Build Workflow Selection
-
+### Related: Build Workflow Selection
 
 ```mermaid
 graph LR
@@ -680,9 +612,7 @@ graph LR
     OnPushXLA --> CommitLookup
 ```
 
-
-#### Logical Decision Flow
-
+### Related: Logical Decision Flow
 
 ```mermaid
 graph TB
@@ -743,43 +673,7 @@ graph TB
     NoDraft --> Output
 ```
 
-
-#### The Compilation Pipeline
-
-
-```mermaid
-graph LR
-    subgraph "Frontend Space"
-        PT["PyTorch Model"]
-        JAX["JAX Model"]
-        ONNX["ONNX/TF"]
-    end
-
-    subgraph "Code Entities (Compiler)"
-        TTXLA["TT-XLA (PJRT)"]
-        TTFORGE["TT-Forge-ONNX"]
-        TTMLIR["TT-MLIR"]
-    end
-
-    subgraph "IR Space"
-        SHLO["StableHLO"]
-        TTIR["TTIR Dialect"]
-        TTNN["TTNN-IR"]
-    end
-
-    PT --> TTXLA
-    JAX --> TTXLA
-    ONNX --> TTFORGE
-    TTXLA --> SHLO
-    SHLO --> TTMLIR
-    TTFORGE --> TTIR
-    TTMLIR --> TTIR
-    TTIR --> TTNN
-```
-
-
-### Test Matrix Configuration System
-
+### Related: Test Matrix Configuration System
 
 ```mermaid
 graph LR
@@ -802,37 +696,6 @@ graph LR
     DemoTestJob -->|Executes| RunStep
 ```
 
-**Matrix Structure**
-
-The `models-matrix.json` file contains an array of project objects. Each project defines its tests and optional default settings like `runs-on` [.github/workflows/models-matrix.json:1-45]().
-
-| Field | Description |
-|-------|-------------|
-| `project` | The frontend/project name (e.g., `tt-forge-onnx`, `tt-torch`, `tt-xla`) |
-| `test-defaults` | Default settings applied to all tests in the project (e.g., `runs-on: ["n150", "p150"]`) |
-| `tests` | Array of test objects containing `name`, `path`, and optional overrides |
-
-**Example Matrix Entry (tt-torch):**
-```json
-{
-  "project": "tt-torch",
-  "tests": [
-    { 
-      "runs-on": "n150", 
-      "name": "resnet50", 
-      "path": "resnet50_demo.py", 
-      "pyreq": "loguru requests transformers datasets==3.6.0 torch==2.7.0 torchvision pytest tabulate" 
-    }
-  ]
-}
-```
-Sources: [.github/workflows/models-matrix.json:36-44]()
-```
-
-
-#### Matrix Definition Structure
-
-
 ```mermaid
 graph LR
     MatrixFile["perf-bench-matrix.json<br/>───────────<br/>Projects array<br/>test-defaults object<br/>tests array"]
@@ -847,10 +710,6 @@ graph LR
     FilterScript --> FlatMatrix
     FlatMatrix --> FilteredMatrix
 ```
-
-
-#### Matrix Flattening Process
-
 
 ```mermaid
 graph TD
@@ -876,9 +735,7 @@ graph TD
     ExpandArray --> Output2
 ```
 
-
-#### Project Filtering Logic
-
+### Related: Project Filtering Logic
 
 ```mermaid
 graph TD
@@ -917,9 +774,7 @@ graph TD
     NameMatch -->|No| Exclude2
 ```
 
-
-### Data Flow and Reporting
-
+### Related: Data Flow and Reporting
 
 ```mermaid
 graph LR
@@ -934,10 +789,6 @@ graph LR
         WORKSPACE
     end
 ```
-
-
-#### 5.2 Reporting Requirements
-
 
 ```mermaid
 graph LR
@@ -959,8 +810,3 @@ graph LR
     "Compiler Flags" --> "ttlang_initial_mlir"
     "Compiler Flags" --> "ttlang_final_mlir"
 ```
-
-Sources: [skills/tt-bug-report/SKILL.md:1-68]()
-43:T1f36,
-```
-

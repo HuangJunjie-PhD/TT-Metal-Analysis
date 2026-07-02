@@ -35,6 +35,62 @@ The CLI application is implemented in [ttexalens/cli.py](https://github.com/tens
 
 * * *
 
+
+
+```mermaid
+graph TB
+    subgraph "Entry Point"
+        Main["main()<br/>[cli.py:351-447]"]
+    end
+    
+    subgraph "Initialization"
+        ParseArgs["docopt argument parsing<br/>[cli.py:362]"]
+        InitLocal["init_ttexalens()<br/>Local Mode"]
+        InitRemote["init_ttexalens_remote()<br/>Remote Mode"]
+        StartServer["start_server()<br/>Server Mode"]
+    end
+    
+    subgraph "REPL Loop"
+        MainLoop["main_loop()<br/>[cli.py:190-349]"]
+        UIState["UIState<br/>[uistate.py:63-125]"]
+        ImportCmds["import_commands()<br/>[cli.py:87-154]"]
+    end
+    
+    subgraph "Command Execution"
+        Prompt["prompt_session.prompt()"]
+        FindCmd["find command<br/>[cli.py:283-286]"]
+        RunCmd["command._module.run()"]
+        SpeedDial["navigation_suggestions<br/>[cli.py:70-83]"]
+    end
+    
+    subgraph "Command Completion"
+        Completer["TTExaLensCompleter<br/>[uistate.py:19-50]"]
+        LookupCmds["lookup_commands()"]
+        FuzzyAddr["fuzzy_lookup_addresses()"]
+    end
+    
+    Main --> ParseArgs
+    ParseArgs --> InitLocal
+    ParseArgs --> InitRemote
+    ParseArgs --> StartServer
+    
+    InitLocal --> MainLoop
+    InitRemote --> MainLoop
+    StartServer --> MainLoop
+    
+    MainLoop --> UIState
+    MainLoop --> ImportCmds
+    MainLoop --> Prompt
+    
+    Prompt --> Completer
+    Completer --> LookupCmds
+    Completer --> FuzzyAddr
+    
+    Prompt --> FindCmd
+    FindCmd --> RunCmd
+    RunCmd --> SpeedDial
+    SpeedDial --> Prompt
+```
 ## Invocation and Operational Modes
 
 The CLI supports three primary modes of operation: **local**, **remote**, and **server**. The mode is determined by command-line arguments passed to `tt-exalens`.
@@ -43,6 +99,36 @@ The CLI supports three primary modes of operation: **local**, **remote**, and **
 
 **Sources:**[ttexalens/cli.py 351-447](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/ttexalens/cli.py#L351-L447)[ttexalens/cli.py 7-44](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/ttexalens/cli.py#L7-L44)
 
+
+
+```mermaid
+graph LR
+    subgraph "Command Line Arguments"
+        NoFlag["tt-exalens<br/>(no flags)"]
+        RemoteFlag["tt-exalens --remote"]
+        ServerFlag["tt-exalens --server"]
+        GDBFlag["tt-exalens --gdb"]
+    end
+    
+    subgraph "Initialization Path"
+        LocalInit["init_ttexalens()<br/>[tt_exalens_init.py]<br/>Creates local Context"]
+        RemoteInit["init_ttexalens_remote()<br/>[tt_exalens_init.py]<br/>Creates remote Context via Pyro5"]
+        ServerStart["start_server()<br/>[server.py]<br/>TTExaLensServer on port"]
+        GDBClient["subprocess.run()<br/>[cli.py:359]<br/>Launch riscv-tt-elf-gdb"]
+    end
+    
+    subgraph "Operation Mode"
+        LocalMode["Local Mode:<br/>Direct hardware access"]
+        RemoteMode["Remote Mode:<br/>Connect to server"]
+        ServerMode["Server Mode:<br/>Listen for clients"]
+        ClientMode["GDB Client Mode:<br/>Launch debugger"]
+    end
+    
+    NoFlag --> LocalInit --> LocalMode
+    RemoteFlag --> RemoteInit --> RemoteMode
+    ServerFlag --> ServerStart --> ServerMode
+    GDBFlag --> GDBClient --> ClientMode
+```
 ### Command-Line Arguments
 
 The CLI accepts the following arguments (from [ttexalens/cli.py 7-33](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/ttexalens/cli.py#L7-L33)):
@@ -116,6 +202,78 @@ The main loop implements a read-eval-print loop that reads user commands, execut
 
 **Sources:**[ttexalens/cli.py 190-349](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/ttexalens/cli.py#L190-L349)
 
+
+
+```mermaid
+graph TB
+    Start["Enter main_loop()"]
+    ImportCmds["Import commands<br/>[cli.py:196-198]"]
+    InitUI["Initialize UIState<br/>[cli.py:201]"]
+    CheckServer["Check --start-server<br/>[cli.py:206-208]"]
+    CheckGDB["Check --start-gdb<br/>[cli.py:211-213]"]
+    NonInteractive["Non-interactive commands?<br/>[cli.py:216]"]
+    
+    PrintSuggestions["print_navigation_suggestions()<br/>[cli.py:225]"]
+    
+    GetCommand{"Command source?"}
+    NonInteractiveCmd["Pop from<br/>non_interactive_commands"]
+    InteractiveCmd["prompt_session.prompt()<br/>[cli.py:259]"]
+    
+    TrimComment["Trim comments (#)<br/>[cli.py:262]"]
+    ExtractRedirect["extract_command_file_output()<br/>[cli.py:265]"]
+    RedirectOutput["redirect_command_output_to_file()<br/>[cli.py:269]"]
+    
+    CheckSpeedDial{"Is integer?<br/>[cli.py:270-275]"}
+    UseSpeedDial["Use navigation_suggestions[n]"]
+    ParseCmd["Split command<br/>[cli.py:277]"]
+    
+    FindCmd["Find command in context.commands<br/>[cli.py:283-286]"]
+    CheckBuiltin{"Built-in?"}
+    HandleExit["exit with code"]
+    HandleReload["importlib.reload()"]
+    HandleEval["eval() expression"]
+    HandleModule["found_command._module.run()<br/>[cli.py:311]"]
+    
+    UpdateSuggestions["Update navigation_suggestions<br/>[cli.py:312]"]
+    HandleException["notify_exception()<br/>[cli.py:329]"]
+    
+    Loop["Loop back"]
+    Exit["Exit main_loop()"]
+    
+    Start --> ImportCmds --> InitUI
+    InitUI --> CheckServer --> CheckGDB
+    CheckGDB --> NonInteractive
+    
+    NonInteractive --> PrintSuggestions
+    PrintSuggestions --> GetCommand
+    
+    GetCommand -->|Non-interactive| NonInteractiveCmd
+    GetCommand -->|Interactive| InteractiveCmd
+    
+    NonInteractiveCmd --> TrimComment
+    InteractiveCmd --> TrimComment
+    
+    TrimComment --> ExtractRedirect
+    ExtractRedirect --> RedirectOutput
+    RedirectOutput --> CheckSpeedDial
+    
+    CheckSpeedDial -->|Yes| UseSpeedDial
+    CheckSpeedDial -->|No| ParseCmd
+    UseSpeedDial --> ParseCmd
+    
+    ParseCmd --> FindCmd
+    FindCmd -->|Not found| HandleException
+    FindCmd -->|Found| CheckBuiltin
+    
+    CheckBuiltin -->|exit| HandleExit --> Exit
+    CheckBuiltin -->|reload| HandleReload --> Loop
+    CheckBuiltin -->|eval| HandleEval --> Loop
+    CheckBuiltin -->|module| HandleModule
+    
+    HandleModule --> UpdateSuggestions --> Loop
+    HandleException --> Loop
+    Loop --> NonInteractive
+```
 ### Prompt System
 
 The prompt dynamically displays current state information:
@@ -163,6 +321,56 @@ Commands are loaded dynamically from the `cli_commands/` directory as Python mod
 
 **Sources:**[ttexalens/cli.py 87-154](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/ttexalens/cli.py#L87-L154)
 
+
+
+```mermaid
+graph TB
+    subgraph "Command Discovery"
+        ImportCmds["import_commands()<br/>[cli.py:87-154]"]
+        WalkDir["os.walk('cli_commands/')<br/>[cli.py:114-116]"]
+        FilterPy["fnmatch.filter(*.py)<br/>[cli.py:115]"]
+    end
+    
+    subgraph "Command Definition"
+        ModuleFile["cli_commands/xyz.py"]
+        CmdMetadata["command_metadata<br/>CommandMetadata instance"]
+        RunFunc["run(cmd_text, context, ui_state)"]
+        DocString["Module docstring (docopt format)"]
+    end
+    
+    subgraph "Built-in Commands"
+        Exit["exit: Exit program<br/>[cli.py:90-96]"]
+        Reload["reload: Reload commands<br/>[cli.py:98-103]"]
+        Eval["eval: Eval Python expr<br/>[cli.py:105-110]"]
+    end
+    
+    subgraph "Command Metadata"
+        LongName["long_name: Full command name"]
+        ShortName["short_name: Shortcut"]
+        Type["type: Command category"]
+        Description["description: Help text"]
+        Context["context: Required context"]
+        Module["_module: Python module ref"]
+    end
+    
+    ImportCmds --> WalkDir --> FilterPy
+    FilterPy --> ModuleFile
+    
+    ModuleFile --> CmdMetadata
+    ModuleFile --> RunFunc
+    ModuleFile --> DocString
+    
+    CmdMetadata --> LongName
+    CmdMetadata --> ShortName
+    CmdMetadata --> Type
+    CmdMetadata --> Description
+    CmdMetadata --> Context
+    CmdMetadata --> Module
+    
+    ImportCmds --> Exit
+    ImportCmds --> Reload
+    ImportCmds --> Eval
+```
 ### Command Execution Flow
 
 When a user enters a command, the following occurs [ttexalens/cli.py 277-312](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/ttexalens/cli.py#L277-L312):

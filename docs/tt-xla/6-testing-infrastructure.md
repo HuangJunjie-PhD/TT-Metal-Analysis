@@ -88,10 +88,89 @@ The `_resolve()` method in `ModelTestConfig` handles architecture-specific resol
 
 **Sources:**[tests/runner/test_models.py 52-58](https://github.com/tenstorrent/tt-xla/blob/c77995f6/tests/runner/test_models.py#L52-L58)[tests/runner/test_models.py 247-302](https://github.com/tenstorrent/tt-xla/blob/c77995f6/tests/runner/test_models.py#L247-L302)[tests/runner/test_models.py 305-358](https://github.com/tenstorrent/tt-xla/blob/c77995f6/tests/runner/test_models.py#L305-L358)
 
+
+
+```mermaid
+graph TB
+    subgraph "Test Discovery Phase"
+        TorchLoader["TorchDynamicLoader.setup_test_discovery()"]
+        JaxLoader["JaxDynamicLoader.setup_test_discovery()"]
+        ModelsRoot["MODELS_ROOT_TORCH<br/>MODELS_ROOT_JAX"]
+        TestEntries["test_entries_torch<br/>test_entries_jax<br/>List[ModelTestEntry]"]
+    end
+    
+    subgraph "Pytest Parametrization"
+        TestModels["test_models.py<br/>test_all_models_torch()<br/>test_all_models_jax()"]
+        Parametrize["@pytest.mark.parametrize<br/>run_mode, parallelism, test_entry"]
+        LLMTests["test_llms_torch()<br/>prefill/decode phases"]
+    end
+    
+    subgraph "Test Configuration"
+        ConfigFixture["test_metadata fixture<br/>conftest.py"]
+        YAMLConfig["YAML test configs<br/>ModelTestConfig"]
+    end
+    
+    subgraph "Test Execution"
+        TestImpl["_run_model_test_impl()"]
+        TorchTester["DynamicTorchModelTester"]
+        JaxTester["DynamicJaxModelTester"]
+    end
+    
+    TorchLoader --> TestEntries
+    JaxLoader --> TestEntries
+    TestEntries --> ModelsRoot
+    
+    TestEntries --> Parametrize
+    Parametrize --> TestModels
+    Parametrize --> LLMTests
+    
+    TestModels --> ConfigFixture
+    ConfigFixture --> YAMLConfig
+    
+    TestModels --> TestImpl
+    TestImpl --> TorchTester
+    TestImpl --> JaxTester
+```
 ### ModelTester Hierarchy
 
 **Sources:**[tests/infra/testers/single_chip/model/model_tester.py 30-44](https://github.com/tenstorrent/tt-xla/blob/c77995f6/tests/infra/testers/single_chip/model/model_tester.py#L30-L44)[tests/infra/testers/single_chip/model/torch_model_tester.py 57-98](https://github.com/tenstorrent/tt-xla/blob/c77995f6/tests/infra/testers/single_chip/model/torch_model_tester.py#L57-L98)[tests/runner/testers/torch/dynamic_torch_model_tester.py 22-28](https://github.com/tenstorrent/tt-xla/blob/c77995f6/tests/runner/testers/torch/dynamic_torch_model_tester.py#L22-L28)
 
+
+
+```mermaid
+graph TB
+    subgraph "Abstract Base Classes"
+        BaseTester["BaseTester<br/>infra/testers/base_tester.py"]
+        ModelTester["ModelTester<br/>infra/testers/single_chip/model/model_tester.py"]
+    end
+    
+    subgraph "Framework-Specific Testers"
+        TorchTester["TorchModelTester<br/>_compile_for_cpu()<br/>_compile_for_tt_device()<br/>_test_training()"]
+        JaxTester["JaxModelTester<br/>_compile_for_cpu()<br/>_compile_for_tt_device()"]
+    end
+    
+    subgraph "Dynamic Loaders"
+        DynamicTorch["DynamicTorchModelTester<br/>_get_model()<br/>_get_input_activations()"]
+        DynamicJax["DynamicJaxModelTester"]
+        DynamicJaxMulti["DynamicJaxMultiChipModelTester"]
+    end
+    
+    subgraph "Workload Abstraction"
+        Workload["Workload<br/>framework, executable, args, kwargs"]
+        TorchWorkload["TorchWorkload<br/>model, args, kwargs, mesh, shard_spec_fn"]
+    end
+    
+    BaseTester --> ModelTester
+    ModelTester --> TorchTester
+    ModelTester --> JaxTester
+    
+    TorchTester --> DynamicTorch
+    JaxTester --> DynamicJax
+    JaxTester --> DynamicJaxMulti
+    
+    TorchTester --> TorchWorkload
+    TorchWorkload --> Workload
+```
 ### Test Execution Lifecycle
 
 The test execution follows a structured lifecycle managed by `ModelTester` and its subclasses:
@@ -108,6 +187,33 @@ The `DynamicLoader` system discovers tests from the `tt-forge-models` repository
 
 **Sources:**[tests/runner/utils/dynamic_loader.py 129-212](https://github.com/tenstorrent/tt-xla/blob/c77995f6/tests/runner/utils/dynamic_loader.py#L129-L212)[tests/runner/test_models.py 52-58](https://github.com/tenstorrent/tt-xla/blob/c77995f6/tests/runner/test_models.py#L52-L58)
 
+
+
+```mermaid
+graph LR
+    subgraph "Discovery Process"
+        SetupDiscovery["TorchDynamicLoader.setup_test_discovery()"]
+        FindLoaders["_find_all_loaders()<br/>Scan loader.py files"]
+        LoadModule["importlib.import_module()"]
+        GetVariants["get_variants()"]
+        ModelTestEntry["ModelTestEntry<br/>path, variant_info, framework"]
+    end
+    
+    subgraph "Pytest Integration"
+        Parametrize["@pytest.mark.parametrize<br/>test_entry parameter"]
+        TestID["create_test_id_generator()<br/>Generate readable test IDs"]
+        CollectionTime["Pytest collection phase"]
+    end
+    
+    SetupDiscovery --> FindLoaders
+    FindLoaders --> LoadModule
+    LoadModule --> GetVariants
+    GetVariants --> ModelTestEntry
+    
+    ModelTestEntry --> Parametrize
+    Parametrize --> TestID
+    TestID --> CollectionTime
+```
 ### Test ID Generation
 
 Test IDs follow a structured format for clarity and filtering:
@@ -150,6 +256,41 @@ The `ComparisonConfig` class configures validation thresholds for three comparis
 
 **Sources:**[tests/runner/test_utils.py 139-178](https://github.com/tenstorrent/tt-xla/blob/c77995f6/tests/runner/test_utils.py#L139-L178)
 
+
+
+```mermaid
+graph TB
+    subgraph "ComparisonConfig"
+        Config["ComparisonConfig"]
+        PCC["pcc.enabled<br/>pcc.required_pcc = 0.99"]
+        ATOL["atol.enabled<br/>atol.required_atol"]
+        ALLCLOSE["allclose.enabled<br/>allclose.rtol<br/>allclose.atol"]
+    end
+    
+    subgraph "ModelTestConfig Conversion"
+        TestConfig["ModelTestConfig<br/>YAML configuration"]
+        Convert["to_comparison_config()"]
+    end
+    
+    subgraph "Comparison Execution"
+        CPUResult["CPU output"]
+        TTResult["TT device output"]
+        Compare["_compare_results()"]
+        CompResult["ComparisonResult<br/>pcc, atol, passed, error_message"]
+    end
+    
+    TestConfig --> Convert
+    Convert --> Config
+    
+    Config --> PCC
+    Config --> ATOL
+    Config --> ALLCLOSE
+    
+    CPUResult --> Compare
+    TTResult --> Compare
+    Config --> Compare
+    Compare --> CompResult
+```
 ### PCC (Pearson Correlation Coefficient)
 
 PCC measures the linear correlation between CPU and TT device outputs:
@@ -185,6 +326,37 @@ Multiple comparison results are collected and processed to determine test outcom
 
 * * *
 
+
+
+```mermaid
+graph TB
+    subgraph "Result Collection"
+        Results["comparison_results: list[ComparisonResult]"]
+        First["_get_first_failing_or_last_result()"]
+        Selected["Selected ComparisonResult"]
+    end
+    
+    subgraph "Status Determination"
+        Process["_process_comparison_results()"]
+        CheckPCC["Check PCC against threshold"]
+        Status["BringupStatus<br/>PASSED or INCORRECT_RESULT"]
+    end
+    
+    subgraph "Guidance Generation"
+        Guidance["_derive_guidance_from_pcc()"]
+        Tags["ENABLE_PCC, RAISE_PCC,<br/>ENABLE_PCC_099, RAISE_PCC_099"]
+    end
+    
+    Results --> First
+    First --> Selected
+    
+    Results --> Process
+    Process --> CheckPCC
+    CheckPCC --> Status
+    
+    Selected --> Guidance
+    Guidance --> Tags
+```
 ## Failure Analysis and Classification
 
 ### BringupStatus Tracking
@@ -201,12 +373,87 @@ The stage detection logic at [tests/runner/test_utils.py 191-218](https://github
 
 **Sources:**[tests/runner/test_utils.py 191-218](https://github.com/tenstorrent/tt-xla/blob/c77995f6/tests/runner/test_utils.py#L191-L218)
 
+
+
+```mermaid
+graph TB
+    subgraph "Stage Markers"
+        Marker1["FE_COMPILATION_START"]
+        Marker2["TTMLIR_COMPILATION_START"]
+        Marker3["RUNTIME_EXECUTION_START"]
+    end
+    
+    subgraph "Stage File"
+        StageFile["._bringup_stage.txt<br/>Written by C++ pipeline"]
+        Parse["parse_last_bringup_stage()"]
+    end
+    
+    subgraph "Status Mapping"
+        FEFail["FAILED_FE_COMPILATION"]
+        MLIRFail["FAILED_TTMLIR_COMPILATION"]
+        RTFail["FAILED_RUNTIME"]
+    end
+    
+    Marker1 --> StageFile
+    Marker2 --> StageFile
+    Marker3 --> StageFile
+    
+    StageFile --> Parse
+    
+    Parse --> FEFail
+    Parse --> MLIRFail
+    Parse --> RTFail
+```
+
+The stage detection logic at [tests/runner/test_utils.py:191-218]() reads the marker file and maps stages to status codes.
+```
 ### FailingReasonsFinder
 
 The `FailingReasonsFinder` automatically classifies failures by analyzing exception messages, tracebacks, and output logs:
 
 **Sources:**[tests/infra/utilities/failing_reasons/finder.py 15-58](https://github.com/tenstorrent/tt-xla/blob/c77995f6/tests/infra/utilities/failing_reasons/finder.py#L15-L58)[tests/infra/utilities/failing_reasons/checks_xla.py 1-50](https://github.com/tenstorrent/tt-xla/blob/c77995f6/tests/infra/utilities/failing_reasons/checks_xla.py#L1-L50)
 
+
+
+```mermaid
+graph TB
+    subgraph "Input Data"
+        Exception["Exception object"]
+        Traceback["Exception traceback"]
+        Stdout["stdout logs"]
+        Stderr["stderr logs"]
+    end
+    
+    subgraph "Analysis"
+        BuildData["build_ex_data()"]
+        ExceptionData["ExceptionData<br/>class_name, message, error_log"]
+        FindReason["find_reason_by_exception()"]
+    end
+    
+    subgraph "Classification Rules"
+        ComponentChecks["ComponentChecker enum<br/>METAL, TTNN, TORCH, XLA,<br/>TTMLIR, FRONTEND"]
+        PatternMatch["Pattern matching<br/>M.contains(), M.last_line()"]
+    end
+    
+    subgraph "Output"
+        FailingReason["FailingReasons enum<br/>Component + Description"]
+        Summary["Error summary string"]
+    end
+    
+    Exception --> BuildData
+    Traceback --> BuildData
+    Stdout --> BuildData
+    Stderr --> BuildData
+    
+    BuildData --> ExceptionData
+    ExceptionData --> FindReason
+    
+    FindReason --> ComponentChecks
+    ComponentChecks --> PatternMatch
+    
+    PatternMatch --> FailingReason
+    PatternMatch --> Summary
+```
 ### Component Classification
 
 Failures are attributed to specific components based on stack trace patterns:
@@ -236,6 +483,57 @@ The `record_model_test_properties()` function collects comprehensive test metada
 
 **Sources:**[tests/runner/test_utils.py 483-629](https://github.com/tenstorrent/tt-xla/blob/c77995f6/tests/runner/test_utils.py#L483-L629)
 
+
+
+```mermaid
+graph TB
+    subgraph "Input Data"
+        ModelInfo["model_info<br/>name, task, group, variant"]
+        TestMetadata["test_metadata<br/>status, pcc, reason"]
+        CompResults["comparison_results"]
+        TestPassed["test_passed boolean"]
+    end
+    
+    subgraph "Property Assembly"
+        Tags["tags dict"]
+        TestName["test_name, specific_test_case"]
+        Status["bringup_status, model_test_status"]
+        Metrics["pcc, atol, comparison_passed"]
+        FailReason["failing_reason, runtime_reason"]
+        Guidance["guidance tags<br/>RM_XFAIL, ADD_CONFIG,<br/>ENABLE_PCC, RAISE_PCC"]
+    end
+    
+    subgraph "Pytest Integration"
+        RecordProp["record_property()<br/>pytest fixture"]
+        UserProps["request.node.user_properties"]
+        XMLReport["JUnit XML report"]
+    end
+    
+    subgraph "Control Flow"
+        SkipCheck["Check NOT_SUPPORTED_SKIP"]
+        Skip["pytest.skip(reason)"]
+        XfailCheck["Check KNOWN_FAILURE_XFAIL"]
+        Xfail["pytest.xfail(reason)"]
+    end
+    
+    ModelInfo --> Tags
+    TestMetadata --> Tags
+    CompResults --> Metrics
+    TestPassed --> Status
+    
+    Tags --> RecordProp
+    Metrics --> RecordProp
+    FailReason --> RecordProp
+    Guidance --> RecordProp
+    
+    RecordProp --> UserProps
+    UserProps --> XMLReport
+    
+    Status --> SkipCheck
+    SkipCheck --> Skip
+    Status --> XfailCheck
+    XfailCheck --> Xfail
+```
 ### Recorded Properties
 
 Core properties recorded for each test execution:
@@ -271,6 +569,47 @@ Multi-chip tests use the `Mesh` abstraction for device topology:
 
 **Sources:**[tests/runner/test_models.py 114-156](https://github.com/tenstorrent/tt-xla/blob/c77995f6/tests/runner/test_models.py#L114-L156)[tests/infra/testers/single_chip/model/torch_model_tester.py 132-156](https://github.com/tenstorrent/tt-xla/blob/c77995f6/tests/infra/testers/single_chip/model/torch_model_tester.py#L132-L156)
 
+
+
+```mermaid
+graph TB
+    subgraph "Test Parametrization"
+        Param["@pytest.mark.parametrize('parallelism', ...)"]
+        SingleDev["SINGLE_DEVICE"]
+        DataPar["DATA_PARALLEL"]
+        TensorPar["TENSOR_PARALLEL"]
+    end
+    
+    subgraph "Tester Selection"
+        Framework{Framework?}
+        TorchSingle["DynamicTorchModelTester"]
+        JaxSingle["DynamicJaxModelTester"]
+        JaxMulti["DynamicJaxMultiChipModelTester"]
+    end
+    
+    subgraph "Configuration"
+        Mesh["Mesh(device_ids, axis_names)"]
+        ShardSpec["shard_spec_fn<br/>Define parameter sharding"]
+        Workload["TorchWorkload<br/>mesh, shard_spec_fn"]
+    end
+    
+    Param --> SingleDev
+    Param --> DataPar
+    Param --> TensorPar
+    
+    SingleDev --> Framework
+    DataPar --> Framework
+    TensorPar --> Framework
+    
+    Framework -->|Torch| TorchSingle
+    Framework -->|JAX Single| JaxSingle
+    Framework -->|JAX Multi| JaxMulti
+    
+    TensorPar --> Mesh
+    TensorPar --> ShardSpec
+    Mesh --> Workload
+    ShardSpec --> Workload
+```
 ### Shard Spec Functions
 
 For tensor parallel tests, models provide shard spec functions defining parameter distribution:
@@ -297,6 +636,43 @@ LLM tests validate both prefill (initial token processing) and decode (autoregre
 
 **Sources:**[tests/runner/test_models.py 363-477](https://github.com/tenstorrent/tt-xla/blob/c77995f6/tests/runner/test_models.py#L363-L477)[tests/runner/testers/torch/dynamic_torch_model_tester.py 43-100](https://github.com/tenstorrent/tt-xla/blob/c77995f6/tests/runner/testers/torch/dynamic_torch_model_tester.py#L43-L100)
 
+
+
+```mermaid
+graph TB
+    subgraph "Test Parameters"
+        Phase["RunPhase<br/>LLM_PREFILL | LLM_DECODE"]
+        SeqLen["sequence_length<br/>None, 128, 1024, 2048, 4096, 8192"]
+        Batch["batch_size<br/>1, 2"]
+    end
+    
+    subgraph "Input Loading"
+        LoaderCheck{Loader has<br/>load_inputs_prefill()?}
+        LoadPrefill["load_inputs_prefill(seq_len, batch)"]
+        LoadDecode["load_inputs_decode(batch)"]
+        DefaultInput["load_inputs()"]
+    end
+    
+    subgraph "Test Execution"
+        Tester["DynamicTorchModelTester"]
+        CompareResults["Compare CPU vs TT output"]
+    end
+    
+    Phase --> LoaderCheck
+    SeqLen --> LoadPrefill
+    Batch --> LoadPrefill
+    Batch --> LoadDecode
+    
+    LoaderCheck -->|Prefill| LoadPrefill
+    LoaderCheck -->|Decode| LoadDecode
+    LoaderCheck -->|No special method| DefaultInput
+    
+    LoadPrefill --> Tester
+    LoadDecode --> Tester
+    DefaultInput --> Tester
+    
+    Tester --> CompareResults
+```
 ### Test Configuration for LLM Tests
 
 LLM tests use separate configuration files with phase-specific settings:
@@ -349,6 +725,52 @@ The `call-test.yml` workflow orchestrates parallel test execution:
 
 **Sources:**[.github/workflows/call-test.yml 1-100](https://github.com/tenstorrent/tt-xla/blob/c77995f6/.github/workflows/call-test.yml#L1-L100) (referenced in context), [pytest.ini 1-34](https://github.com/tenstorrent/tt-xla/blob/c77995f6/pytest.ini#L1-L34)
 
+
+
+```mermaid
+graph TB
+    subgraph "Matrix Generation"
+        Preset["test-matrix-presets/*.json"]
+        Generate["generate-test-config"]
+        Matrix["Test matrix per architecture"]
+    end
+    
+    subgraph "Test Splitting"
+        Duration[".test_durations"]
+        Split["--splits=N --group=G"]
+        Balanced["Load-balanced groups"]
+    end
+    
+    subgraph "Parallel Execution"
+        Group1["run-tests group=1"]
+        Group2["run-tests group=2"]
+        GroupN["run-tests group=N"]
+    end
+    
+    subgraph "Result Collection"
+        JUnit["JUnit XML reports"]
+        Properties["Test properties"]
+        Artifacts["collected_irs/"]
+    end
+    
+    Preset --> Generate
+    Generate --> Matrix
+    
+    Duration --> Split
+    Matrix --> Split
+    Split --> Balanced
+    
+    Balanced --> Group1
+    Balanced --> Group2
+    Balanced --> GroupN
+    
+    Group1 --> JUnit
+    Group2 --> JUnit
+    GroupN --> JUnit
+    
+    JUnit --> Properties
+    JUnit --> Artifacts
+```
 ### Performance Benchmarking
 
 Performance measurements are collected and reported for inference tests:

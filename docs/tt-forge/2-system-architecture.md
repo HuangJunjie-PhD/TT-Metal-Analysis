@@ -174,11 +174,8 @@ Refresh this wiki
 
 Enter email to refresh
 
-## Additional Diagrams
 
-
-#### Data Flow
-
+### Related: Data Flow
 
 ```mermaid
 graph TD
@@ -206,14 +203,7 @@ graph TD
     ForgeCompile --> TTIR
 ```
 
-Sources: [README.md:28](), [demos/README.md:11-13]()
-
----
-```
-
-
-#### Runtime Configuration
-
+### Related: Runtime Configuration
 
 ```mermaid
 graph LR
@@ -241,12 +231,7 @@ graph LR
     CompileModel --> ToDevice
 ```
 
-Sources: [demos/tt-xla/cnn/resnet_demo.py:26-38](), [demos/tt-xla/cnn/arnold_demo.py:18-30](), [benchmark/tt-xla/resnet.py:150-159]()
-```
-
-
-#### System Data Flow: Configuration to Results
-
+### Related: System Data Flow: Configuration to Results
 
 ```mermaid
 graph TD
@@ -274,9 +259,7 @@ graph TD
     Serialize --> Results
 ```
 
-
-#### Configuration Hierarchy
-
+### Related: Configuration Hierarchy
 
 ```mermaid
 graph LR
@@ -290,10 +273,6 @@ graph LR
     
     style Final fill:#f9f9f9
 ```
-
-
-#### Superset API Integration
-
 
 ```mermaid
 graph LR
@@ -312,9 +291,7 @@ graph LR
     Lambda --> Postgres
 ```
 
-
-#### Logic and Data Flow
-
+### Related: Logic and Data Flow
 
 ```mermaid
 graph TD
@@ -365,9 +342,7 @@ graph TD
     ParallelJobs --> Checkout
 ```
 
-
-#### Configuration Propagation
-
+### Related: Configuration Propagation
 
 ```mermaid
 graph TD
@@ -403,10 +378,6 @@ graph TD
     RepoSpecifics --> WorkflowOutput
 ```
 
-
-#### Version Management Workflows
-
-
 ```mermaid
 graph TB
     subgraph "Manual Version Operations"
@@ -430,9 +401,7 @@ graph TB
     promote_stable -->|"invokes"| release_yml2["release.yml<br/>type=stable"]
 ```
 
-
-#### Patch Version Flow
-
+### Related: Patch Version Flow
 
 ```mermaid
 graph TB
@@ -460,12 +429,7 @@ graph TB
     Release2 --> Publish2
 ```
 
-The test lifecycle validates that a second commit after stable release bumps the version from `X.Y.0` to `X.Y.1` [.github/workflows/test-rc-stable-release-lifecycle.yml:455-470]().
-```
-
-
-#### Tag Logic Diagram
-
+### Related: Tag Logic Diagram
 
 ```mermaid
 graph TB
@@ -512,9 +476,7 @@ graph TB
     NoDraft --> Output
 ```
 
-
-#### System Architecture and Data Flow
-
+### Related: System Architecture and Data Flow
 
 ```mermaid
 graph TD
@@ -540,12 +502,8 @@ graph TD
     style A stroke-width:2px
     style J stroke-width:2px
 ```
-Sources: [docs/src/model-bring-up-guide.md:26-65](), [README.md:23-32]()
-```
 
-
-#### System Architecture: Natural Language to Code Entity Space
-
+### Related: System Architecture: Natural Language to Code Entity Space
 
 ```mermaid
 graph TD
@@ -578,9 +536,7 @@ graph TD
     ClaudeAction -->|Writes Code| ForgeModels
 ```
 
-
-#### Mapping Natural Language to Code Entities
-
+### Related: Mapping Natural Language to Code Entities
 
 ```mermaid
 graph TD
@@ -607,10 +563,6 @@ graph TD
     end
 ```
 
-
-### PipeNet: Inter-Core Communication
-
-
 ```mermaid
 graph LR
     subgraph "Core (0, 0)"
@@ -628,12 +580,8 @@ graph LR
     PN["ttl.PipeNet"] -. "Manages" .-> P1
     PN -. "Manages" .-> P2
 ```
-Sources: [skills/tt-lang/examples.md:8-10](), [skills/tt-lang/examples.md:28-35]()
-```
 
-
-#### 2.2 Auto-Profiling and Signposts
-
+### Related: 2.2 Auto-Profiling and Signposts
 
 ```mermaid
 graph TD
@@ -660,14 +608,7 @@ graph TD
     "TT_METAL_DEVICE_PROFILER_NOC_EVENTS" --> "perf_summary"
 ```
 
-Sources: [skills/tt-lang-profile-optimize/SKILL.md:21-117](), [skills/tt-lang-profile-optimize/performance-tools.md:1-144]()
-
----
-```
-
-
-#### Frontend to Hardware Data Flow
-
+### Related: Frontend to Hardware Data Flow
 
 ```mermaid
 graph TD
@@ -695,4 +636,3 @@ graph TD
     style E fill:none,stroke-width:2px
     style H fill:none,stroke-width:2px
 ```
-

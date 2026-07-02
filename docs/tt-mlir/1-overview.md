@@ -265,11 +265,8 @@ Refresh this wiki
 
 Enter email to refresh
 
-## Additional Diagrams
 
-
-### Environment Setup Overview
-
+### Related: Environment Setup Overview
 
 ```mermaid
 graph TD
@@ -299,15 +296,6 @@ graph TD
 PATH, PYTHONPATH, TT_METAL_RUNTIME_ROOT set"]
 ```
 
-Sources: [env/CMakeLists.txt:1-105](), [env/activate:1-32]()
-
----
-```
-
-
-### The `env/activate` Script
-
-
 ```mermaid
 graph LR
     A["env/activate sourced"] --> B{"TTMLIR_TOOLCHAIN_DIR set?"}
@@ -334,15 +322,6 @@ mlir_core\
 Metal paths"]
 ```
 
-Sources: [env/activate:1-32]()
-
----
-```
-
-
-### tt-metal Integration
-
-
 ```mermaid
 graph TD
     A["ExternalProject_Add(tt-metal)"] --> B["TTMETAL_BUILD_DIR\
@@ -360,19 +339,6 @@ libtt_stl.so"]
     B --> H["TRACY_LIBRARY_PATH\
 libtracy.so"]
 ```
-
-Sources: [third_party/CMakeLists.txt:94-117]()
-
-The build system handles CPM cache for `tt-metal` dependencies and configures it to use the same compiler launcher (e.g., `ccache`) as the main project. It also disables distributed support if the system processor is not x86-based due to MPI dependencies.
-
-Sources: [third_party/CMakeLists.txt:44-52](), [third_party/CMakeLists.txt:119-124](), [third_party/CMakeLists.txt:134-139]()
-
----
-```
-
-
-### Docker Images
-
 
 ```mermaid
 graph TD
@@ -392,15 +358,6 @@ CI image + debug tools"]
 (.github/Dockerfile.cibuildwheel)\
 Wheel build environment"]
 ```
-
-Sources: [.github/Dockerfile.base:1-64]()
-
----
-```
-
-
-### Overview and Compilation Flow
-
 
 ```mermaid
 graph TB
@@ -444,13 +401,6 @@ graph TB
     CallOpaque --> KernelMain
 ```
 
-The conversion from D2M to TTKernel uses specialized rewriters to map D2M generic region ops into TTKernel **Init** and **Compute** pairs. Init operations are often hoisted to the start of the function using `setInsertionPointToFuncStart`.
-```
-
-
-### Generic Operation Model
-
-
 ```mermaid
 graph TB
     Generic["d2m::GenericOp"]
@@ -467,17 +417,7 @@ graph TB
     Generic --> DatamovementRegion
 ```
 
-**Key Attributes:**
-- `grid`: Physical core grid shape `[rows, cols]`.
-- `threads`: Thread assignment (e.g., `unified`, `compute`, `datamovement`).
-- `block_factors`: Blocking factors for iteration space tiling [lib/Dialect/D2M/IR/D2MOps.cpp:77-79]().
-- `indexing_maps`: Affine maps from iteration space to operands [lib/Dialect/D2M/IR/D2MOps.cpp:84-118]().
-- `iterator_types`: Parallel or reduction iterators.
-```
-
-
-### Data Movement and DMA Operations
-
+### Related: Data Movement and DMA Operations
 
 ```mermaid
 graph LR
@@ -494,17 +434,6 @@ graph LR
     ToLayout --> ViewLayout
 ```
 
-**Key Data Movement Ops:**
-- `ToLayoutOp`: Transitions tensors between different memory spaces, data types, or sharding [include/ttmlir/Dialect/D2M/IR/D2MOps.td:88-104]().
-- `ToDeviceOp` / `ToHostOp`: Explicit host-device transfer operations [test/ttmlir/Dialect/D2M/lower_to_layout.mlir:15-16]().
-- `ViewLayoutOp`: Creates a representational view with a different layout; a no-op for codegen [include/ttmlir/Dialect/D2M/IR/D2MOps.td:19-31]().
-- `CompositeViewOp`: Represents a piecewise-affine view aggregating multiple input tensors [include/ttmlir/Dialect/D2M/IR/D2MOps.td:55-73]().
-```
-
-
-### Memory Layout and Grid Management
-
-
 ```mermaid
 graph TB
     GridSelection["GridSelection.cpp"]
@@ -519,16 +448,7 @@ graph TB
     GridSelection --> Optimize
 ```
 
-**Virtual Grids:** When a requested grid exceeds the physical worker grid, D2M uses virtualization.
-- `requiresVirtualGrid`: Checks if a grid needs virtualization [lib/Dialect/D2M/IR/D2MOps.cpp:145-146]().
-- `createCoreVirtMaps`: Generates the forward and inverse affine maps for core translation [lib/Dialect/D2M/Transforms/GridSelection.cpp:63-65]().
-- `findLegalPhysicalGridForVolume`: Utility to find a physical core rectangle that fits the required virtual volume [lib/Dialect/D2M/Transforms/GridSelection.cpp:55-57]().
-- `deriveVirtualGridAttrs`: Helper to materialize `AffineMapAttr` for virtualization and offsets [lib/Dialect/D2M/Transforms/GridSelection.cpp:37-50]().
-```
-
-
-### Attribute Type Hierarchy
-
+### Related: Attribute Type Hierarchy
 
 ```mermaid
 graph TB
@@ -586,13 +506,6 @@ graph TB
     ChipDescAttr --> DataTypeAttr
 ```
 
-Sources: [include/ttmlir/Dialect/TTNN/IR/TTNNOpsAttrs.td:33-304](), [include/ttmlir/Dialect/TTCore/IR/TTCoreOpsTypes.td:30-172](), [include/ttmlir/Dialect/TTNN/IR/TTNNOpsEnums.td:10-58]()
-```
-
-
-#### Pipeline Flow Diagram
-
-
 ```mermaid
 graph TD
     Input["StableHLO Module"]
@@ -636,10 +549,6 @@ graph TD
     WrapManual --> Reoutline
 ```
 
-
-#### Conversion Infrastructure
-
-
 ```mermaid
 graph LR
     subgraph "StableHLO/Shardy Space"
@@ -677,10 +586,6 @@ graph LR
     SDY_Manual --> ManualCompPattern
     ManualCompPattern --> TTIR_MeshShard
 ```
-
-
-#### Three-Stage Pipeline Structure
-
 
 ```mermaid
 graph TB
@@ -740,10 +645,6 @@ graph TB
     end
 ```
 
-
-#### D2M Generic Operation Structure
-
-
 ```mermaid
 graph TB
     subgraph "GenericOp [d2m::GenericOp]"
@@ -774,9 +675,7 @@ graph TB
     ComputeBody --> TileOps
 ```
 
-
-#### TTKernel and EmitC Conversion
-
+### Related: TTKernel and EmitC Conversion
 
 ```mermaid
 graph TB
@@ -809,16 +708,7 @@ graph TB
     CBName --> DataFmt
 ```
 
-**Key Conversion Logic:**
-- **Circular Buffer Management**: assigning stable names and emitting C++ declarations for circular buffers via `getCBName` [lib/Conversion/TTKernelToEmitC/TTKernelToEmitC.cpp:110-128]().
-- **Data Format Mapping**: converting MLIR data types to Tenstorrent `DataFormat` enums using `datatypeToDataformatStr` [lib/Conversion/TTKernelToEmitC/TTKernelToEmitC.cpp:45-92]().
-- **Startup Operations**: lowering to the `compute_kernel_hw_startup` C++ call [lib/Dialect/TTKernel/IR/TTKernelOps.td:26-39]().
-- **Register Management**: managing hardware DST register locks for MATH and PACK threads via `tile_regs_acquire` and `tile_regs_wait` [lib/Dialect/TTKernel/IR/TTKernelOps.td:58-93]().
-```
-
-
-### Conversion Architecture Overview
-
+### Related: Conversion Architecture Overview
 
 ```mermaid
 graph TB
@@ -862,12 +752,7 @@ graph TB
     TTKernel -->|"TTKernelToEmitC"| EmitC
 ```
 
-Sources: [lib/Conversion/TosaToTTIR/TosaToTTIRPatterns.cpp:5-200](), [lib/Conversion/TTIRToTTIRDecomposition/TTIRToTTIRDecompositionPass.cpp:40-88]()
-```
-
-
-### Position in the Compiler Pipeline
-
+### Related: Position in the Compiler Pipeline
 
 ```mermaid
 graph TD
@@ -882,15 +767,6 @@ graph TD
     E -- "Runtime Loading" --> F["Tenstorrent Device"]
     end
 ```
-
-Sources: [lib/Conversion/TTIRToTTNN/TTIRToTTNN.cpp:5-17](), [lib/Conversion/TTNNToEmitC/TTNNToEmitC.cpp:51-75](), [tools/ttnn-standalone/CMakeLists.txt:161-175]()
-
----
-```
-
-
-#### Natural Language to Code Entity Space: TTNN Serialization
-
 
 ```mermaid
 graph TD
@@ -917,10 +793,6 @@ graph TD
     Program -- "Contained in" --> Binary
 ```
 
-
-#### Natural Language to Code Entity Space: TTMetal Serialization
-
-
 ```mermaid
 graph TD
     subgraph "NaturalLanguageConcepts"
@@ -944,9 +816,7 @@ graph TD
     execute -- "Processes" --> Command
 ```
 
-
-#### Runtime Enumeration Types
-
+### Related: Runtime Enumeration Types
 
 ```mermaid
 graph TB
@@ -974,20 +844,6 @@ graph TB
     HostRuntime --> Distributed
 ```
 
-**Runtime Enumeration Types**
-
-| Runtime Type | Values | Purpose |
-|-------------|---------|---------|
-| `DeviceRuntime` | `TTNN`, `TTMetal`, `Disabled` | Selects which device backend to use for computation. |
-| `HostRuntime` | `Local`, `Distributed` | Selects single-process or multi-process execution mode. |
-
-Sources: [runtime/include/tt/runtime/types.h:26-31](), [runtime/lib/runtime.cpp:159-168]()
-```
-
-
-### Type System and Runtime Checking
-
-
 ```mermaid
 graph TB
     subgraph "Base Implementation Classes"
@@ -1009,18 +865,7 @@ graph TB
     ObjectImpl --> Binary
 ```
 
-**Type Safety Implementation:**
-- `RuntimeCheckedObjectImpl` stores an `associatedRuntime` field [runtime/include/tt/runtime/types.h:103]().
-- The `as<T>(DeviceRuntime)` method asserts that the requested runtime matches the object's associated runtime before casting the underlying `void*` handle [runtime/include/tt/runtime/types.h:121-125]().
-
-Sources: [runtime/include/tt/runtime/types.h:84-169]()
-
----
-```
-
-
-### Tensor Type Hierarchy
-
+### Related: Tensor Type Hierarchy
 
 ```mermaid
 graph TB
@@ -1055,12 +900,7 @@ graph TB
     TensorDesc -->|"describes"| Tensor
 ```
 
-The `ProgramContext` acts as the registry for tensors during program execution, mapping `global_id` from the Flatbuffer representation to live tensor handles in a `TensorPtrMap`. [runtime/lib/ttnn/program_executor.cpp:142-161]()
-```
-
-
-#### OpModel Template Hierarchy
-
+### Related: OpModel Template Hierarchy
 
 ```mermaid
 graph TB
@@ -1084,15 +924,6 @@ graph TB
     OpModelRelu --> GetOpConstraintsUnary["getOpConstraints(deviceGrid, inputShape,<br/>inputLayout, outputLayout)"]
     OpModelAdd --> GetOpConstraintsBinary["getOpConstraints(deviceGrid, inputShapeA,<br/>inputLayoutA, inputShapeB,<br/>inputLayoutB, outputLayout)"]
 ```
-
-Operations are grouped by signature patterns into base templates. Each operation type specializes `OpModel<OpTy>` to inherit from the appropriate base template or provide custom implementations for complex operations.
-
-Sources: [include/ttmlir/OpModel/TTNN/TTNNOpModel.h:56-181](), [include/ttmlir/OpModel/TTNN/TTNNOpModel.h:234-245]()
-```
-
-
-#### Layout Representation
-
 
 ```mermaid
 graph TB
@@ -1126,26 +957,12 @@ graph TB
     TensorMemoryLayout -.-> BlockSharded
 ```
 
-Sources: [lib/Dialect/TTNN/Analysis/MemoryLayoutPropagation.cpp:114-121](), [include/ttmlir/Dialect/TTNN/Utils/PassOverrides.h:47-53](), [lib/Dialect/TTNN/Analysis/DFShardingPolicy.cpp:69-81]()
-```
-
-
-### Pipeline Integration
-
-
 ```mermaid
 graph LR
     [TTIRToTTNN_Lowering] --> [TTNN_Fusing]
     [TTNN_Fusing] --> [TTNNWorkarounds_Pass]
     [TTNNWorkarounds_Pass] --> [TTNNOptimizer]
 ```
-
-Sources: [lib/Dialect/TTNN/Pipelines/TTNNPipelines.cpp:113-132]()
-```
-
-
-#### Builder Class Hierarchy
-
 
 ```mermaid
 graph TB
@@ -1170,30 +987,7 @@ graph TB
     Builder -.->|"provides"| GoldenMap["golden_map property"]
 ```
 
-**Builder Base Class Responsibilities** [tools/builder/base/builder.py:39-57]():
-- **Golden tensor management**: Maps MLIR operands to reference tensor values via `_goldens` dictionary [tools/builder/base/builder.py:80-80]().
-- **Function tracking**: Maintains ordered lists of inputs/outputs per function in `_func_ops_generated` [tools/builder/base/builder.py:74-74]().
-- **Mesh configuration**: Stores multi-device mesh topology for distributed execution [tools/builder/base/builder.py:106-122]().
-- **Metadata storage**: Tracks operand locations, bypass operations, and deallocation points [tools/builder/base/builder.py:89-101]().
-
-**Key Builder Methods** [tools/builder/base/builder.py:186-253]():
-
-| Method | Purpose |
-|--------|---------|
-| `set_goldens(inputs, outputs)` | Associate PyTorch tensors with MLIR operands [tools/builder/base/builder.py:255-277]() |
-| `set_goldens_to_check(operands)` | Mark specific operands for validation [tools/builder/base/builder.py:283-284]() |
-| `golden_map` | Extract golden tensors organized by program and location [tools/builder/base/builder.py:186-228]() |
-| `preshard_arg(operand, shard_dims)` | Pre-shard input tensors for multi-device execution [tools/builder/base/builder.py:240-253]() |
-| `bypass(operand)` | Skip golden comparison for specific operations [tools/builder/base/builder.py:279-281]() |
-
-Sources: [tools/builder/base/builder.py:39-284]()
-
----
-```
-
-
-### Testing Architecture Overview
-
+### Related: Testing Architecture Overview
 
 ```mermaid
 graph TB
@@ -1232,14 +1026,7 @@ graph TB
     OpConstraintVal --> OpModelAPI
 ```
 
-Sources: [test/unittests/OpModel/TTNN/Lib/TestOpModelLib.cpp:25-30](), [lib/OpModel/TTNN/TTNNOpModel.cpp:86-120](), [test/unittests/Optimizer/TestShardSolver.cpp:32-45](), [lib/Dialect/TTNN/Validation/OpConstraintValidation.cpp:48-53]()
-
----
-```
-
-
-#### Constraint Validation Testing
-
+### Related: Constraint Validation Testing
 
 ```mermaid
 graph LR
@@ -1265,19 +1052,6 @@ graph LR
     Cache --> Resources
 ```
 
-**Key Validation Functions:**
-- `getOpConstraints`: Queries peak L1 memory, circular buffer (CB) usage, and output tensor layouts. It utilizes `executeConstraintQuery` to perform the actual call to the backend [lib/OpModel/TTNN/TTNNOpModel.cpp:139-163]().
-- `executeConstraintQuery`: Wraps the low-level `ttnn::graph` query, handling exceptions and validating the `ExecutionStatus`. It also manages `ProgramCacheState` to ensure clean measurements [lib/OpModel/TTNN/TTNNOpModel.cpp:86-120]().
-
-Sources: [test/unittests/OpModel/TTNN/Lib/TestOpModelLib.cpp:85-102](), [lib/OpModel/TTNN/TTNNOpModel.cpp:50-55](), [lib/OpModel/TTNN/TTNNOpModel.cpp:139-163]()
-
----
-```
-
-
-#### Interface Testing Pattern
-
-
 ```mermaid
 graph TD
     subgraph "MLIR_Operation"
@@ -1300,18 +1074,7 @@ graph TD
     IFace --> GetR
 ```
 
-**Interface Helper Methods:**
-- `getInputLayouts`: Extracts `TTNNLayoutAttr` from operation operands or defaults to Interleaved L1 [test/unittests/OpModel/TTNN/Op/TestOpModelInterface.cpp:42-66]().
-- `getOutputLayout`: Extracts the expected output layout from the result type encoding [test/unittests/OpModel/TTNN/Op/TestOpModelInterface.cpp:69-75]().
-
-Sources: [test/unittests/OpModel/TTNN/Op/TestOpModelInterface.cpp:28-40](), [lib/Dialect/TTNN/Interfaces/TTNNOpModelInterface.cpp:113-126]()
-
----
-```
-
-
-### Docker and Environment Management
-
+### Related: Docker and Environment Management
 
 ```mermaid
 graph TD
@@ -1333,24 +1096,13 @@ graph TD
     BUILD -- "pushes_to" --> GHCR["ghcr.io/tenstorrent/tt-mlir"]
 ```
 
-Sources: [.github/workflows/call-build-docker.yml:28-86](), [.github/workflows/schedule-nightly-uplift.yml:135-136](), [.github/build-docker-images.sh:15-26](), [.github/Dockerfile.ird:5-58]()
-
----
-```
-
-
-#### EmitC and Kernel Verification
-
+### Related: EmitC and Kernel Verification
 
 ```mermaid
 graph LR
     "TTKernelDialect" -->|"TTKernelToEmitC"| "EmitCDialect"
     "EmitCDialect" -->|"MLIRTargetCpp"| "CppSource[.cpp]"
 ```
-
-
-### Code Entity Association
-
 
 ```mermaid
 graph LR
@@ -1382,7 +1134,6 @@ graph LR
     "ttmlir-translate" -->|"Uses"| "ToPython"
 ```
 
-
 ```mermaid
 graph TD
     "lit.site.cfg.py.in"["lit.site.cfg.py.in"] -->|"Configured by CMake"| "lit.site.cfg.py"["lit.site.cfg.py"]
@@ -1391,10 +1142,6 @@ graph TD
     "ttrt" -->|"Loads"| "SYSTEM_DESC_PATH"["SYSTEM_DESC_PATH"]
     "lit.cfg.py" -->|"Adds Features"| "available_features"["available_features: n150/n300/tg/llmbox"]
 ```
-
-
-### CMake Project Structure
-
 
 ```mermaid
 graph TD
@@ -1415,8 +1162,6 @@ graph TD
     root --> runtime
     root --> env
 ```
-
-**lib/ Subdirectory Structure**
 
 ```mermaid
 graph TD
@@ -1440,15 +1185,6 @@ graph TD
     lib_cmake --> transforms
 ```
 
-Sources: [CMakeLists.txt:3-10](), [lib/CMakeLists.txt:9-16](), [env/CMakeLists.txt:1-2](), [tools/ttnn-standalone/CMakeLists.txt:1-2]()
-
----
-```
-
-
-### External Dependencies
-
-
 ```mermaid
 graph TD
     subgraph "Toolchain Dependencies (env/)"
@@ -1471,22 +1207,7 @@ graph TD
     ttmetal --> ttmlir
 ```
 
-| Dependency | Version (Commit) | Role |
-|---|---|---|
-| `tt-metal` | `c5ebc63...` | Hardware abstraction and kernel runtime [third_party/CMakeLists.txt:3]() |
-| `llvm-project` | `4efe170...` | Base MLIR/LLVM infrastructure [env/CMakeLists.txt:5]() |
-| `stablehlo` | `0a4440a...` | Input dialect for ML models [env/CMakeLists.txt:6]() |
-| `shardy` | `edfd673...` | Sharding and distributed IR [env/CMakeLists.txt:7]() |
-| `flatbuffers` | `fb9afba...` | Binary serialization format [env/CMakeLists.txt:4]() |
-
-Sources: [third_party/CMakeLists.txt:1-3](), [env/CMakeLists.txt:4-7]()
-
----
-```
-
-
-### Build System Architecture
-
+### Related: Build System Architecture
 
 ```mermaid
 graph TB
@@ -1534,13 +1255,6 @@ graph TB
     TOOLS -.->|"depends"| LIB
 ```
 
-Sources: [CMakeLists.txt:1-177](), [third_party/CMakeLists.txt:1-157](), [env/CMakeLists.txt:1-107]()
-```
-
-
-### tt-metal External Project Integration
-
-
 ```mermaid
 graph TB
     subgraph "tt-metal Configuration"
@@ -1580,32 +1294,6 @@ graph TB
     BUILD_DIR --> FMT_LIB
 ```
 
-Sources: [third_party/CMakeLists.txt:1-157]()
-
-**Version Pinning:**
-The `tt-metal` version is pinned to a specific git commit to ensure reproducible builds:
-```cmake
-set(TT_METAL_VERSION "c5ebc6351098dfb68ce913eedcc20ee5abd1509f")
-```
-Sources: [third_party/CMakeLists.txt:3]()
-
-**User-Managed Source Override:**
-Developers can provide a path to a local `tt-metal` checkout via `TTMLIR_TTMETAL_SOURCE_DIR`. If set, the build system creates a symbolic link at `third_party/tt-metal/src/tt-metal` pointing to the override directory [[third_party/CMakeLists.txt:5-35]]().
-
-**Build Directory Structure:**
-The build creates separate directories per build type and maintains a symbolic link for convenience:
-- Build directory: `third_party/tt-metal/src/tt-metal/build_${CMAKE_BUILD_TYPE}` [[third_party/CMakeLists.txt:51]]()
-- Symbolic link: `third_party/tt-metal/src/tt-metal/build` [[third_party/CMakeLists.txt:52]]()
-- Library directory: `${TTMETAL_BUILD_DIR}/${CMAKE_INSTALL_LIBDIR}` [[third_party/CMakeLists.txt:56]]()
-
-**CMake Arguments Passed to tt-metal:**
-The `ExternalProject_Add` call for `tt-metal` forwards critical configuration flags including build type, compilers, and feature toggles like distributed support and performance tracing [[third_party/CMakeLists.txt:157-174]]().
-```
-
-
-#### Component Architecture
-
-
 ```mermaid
 graph TB
     subgraph "C++ Extensions (_ttmlir)"
@@ -1641,21 +1329,7 @@ graph TB
     TTNNJIT --> PyPasses
 ```
 
-**Key Python Components:**
-
-| Component | Purpose |
-|------------|---------|
-| `_ttmlir` | The primary C++ extension module compiled with `nanobind` [python/CMakeLists.txt:140-142](). |
-| `ttmlir.dialects` | Python bindings for Tenstorrent-specific dialects (TTCore, TTIR, TTNN, D2M, TTKernel) [python/CMakeLists.txt:26-79](). |
-| `ttmlir.passes` | Interface to register and run compiler pipelines like `ttir-to-ttnn-runtime-pipeline` [python/Passes.cpp:102-129](). |
-| `ttmlir.common` | Utility scripts for internal compilation and execution flows like `compile_and_run.py` [python/CMakeLists.txt:191-199](). |
-
-Sources: [python/CMakeLists.txt:1-204](), [python/TTMLIRModule.cpp:84-104]()
-```
-
-
-#### Binding Data Flow
-
+### Related: Binding Data Flow
 
 ```mermaid
 graph LR
@@ -1685,10 +1359,6 @@ graph LR
     PopTTIR --> TTIR_IR
     PopPass --> CAPI
 ```
-
-
-#### Tool Data Flow and Code Entities
-
 
 ```mermaid
 graph TB
@@ -1729,66 +1399,6 @@ graph TB
     RegDialects --> D2M
 ```
 
-
-#### System Integration
-
-
-```mermaid
-graph TB
-    subgraph "User Interface Layer"
-        CLI["ttrt CLI<br/>(tools/ttrt/__main__.py)"]
-        PythonAPI["ttrt Python Package<br/>(tools/ttrt/common)"]
-    end
-    
-    subgraph "ttrt Core (Python)"
-        Run["class Run<br/>(tools/ttrt/common/run.py)"]
-        Perf["class Perf<br/>(tools/ttrt/common/perf.py)"]
-        Query["class Query<br/>(tools/ttrt/common/query.py)"]
-        Read["class Read<br/>(tools/ttrt/common/read.py)"]
-        EmitPy["class EmitPy<br/>(tools/ttrt/common/emitpy.py)"]
-    end
-    
-    subgraph "Callback System"
-        PreCallback["pre_op_get_callback_fn<br/>(tools/ttrt/common/callback.py)"]
-        PostCallback["post_op_get_callback_fn<br/>(tools/ttrt/common/callback.py)"]
-    end
-    
-    subgraph "C++ Runtime Bridge"
-        TTMLIRRuntime["libTTMLIRRuntime.so<br/>(runtime/lib/runtime.cpp)"]
-        PerfEnv["perf::Env<br/>(runtime/include/tt/runtime/perf.h)"]
-    end
-    
-    subgraph "Backend Execution"
-        ProgramExecutor["ProgramExecutor<br/>(runtime/include/tt/runtime/detail/ttnn/program_executor.h)"]
-        Device["Tenstorrent Hardware"]
-    end
-    
-    CLI --> Run
-    CLI --> Perf
-    CLI --> Query
-    CLI --> EmitPy
-    
-    Run --> PreCallback
-    Run --> PostCallback
-    
-    Run --> TTMLIRRuntime
-    Perf --> TTMLIRRuntime
-    
-    TTMLIRRuntime --> ProgramExecutor
-    ProgramExecutor --> Device
-    
-    Perf -.-> PerfEnv
-```
-
-**ttrt System Integration**: This diagram shows ttrt's position as the primary interface to the tt-mlir runtime system. The Python-based tool logic wraps the `TTMLIRRuntime` shared library. Execution flow moves from the Python `Run` or `Perf` classes into the C++ `ProgramExecutor`, which manages operation dispatch to the hardware. [tools/ttrt/common/run.py:11-17](), [tools/ttrt/common/perf.py:19-44](), [runtime/include/tt/runtime/perf.h:33-71]()
-
-Sources: [tools/ttrt/common/run.py:11-17](), [tools/ttrt/common/perf.py:19-44](), [runtime/include/tt/runtime/perf.h:33-71]()
-```
-
-
-### ChipDesc: Hardware Specification
-
-
 ```mermaid
 graph TB
     START["getCurrentSystemDescImpl()<br/>runtime/lib/common/system_desc.cpp:141"]
@@ -1824,9 +1434,7 @@ graph TB
     DRAM_ALIGN -- "populates" --> FBB
 ```
 
-
-#### Architecture Overview Diagram
-
+### Related: Architecture Overview Diagram
 
 ```mermaid
 graph TB
@@ -1875,9 +1483,7 @@ graph TB
     GraphHandler -->|"Build Graph"| UI
 ```
 
-
-#### ModelRunner Execution Flow
-
+### Related: ModelRunner Execution Flow
 
 ```mermaid
 graph LR
@@ -1908,16 +1514,7 @@ graph LR
     Error -->|"reset_state()"| Idle
 ```
 
-**Key Features:**
-- **Pipeline Orchestration**: Invokes `ttmlir-opt` and `ttmlir-translate` via subprocesses or internal pass managers [tools/explorer/tt_adapter/src/tt_adapter/runner.py:272-400]().
-- **Progress Tracking**: Updates the `progress` field (0-100) during compilation stages [tools/explorer/tt_adapter/src/tt_adapter/runner.py:72-72]().
-- **Artifact Management**: Stores results in `ttrt-artifacts/` (default `TT_MLIR_HOME/ttrt-artifacts`) [tools/explorer/tt_adapter/src/tt_adapter/runner.py:98-101]().
-- **TTRT Integration**: Loads `ttrt` APIs dynamically via `ttrt_loader` to handle device initialization and performance tracing [tools/explorer/tt_adapter/src/tt_adapter/runner.py:86-120]().
-```
-
-
-#### MLIR to Graph Conversion Process
-
+### Related: MLIR to Graph Conversion Process
 
 ```mermaid
 graph TB
@@ -1952,9 +1549,7 @@ graph TB
     Overlay --> Graph
 ```
 
-
-#### Override Data Flow
-
+### Related: Override Data Flow
 
 ```mermaid
 graph TB
@@ -1990,9 +1585,7 @@ graph TB
     Pipeline --> LayoutAnalysis
 ```
 
-
-#### Test Infrastructure Diagram
-
+### Related: Test Infrastructure Diagram
 
 ```mermaid
 graph TB
@@ -2021,9 +1614,7 @@ graph TB
     Status --> Server
 ```
 
-
-#### System Architecture and Data Flow
-
+### Related: System Architecture and Data Flow
 
 ```mermaid
 graph TD
@@ -2045,14 +1636,8 @@ graph TD
         I --> J["Tenstorrent Device"]
     end
 ```
-Sources: [tools/ttnn-jit/api.py:11-52](), [tools/ttnn-jit/_src/jit.py:112-184](), [docs/src/ttnn-jit.md:136-146](), [tools/ttnn-jit/_src/ir_generator.py:22-22]()
 
----
-```
-
-
-#### Data and Control Flow
-
+### Related: Data and Control Flow
 
 ```mermaid
 graph TD
@@ -2079,10 +1664,6 @@ graph TD
         ["Program Dispatch (Generic Op)"] --> ["tt-metal Compiler (offline/JIT)"]
     end
 ```
-
-
-#### System Architecture and Data Flow
-
 
 ```mermaid
 graph TD
@@ -2119,4 +1700,3 @@ graph TD
         J --> K
     end
 ```
-

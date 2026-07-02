@@ -246,11 +246,6 @@ Refresh this wiki
 
 Enter email to refresh
 
-## Additional Diagrams
-
-
-#### Complexity Progression
-
 
 ```mermaid
 graph LR
@@ -262,9 +257,7 @@ graph LR
     "Intermediate" -->|"Full control available"| "Complex"
 ```
 
-
-#### Ecosystem Hierarchy
-
+### Related: Ecosystem Hierarchy
 
 ```mermaid
 graph TB
@@ -284,16 +277,7 @@ graph TB
     "TTLang" -->|"Need maximum control"| "TTMetal"
 ```
 
-| Layer | Use When | Tradeoffs |
-|-------|----------|-----------|
-| **TT-NN** | Standard operations, rapid prototyping | Easy, but limited to pre-built ops |
-| **tt-lang** | Custom fusion, model optimization | Balance of control and productivity |
-| **TT-Metalium** | Maximum performance, new primitives | Full control, but high complexity |
-```
-
-
-#### Execution Model
-
+### Related: Execution Model
 
 ```mermaid
 graph TB
@@ -311,15 +295,7 @@ graph TB
     "KernelCode" -->|"python"| "HW"
 ```
 
-| Path | Use When | Key Features |
-|------|----------|--------------|
-| **Simulator** | Logic validation, rapid debugging | Pure Python execution, no hardware needed. [docs/sphinx/getting-started.md:128-128](). |
-| **Hardware** | Performance profiling, deployment | Full MLIR compilation to C++, runs on Tenstorrent cores. [docs/sphinx/getting-started.md:129-129](). |
-```
-
-
-#### Code Entity Map
-
+### Related: Code Entity Map
 
 ```mermaid
 graph TB
@@ -345,9 +321,7 @@ graph TB
     "Config" -.-> "ASTVisitor"
 ```
 
-
-#### Kernel Structure and Hardware Mapping
-
+### Related: Kernel Structure and Hardware Mapping
 
 ```mermaid
 graph TB
@@ -384,10 +358,6 @@ graph TB
     DFB_Make --> CopyOp
 ```
 
-
-#### Data Flow Diagram
-
-
 ```mermaid
 graph TD
     subgraph "Global_Memory_Space"
@@ -410,12 +380,7 @@ graph TD
     DFB -- "ttl.copy()" --> DRAM
 ```
 
-For details, see [Memory Architecture](#2.3).
-```
-
-
-#### Code Entity Relationship Diagram
-
+### Related: Code Entity Relationship Diagram
 
 ```mermaid
 graph LR
@@ -441,12 +406,7 @@ graph LR
     BRISC -- "cb_reserve/cb_push" --> CB
 ```
 
-For details, see [Execution Model](#2.4).
-```
-
-
-#### DSL Architecture Mapping
-
+### Related: DSL Architecture Mapping
 
 ```mermaid
 graph TB
@@ -473,12 +433,8 @@ graph TB
     math_concept --> ttl_math
     op_concept --> ttl_node
 ```
-Sources: [python/ttl/ttl_api.py:5-107](), [docs/sphinx/specs/TTLangSpecification.md:60-62](), [docs/sphinx/specs/TTLangSpecification.md:45-45]()
-```
 
-
-### Kernel Structure Pattern
-
+### Related: Kernel Structure Pattern
 
 ```mermaid
 graph LR
@@ -501,12 +457,6 @@ graph LR
     S3 -.-> H2
     S4 -.-> H3
 ```
-Sources: [python/ttl/ttl_api.py:98-116](), [docs/sphinx/specs/TTLangSpecification.md:60-84]()
-```
-
-
-#### Decorator to Hardware Mapping
-
 
 ```mermaid
 graph TB
@@ -530,18 +480,7 @@ graph TB
     DM2 -.-> NCRISC
 ```
 
-**Decorator Hierarchy:**
-
-| Decorator Level | Purpose | Scope | Key Functions |
-|----------------|---------|-------|------------|
-| `@ttl.operation` | Top-level kernel entry point | Defines grid and tensor mapping | `ttl.grid_size`, `ttl.node` |
-| `@ttl.compute` | Compute thread function | Executes mathematical operations on FPU/SFPU | `ttl.math.*`, `store()` |
-| `@ttl.datamovement` | Data movement thread function | Handles DMA/NOC operations | `ttl.copy()`, `wait()` |
-```
-
-
-#### Key Transformation Passes
-
+### Related: Key Transformation Passes
 
 ```mermaid
 graph LR
@@ -553,17 +492,7 @@ graph LR
     TTK -- "convert-ttkernel-to-emitc" --> CPP["C++ Code"]
 ```
 
-| Pass Name | Role |
-|-----------|------|
-| `ttl-insert-intermediate-dfbs` | Materializes intermediate values to L1 via compiler-allocated DFBs at fusion split points [lib/Dialect/TTL/Transforms/TTLInsertIntermediateDFBs.cpp:9-13](). |
-| `ttl-insert-cb-sync` | Inserts missing `cb_push`/`cb_pop` for unmatched `cb_reserve`/`cb_wait` [include/ttlang/Dialect/TTL/Passes.td:6-12](). |
-| `ttl-coalesce-dfb-acquires` | Collapses consecutive same-DFB acquires into a single multi-tile acquire [include/ttlang/Dialect/TTL/Passes.td:28-48](). |
-| `ttl-assign-dst` | Maps mathematical operations to hardware DST registers [lib/Dialect/TTL/Pipelines/TTLPipelines.cpp:36-36](). |
-```
-
-
-### Thread Communication and Dataflow
-
+### Related: Thread Communication and Dataflow
 
 ```mermaid
 graph TB
@@ -597,9 +526,7 @@ graph TB
     DM_WRITE -->|"ttl.copy()"| T_OUT
 ```
 
-
-### Compilation and Hardware Mapping
-
+### Related: Compilation and Hardware Mapping
 
 ```mermaid
 graph LR
@@ -633,14 +560,7 @@ graph LR
     DM_CPP --> BRISC
 ```
 
-The `TTLToTTKernelTypeConverter` maps DSL types like `CircularBufferType` to hardware-level `ttk::CBType` [lib/Dialect/TTL/Transforms/ConvertTTLToTTKernel.cpp:65-96]().
-
-Sources: [lib/Dialect/TTL/Pipelines/TTLPipelines.cpp:19-76](), [lib/Dialect/TTL/Transforms/ConvertTTLToTTKernel.cpp:65-96]()
-```
-
-
-### Producer-Consumer Pattern
-
+### Related: Producer-Consumer Pattern
 
 ```mermaid
 graph LR
@@ -665,14 +585,7 @@ graph LR
     E -->|"reserve_back"| A
 ```
 
-**Single-Producer Single-Consumer (SPSC) Rule**: Each DFB must have exactly one producer thread and one consumer thread active on the same launched node. Sharing a DFB across multiple consumers (e.g., a compute thread and a DM thread both waiting on the same CB index) is a violation that leads to data corruption due to non-atomic shared counters (`pages_received`, `pages_acked`). [docs/development/DFBManagement.md:51-63](), [lib/Dialect/TTL/Transforms/TTLVerifyDFBSPSC.cpp:9-12]()
-
-The `ttl-verify-dfb-spsc` pass statically enforces this rule by analyzing the launch domains of all kernel threads participating in a DFB. [lib/Dialect/TTL/Transforms/TTLVerifyDFBSPSC.cpp:181-185](), [test/ttlang/Dialect/TTL/Transforms/verify_dfb_spsc_invalid.mlir:5-15]()
-```
-
-
-### Implementation and Compilation
-
+### Related: Implementation and Compilation
 
 ```mermaid
 graph TD
@@ -688,9 +601,7 @@ graph TD
     E -.-> G
 ```
 
-
-### Hardware Mapping and Lowering
-
+### Related: Hardware Mapping and Lowering
 
 ```mermaid
 graph LR
@@ -731,10 +642,6 @@ graph LR
     PopFront -- "updates" --> FrontPtr
 ```
 
-
-#### Tile Coordinate Mapping
-
-
 ```mermaid
 graph LR
     subgraph "Natural Language Space"
@@ -751,10 +658,6 @@ graph LR
     T_SLICE -->|"Lowering"| L_MAP
     L_MAP -->|"Address Gen"| ACC
 ```
-
-
-#### Broadcasting
-
 
 ```mermaid
 graph TD
@@ -773,9 +676,7 @@ graph TD
     B_OP -.->|"Align Shapes"| INPUT
 ```
 
-
-#### Data Flow Space to Code Entity Space
-
+### Related: Data Flow Space to Code Entity Space
 
 ```mermaid
 graph LR
@@ -805,9 +706,7 @@ graph LR
     Handle -->|"operand"| WaitOp
 ```
 
-
-### Lowering to Hardware Operations
-
+### Related: Lowering to Hardware Operations
 
 ```mermaid
 graph TB
@@ -826,15 +725,7 @@ graph TB
     TTL_Wait["TTL_WaitOp"] --> Barrier
 ```
 
-**NOC Operations**:
-- **Read** (Tensor → CB): Lowered to `ttkernel.noc_async_read_tile`. The source address is calculated using `TensorAccessor` logic which handles memory layouts (Interleaved/Sharded).
-- **Write** (CB → Tensor): Lowered to `ttkernel.noc_async_write_tile`.
-- **Synchronization**: `ttl.wait` is implemented using `ttkernel.noc_async_read_barrier` or `noc_async_write_barrier`.
-```
-
-
-#### Conditional Execution (if_src / if_dst)
-
+### Related: Conditional Execution (if_src / if_dst)
 
 ```mermaid
 graph TD
@@ -854,9 +745,7 @@ graph TD
     IsDst -- "False" --> Skip
 ```
 
-
-#### Hardware to Code Entity Mapping
-
+### Related: Hardware to Code Entity Mapping
 
 ```mermaid
 graph TB
@@ -883,9 +772,7 @@ graph TB
     CB -- "'ttl.copy()'" --> DRAM
 ```
 
-
-### Memory Hierarchy Overview
-
+### Related: Memory Hierarchy Overview
 
 ```mermaid
 graph TB
@@ -910,9 +797,7 @@ graph TB
     L1 -.->|"Association"| CB
 ```
 
-
-#### Kernel Invocation to Code Entity Mapping
-
+### Related: Kernel Invocation to Code Entity Mapping
 
 ```mermaid
 graph TB
@@ -935,9 +820,7 @@ graph TB
     DMDecorator -.-> TTLCompiler
 ```
 
-
-#### Thread Coordination via DFB
-
+### Related: Thread Coordination via DFB
 
 ```mermaid
 graph LR
@@ -964,9 +847,7 @@ graph LR
     end
 ```
 
-
-### Thread Execution Model
-
+### Related: Thread Execution Model
 
 ```mermaid
 graph TB
@@ -1001,12 +882,8 @@ graph TB
     BRISC -->|reserve/push| CB
     NCRISC -->|wait/pop| CB
 ```
-Sources: [test/python/simple_add.py:27-62](), [test/python/simple_add.py:70-75](), [test/python/simple_add.py:104-104](), [python/ttl/ttl_api.py:98-117]()
-```
 
-
-### Execution Flow and Compilation Pipeline
-
+### Related: Execution Flow and Compilation Pipeline
 
 ```mermaid
 graph TD
@@ -1017,12 +894,8 @@ graph TD
     DST_MLIR -->|TTLConvertTTLToTTKernel| TTK_MLIR["TTKernel Dialect MLIR"]
     TTK_MLIR -->|ConvertTTKernelToEmitC| CPP["C++ Source Code"]
 ```
-Sources: [lib/Dialect/TTL/Pipelines/TTLPipelines.cpp:19-76](), [test/me2e/builder/pipeline.py:18-93]()
-```
 
-
-#### Grid Coordinate System
-
+### Related: Grid Coordinate System
 
 ```mermaid
 graph TD
@@ -1056,14 +929,7 @@ graph TD
     end
 ```
 
-**Diagram: Grid Coordinate System and Linear Indexing**
-
-The linear index progresses in row-major order. Linear indices are used by the compiler and runtime to manage resources across the physical hardware mesh.
-```
-
-
-#### Code Entity Mapping
-
+### Related: Code Entity Mapping
 
 ```mermaid
 graph TD
@@ -1089,13 +955,6 @@ graph TD
         dfb_pass -- "manages L1" --> dist
     end
 ```
-
-**Diagram: Bridge between Multi-core Concepts and Code Entities**
-```
-
-
-#### Concept to Code Mapping
-
 
 ```mermaid
 graph TB
@@ -1132,9 +991,7 @@ graph TB
     CBPush -- "synchronizes" --> BindCB
 ```
 
-
-### Transformation Overview
-
+### Related: Transformation Overview
 
 ```mermaid
 graph LR
@@ -1157,9 +1014,7 @@ graph LR
     C -.becomes tile_store.-> E
 ```
 
-
-#### Pass Structure
-
+### Related: Pass Structure
 
 ```mermaid
 graph TD
@@ -1185,9 +1040,7 @@ graph TD
     Build -.calls.-> EmitStores
 ```
 
-
-#### Building the ttl.compute Operation
-
+### Related: Building the ttl.compute Operation
 
 ```mermaid
 graph TD
@@ -1209,10 +1062,6 @@ graph TD
     I --> J
 ```
 
-
-#### Interface Implementations
-
-
 ```mermaid
 graph TB
     subgraph "ttl.compute (TTLOps.td)"
@@ -1233,9 +1082,7 @@ graph TB
     Body -.implements.-> Tiling
 ```
 
-
-### DST Register File Architecture
-
+### Related: DST Register File Architecture
 
 ```mermaid
 graph TD
@@ -1265,10 +1112,6 @@ graph TD
     P0 --> BF16_0
     P0 --> F32_0
 ```
-
-
-### Four-Phase Allocation Algorithm
-
 
 ```mermaid
 graph TB
@@ -1300,9 +1143,7 @@ graph TB
     Phase3 -.-> AssignmentMap
 ```
 
-
-#### Tiling Algorithm Implementation
-
+### Related: Tiling Algorithm Implementation
 
 ```mermaid
 graph LR
@@ -1318,12 +1159,9 @@ graph LR
     Search --> Pref
     Pref --> Search
     Search --> Result["bestSizes (SmallVector)"]
-``` |
 ```
 
-
-#### Position in Pipeline
-
+### Related: Position in Pipeline
 
 ```mermaid
 graph LR
@@ -1338,15 +1176,6 @@ graph LR
     style D fill:#f9f9f9
 ```
 
-**Diagram: Position of ttl-lower-to-loops in the compilation pipeline**
-
-The pass runs after DST assignment (`ttl-assign-dst`) and subblocking (`ttl-subblock-compute-for-dst`) but before operation scheduling (`ttl-schedule-operations`) and TTL-to-TTKernel conversion. It operates at function scope and processes each `ttl.compute` operation independently.
-```
-
-
-#### Iteration Domain Computation
-
-
 ```mermaid
 graph TB
     A["ComputeOp [ttl.compute]"] --> B["getIterationDomain()"]
@@ -1355,14 +1184,7 @@ graph TB
     D --> E["Loop bounds generated for SCF"]
 ```
 
-**Diagram: Iteration domain computation from ComputeOp**
-
-The `getIterationDomain` function at [lib/Dialect/TTL/Transforms/ConvertTTLComputeToSCF.cpp:45-47]() leverages the `TilingInterface` to resolve bounds.
-```
-
-
-#### Data Movement: Copy Tile
-
+### Related: Data Movement: Copy Tile
 
 ```mermaid
 graph LR
@@ -1383,9 +1205,7 @@ graph LR
     K_INIT -.->|"Inserted by TTKernelInsertInits[TTKernelInsertInits]"| K_COPY
 ```
 
-
-#### Role in the Pipeline
-
+### Related: Role in the Pipeline
 
 ```mermaid
 graph LR
@@ -1401,18 +1221,7 @@ graph LR
     Translate --> CPP
 ```
 
-**Key EmitC Operations:**
-- `emitc.verbatim`: Used for direct C++ code injection (e.g., `#include` or complex macros).
-- `emitc.call`: Represents a call to a TT-Metalium C++ function.
-- `emitc.variable`: Declares C++ variables with specific types.
-- `emitc.constant`: Represents literal values in the generated code.
-
-The conversion is orchestrated by the `convert-ttkernel-to-emitc` pass, followed by the `ttkernel-to-cpp` translation which serializes the IR into a string.
-```
-
-
-#### Standard Kernel Template
-
+### Related: Standard Kernel Template
 
 ```mermaid
 graph TD
@@ -1434,9 +1243,7 @@ graph TD
     Sync --> Return
 ```
 
-
-#### Tile Typecasting Lowering
-
+### Related: Tile Typecasting Lowering
 
 ```mermaid
 graph LR
@@ -1449,20 +1256,7 @@ graph LR
     TTK_INIT -- "Followed by" --> TTK_OP
 ```
 
-**Key Behaviors:**
-1.  **In-place Operation**: Typecasting is performed in-place within a DST register slot [test/ttlang/Conversion/TTLToTTKernel/typecast.mlir:57-74]().
-2.  **Initialization**: Lowering inserts `ttkernel.typecast_tile_init` which carries both input and output dtypes [test/ttlang/Conversion/TTLToTTKernel/typecast.mlir:5-9]().
-3.  **Deduplication**: Consecutive typecasts with the same dtype pair share a single init op [test/ttlang/Conversion/TTLToTTKernel/typecast.mlir:25-35]().
-4.  **Identity Folding**: Typecasts where input and output dtypes match are treated as no-ops and folded [test/ttlang/Dialect/TTL/IR/typecast.mlir:55-65]().
-
-Sources: [test/ttlang/Conversion/TTLToTTKernel/typecast.mlir:1-96](), [test/ttlang/Dialect/TTL/IR/typecast.mlir:1-66](), [test/ttlang/Dialect/TTL/IR/typecast_invalid.mlir:1-50]()
-
----
-```
-
-
-### Kernel Anatomy
-
+### Related: Kernel Anatomy
 
 ```mermaid
 graph TB
@@ -1500,22 +1294,7 @@ graph TB
     Compute -.synchronizes via DFB.-> DM1
 ```
 
-**Key Components:**
-
-| Component | Purpose | Code Construct |
-|-----------|---------|----------------|
-| Operation decorator | Entry point for TT-NN integration | `@ttl.operation()` [docs/sphinx/specs/TTLangSpecification.md:66-66]() |
-| DFB creation | Allocate L1 staging buffers | `ttl.make_dataflow_buffer_like()` [python/ttl/ttl_api.py:71-76]() |
-| Compute thread | Perform tile operations in DST registers | `@ttl.compute()` [docs/sphinx/specs/TTLangSpecification.md:73-73]() |
-| Data movement threads | Transfer data between DRAM/L1 and DFBs | `@ttl.datamovement()` [docs/sphinx/specs/TTLangSpecification.md:77-77]() |
-| Synchronization | Producer-consumer coordination | `wait()`, `reserve()`, `push()`, `pop()` [docs/sphinx/specs/TTLangSpecification.md:38-38]() |
-
-Sources: [docs/sphinx/specs/TTLangSpecification.md:59-88](), [python/ttl/ttl_api.py:71-76](), [python/ttl/_src/ttl_ast.py:128-145]()
-```
-
-
-### Data Movement Patterns
-
+### Related: Data Movement Patterns
 
 ```mermaid
 graph LR
@@ -1547,19 +1326,6 @@ graph LR
     TRISC -.executes.-> "ttl.math ops"
 ```
 
-**Key Patterns:**
-
-- **Streaming**: For tensors larger than L1, use loops to process slices and reuse DFB slots [docs/sphinx/specs/TTLangSpecification.md:52-54]().
-- **Double Buffering**: Set `block_count=2` to overlap DMA transfers with computation [docs/sphinx/specs/TTLangSpecification.md:47-47]().
-- **Tensor Slicing**: Use `tensor[y, x]` syntax to create `TensorBlock` objects for `ttl.copy` [docs/sphinx/specs/TTLangSpecification.md:14-15]().
-
-Sources: [docs/sphinx/specs/TTLangSpecification.md:52-57](), [lib/Dialect/TTL/Transforms/TTLInsertIntermediateDFBs.cpp:9-14](), [python/ttl/ttl_api.py:96-97]()
-```
-
-
-### Multi-core Programming
-
-
 ```mermaid
 graph TB
     subgraph "Grid Context"
@@ -1575,16 +1341,7 @@ graph TB
     NC --> WP
 ```
 
-**Key APIs:**
-- `ttl.grid_size(dims)`: Returns execution grid dimensions [docs/sphinx/specs/TTLangSpecification.md:106-113]().
-- `ttl.node(dims)`: Returns logical coordinates of the current core [docs/sphinx/specs/TTLangSpecification.md:43-43]().
-
-Sources: [docs/sphinx/specs/TTLangSpecification.md:99-113](), [examples/elementwise-tutorial/step_3_multinode.py:54-96]()
-```
-
-
-### Inter-core Communication with Pipes
-
+### Related: Inter-core Communication with Pipes
 
 ```mermaid
 graph LR
@@ -1605,12 +1362,7 @@ graph LR
     PN --> IA
 ```
 
-Sources: [docs/sphinx/specs/TTLangSpecification.md:12-13](), [python/ttl/ttl_api.py:77-77](), [python/ttl/_src/ttl_ast.py:170-188]()
-```
-
-
-### Kernel Architecture Overview
-
+### Related: Kernel Architecture Overview
 
 ```mermaid
 graph TB
@@ -1645,16 +1397,7 @@ graph TB
     OutCB --> DMWrite
 ```
 
-**Thread Execution Pattern**: The data movement threads (`dm_read`, `dm_write`) and compute thread (`add_compute`) run concurrently on different RISC processors within the Tensix core (MATH, BRISC, and NCRISC), synchronized via circular buffers (referred to as Dataflow Buffers or DFBs in the DSL) [[docs/sphinx/specs/TTLangSpecification.md:53-58]()]. `dm_read` loads input data into DFBs, `add_compute` consumes from input DFBs and produces to the output DFB, and `dm_write` writes results back to device memory [[test/python/simple_add.py:32-62]()].
-
-Sources: [[test/python/simple_add.py:26-62]()], [[docs/sphinx/specs/TTLangSpecification.md:53-58]()]
-
----
-```
-
-
-#### DFB Lifecycle Operations
-
+### Related: DFB Lifecycle Operations
 
 ```mermaid
 graph TB
@@ -1675,22 +1418,6 @@ graph TB
     end
 ```
 
-| Operation | Purpose | Returns | When to Use |
-|-----------|---------|---------|-------------|
-| `dfb.wait()` | Wait for data to be available (consumer) | `TensorBlock` | Reading inputs [[test/python/simple_add.py:34-35]()] |
-| `dfb.reserve()` | Wait for space to be available (producer) | `TensorBlock` | Writing outputs [[test/python/simple_add.py:36]()] |
-| `block.pop()` | Release consumed data | None | After processing inputs [[test/python/simple_add.py:39-40]()] |
-| `block.push()` | Make produced data visible | None | After storing outputs [[test/python/simple_add.py:41]()] |
-
-Sources: [[test/python/simple_add.py:32-41]()], [[test/python/simple_add_multitile.py:34-44]()]
-
----
-```
-
-
-#### Tile vs Tensor Operations
-
-
 ```mermaid
 graph TD
     TensorOp["Tensor Operation<br/>ttl.add(a, b)"]
@@ -1707,14 +1434,7 @@ graph TD
     Loop --> Hardware
 ```
 
-Sources: [include/ttlang/Dialect/TTL/TTLElementwiseOps.def:71](), [examples/general_broadcast.py:56-91](), [python/sim/__init__.py:65-87]()
-
----
-```
-
-
-### Data Flow and Memory Patterns
-
+### Related: Data Flow and Memory Patterns
 
 ```mermaid
 graph TD
@@ -1729,14 +1449,7 @@ graph TD
     CB -- "ttl.copy (DM Thread)" --> DRAM
 ```
 
-Sources: [test/python/test_elementwise_ops.py:38-69](), [test/ttlang_test_utils.py:123-163](), [examples/general_broadcast.py:43-54]()
-
----
-```
-
-
-#### SPMD Work Distribution Mapping
-
+### Related: SPMD Work Distribution Mapping
 
 ```mermaid
 graph TD
@@ -1771,9 +1484,7 @@ graph TD
     OC --> C1
 ```
 
-
-#### Multicast Pattern (1D/2D)
-
+### Related: Multicast Pattern (1D/2D)
 
 ```mermaid
 graph TD
@@ -1794,9 +1505,7 @@ graph TD
     SRC_COPY -- "NOC Multicast" --> DST_COPY
 ```
 
-
-#### Control Flow Translation Pipeline
-
+### Related: Control Flow Translation Pipeline
 
 ```mermaid
 graph TD
@@ -1810,9 +1519,7 @@ graph TD
     "EmitC" -- "generates" --> "CPP_Loop"["C++ for loop"]
 ```
 
-
-#### Validation Pipeline
-
+### Related: Validation Pipeline
 
 ```mermaid
 graph LR
@@ -1845,9 +1552,7 @@ graph LR
     MLIRValidation --- CopyOpVerifier
 ```
 
-
-#### Memory Configuration Patterns
-
+### Related: Memory Configuration Patterns
 
 ```mermaid
 graph TB
@@ -1869,14 +1574,7 @@ graph TB
     L1 --> L1_DMA
 ```
 
-**Pattern 1: Interleaved Access**: Tensors configured as interleaved in DRAM or L1. The compiler uses `detect_memory_layout` to identify `TENSOR_MEMORY_LAYOUT_INTERLEAVED` and generates appropriate NOC addressing [python/ttl/_src/ttl_ast.py:90-103]().
-
-**Pattern 2: Sharded Access**: Tensors sharded across cores in L1. The compiler handles the mapping of sharded layouts to the core grid specified in the `@ttl.kernel` decorator [python/ttl/_src/ttl_ast.py:94-103]().
-```
-
-
-#### Tensor Data Flow
-
+### Related: Tensor Data Flow
 
 ```mermaid
 graph LR
@@ -1893,9 +1591,7 @@ graph LR
     Kernel -->|"ttnn.to_torch()"| PyTorch
 ```
 
-
-#### Hardware Memory Hierarchy Diagram
-
+### Related: Hardware Memory Hierarchy Diagram
 
 ```mermaid
 graph TB
@@ -1925,9 +1621,7 @@ graph TB
     DFB -->|"ttl.copy(block, tensor)"| DRAM
 ```
 
-
-### Code Entity Mapping
-
+### Related: Code Entity Mapping
 
 ```mermaid
 graph TD
@@ -1957,9 +1651,7 @@ graph TD
     dtype_conv --- tile_calc
 ```
 
-
-### Architecture Overview
-
+### Related: Architecture Overview
 
 ```mermaid
 graph TB
@@ -1998,14 +1690,7 @@ graph TB
     Trace --> Stats
 ```
 
-Sources: [python/sim/ttlang_sim.py:30-42](), [python/sim/program.py:23-25](), [python/sim/pipe.py:22-23]()
-
----
-```
-
-
-### Cooperative Scheduling with Greenlets
-
+### Related: Cooperative Scheduling with Greenlets
 
 ```mermaid
 graph LR
@@ -2028,16 +1713,7 @@ graph LR
     GS -- "switch" --> C0_BRISC
 ```
 
-For details, see [Cooperative Scheduling with Greenlets](#6.3).
-
-Sources: [python/sim/greenlet_scheduler.py:1-28](), [python/sim/ttlang_sim.py:27-28]()
-
----
-```
-
-
-#### Component Mapping
-
+### Related: Component Mapping
 
 ```mermaid
 graph TB
@@ -2073,14 +1749,6 @@ graph TB
     Block --> Tensor
     CLI --> Grid
 ```
-Sources: [python/sim/ttlang_sim.py:25-42](), [python/sim/operation.py:26-27](), [python/sim/dfb.py:65-76](), [python/sim/ttnnsim.py:112-125]()
-
----
-```
-
-
-#### Multi-Core Simulation
-
 
 ```mermaid
 graph TD
@@ -2109,20 +1777,6 @@ graph TD
     DM1 -- "Spawns per core" --> T0_2
     DM1 -- "Spawns per core" --> T1_2
 ```
-
-**Key Execution Rules:**
-1. **Thread Concurrency**: Each core runs three threads (MATH, BRISC, NCRISC) implemented as cooperative greenlets [python/sim/dfb.py:41]().
-2. **Memory Accounting**: The simulator tracks total `DataflowBuffer` capacity per core using the `capacity_bytes` property [test/sim/test_ttnnsim.py:89-90](). If it exceeds the hardware L1 limit, a warning is issued [docs/sphinx/simulator.md:100-106]().
-3. **Float32 Promotion**: By default, narrow types like `bfloat16` or `bfloat8_b` are promoted to `float32` for host execution [docs/sphinx/simulator.md:59-81](). This can be toggled via `ttnn.set_disable_float32_promotion()` [python/sim/ttnnsim.py:128-131]().
-
-Sources: [test/sim/test_ttlang_sim.py:53-85](), [docs/sphinx/simulator.md:59-106](), [python/sim/ttnnsim.py:128-131]()
-
----
-```
-
-
-#### ProgramImpl Structure
-
 
 ```mermaid
 graph TB
@@ -2153,20 +1807,6 @@ graph TB
     Call --> RunCoop
 ```
 
-**Key Responsibilities**:
-
-| Method | Lines | Purpose |
-|--------|-------|---------|
-| `__init__` | [python/sim/program.py:108-114]() | Stores function templates and initializes context with grid |
-| `__call__` | [python/sim/program.py:116-151]() | Entry point; captures caller context from locals and closures |
-| `_build_node_context` | [python/sim/program.py:153-197]() | Creates isolated per-node state with fresh `DataflowBuffer`s |
-| `_run_cooperative` | [python/sim/program.py:199-253]() | Creates `GreenletScheduler` and registers kernels |
-```
-
-
-#### Kernel Registration Logic
-
-
 ```mermaid
 graph TB
     subgraph "Program_Orchestration"
@@ -2188,16 +1828,7 @@ graph TB
     KernelId --> AddKernel
 ```
 
-**Registration Details**:
-
-1. **Identity**: Each kernel is identified by a `KernelId` consisting of `(linear_node, kind, func_name)` [python/sim/greenlet_scheduler.py:29-38]().
-2. **Binding**: Templates are bound to the `node_context` created for that specific node [python/sim/program.py:233]().
-3. **Cooperative Execution**: After all kernels are registered, `scheduler.run()` is called to start the round-robin execution [python/sim/program.py:251]().
-```
-
-
-### Architecture
-
+### Related: Architecture
 
 ```mermaid
 graph TB
@@ -2233,14 +1864,7 @@ graph TB
     TX_Wait -- "yields via block_if_needed" --> GS
 ```
 
-**Diagram: Greenlet Scheduling Architecture - Mapping Program execution to the Greenlet lifecycle.**
-
-Sources: [python/sim/program.py:153-213](), [python/sim/greenlet_scheduler.py:74-103](), [python/sim/greenlet_scheduler.py:491-525]()
-```
-
-
-#### Simulation Flow Diagram
-
+### Related: Simulation Flow Diagram
 
 ```mermaid
 graph TD
@@ -2268,14 +1892,8 @@ graph TD
 
     S3 --> E["DFBSlotUpdated"]
 ```
-Sources: [python/sim/dfb.py:65-111](), [python/sim/blockstate.py:67-180](), [python/sim/program.py:181-188]()
 
----
-```
-
-
-#### Handler Registry Pattern
-
+### Related: Handler Registry Pattern
 
 ```mermaid
 graph TB
@@ -2319,12 +1937,8 @@ graph TB
         LookupHandler --> Registry
     end
 ```
-Sources: [python/sim/copyhandlers.py:77-125](), [python/sim/copyhandlers.py:128-151](), [python/sim/copy.py:72-110](), [python/sim/copy.py:131-152]()
-```
 
-
-#### Pipe Data Flow
-
+### Related: Pipe Data Flow
 
 ```mermaid
 graph LR
@@ -2350,12 +1964,8 @@ graph LR
     CopySend -->|"transfer()"| PipeEntry
     PipeEntry -->|"can_wait() / transfer()"| CopyRecv
 ```
-Sources: [python/sim/copyhandlers.py:66-74](), [python/sim/copyhandlers.py:155-202](), [python/sim/copyhandlers.py:321-408]()
-```
 
-
-#### Natural Language to Code Entity Mapping
-
+### Related: Natural Language to Code Entity Mapping
 
 ```mermaid
 graph TB
@@ -2391,9 +2001,7 @@ graph TB
     CSV -- "analyzed by" --> SignpostRep
 ```
 
-
-#### Data Flow Diagram
-
+### Related: Data Flow Diagram
 
 ```mermaid
 graph TB
@@ -2439,9 +2047,7 @@ graph TB
     PostMessage --> TraceJSON
 ```
 
-
-#### Simulator Tracing Architecture
-
+### Related: Simulator Tracing Architecture
 
 ```mermaid
 graph TD
@@ -2468,10 +2074,6 @@ graph TD
     Context -- "Dump on exit" --> JSONL
     JSONL --> Stats
 ```
-
-
-#### Pass Architecture
-
 
 ```mermaid
 graph TB
@@ -2518,9 +2120,7 @@ graph TB
     EraseOps --> EmitCModule
 ```
 
-
-#### Code to System Mapping: Performance Entities
-
+### Related: Code to System Mapping: Performance Entities
 
 ```mermaid
 graph LR
@@ -2559,12 +2159,7 @@ graph LR
     CycleCount --> Duration
 ```
 
-Sources: [python/ttl/ttl_api.py:96-96](), [python/ttl/ttl_api.py:173-181](), [lib/Dialect/TTL/Transforms/TTLInsertCopyWait.cpp:1-12]()
-```
-
-
-### Optimization Process Overview
-
+### Related: Optimization Process Overview
 
 ```mermaid
 graph LR
@@ -2587,9 +2182,7 @@ graph LR
     Decide -->|Diminishing Returns| End["Done"]
 ```
 
-
-### The `/ttl-optimize` Command
-
+### Related: The `/ttl-optimize` Command
 
 ```mermaid
 graph TD
@@ -2617,9 +2210,7 @@ graph TD
     HW --> AutoProf
 ```
 
-
-#### Test Hierarchy Diagram
-
+### Related: Test Hierarchy Diagram
 
 ```mermaid
 graph TB
@@ -2657,12 +2248,8 @@ graph TB
     PytestRunner --> HW
     PytestRunner --> SIM
 ```
-Sources: [test/TESTING.md:14-26](), [test/lit.cfg.py:13-27](), [test/lit.cfg.py:98-102]()
-```
 
-
-#### Test Infrastructure Architecture
-
+### Related: Test Infrastructure Architecture
 
 ```mermaid
 graph TB
@@ -2690,14 +2277,8 @@ graph TB
     ["check-ttlang-all"] --> ["check-ttlang-pytest"]
     ["check-ttlang-all"] --> ["check-ttlang-python-lit"]
 ```
-Sources: [test/TESTING.md:16-26](), [test/lit.cfg.py:1-103](), [cmake/modules/TTLangUtils.cmake:62-76]()
 
----
-```
-
-
-#### Test Execution Flow
-
+### Related: Test Execution Flow
 
 ```mermaid
 graph TB
@@ -2739,38 +2320,7 @@ graph TB
     kernel_call --> validate
 ```
 
-Sources: [test/python/test_elementwise_ops.py:133-151](), [test/python/test_elementwise_shapes.py:157-190](), [test/python/conftest.py:84-102]()
-```
-
-
-#### Architecture Mapping
-
-
-```mermaid
-graph LR
-    subgraph "User Space"
-        req["'Test Add on 2x2 grid'"]
-    end
-
-    subgraph "Code Entity Space"
-        factory["make_binary_kernel()"]
-        template["BINARY_KERNEL_TEMPLATE"]
-        cache["_kernel_cache"]
-        importlib["importlib.util"]
-    end
-
-    req --> factory
-    factory --> template
-    factory --> cache
-    factory --> importlib
-```
-
-Sources: [test/python/test_elementwise_shapes.py:157-190](), [test/python/test_elementwise_ops.py:133-151]()
-```
-
-
-#### Simulator Test Infrastructure Diagram
-
+### Related: Simulator Test Infrastructure Diagram
 
 ```mermaid
 graph TB
@@ -2796,14 +2346,8 @@ graph TB
     CopyTests --> Handlers
     TTNNTests --> TTNNSim
 ```
-Sources: [test/sim/test_examples.py:27-32](), [python/sim/program.py:153-197](), [python/sim/dfb.py:19-20](), [test/sim/test_copyhandlers.py:29-35](), [python/sim/ttnnsim.py:7-18]()
 
----
-```
-
-
-#### Test Execution Flow
-
+### Related: Test Execution Flow
 
 ```mermaid
 graph LR
@@ -2827,12 +2371,8 @@ graph LR
     Setup -.-> disable_promo
     Run -.-> execute_script
 ```
-Sources: [test/sim/test_examples.py:48-54](), [test/sim/test_examples.py:91-115](), [python/sim/context.py:27-27](), [python/sim/program.py:66-86]()
-```
 
-
-### Test File Organization
-
+### Related: Test File Organization
 
 ```mermaid
 graph TB
@@ -2864,24 +2404,6 @@ graph TB
     TranslateTests --> TTLToCpp
 ```
 
-**Test Categories:**
-
-| Directory | Purpose | Key Verifiers/Passes | Example Tests |
-|-----------|---------|---------------------|---------------|
-| `test/ttlang/Dialect/TTL/Transforms/AssignDST/` | DST Assignment and Sync | `ttl-assign-dst` | `dst_seven_op_chain.mlir` [test/ttlang/Dialect/TTL/Transforms/AssignDST/dst_seven_op_chain.mlir:2-4]() |
-| `test/ttlang/Conversion/TTLToCompute/` | Lowering TTL to Compute ops | `convert-ttl-to-compute` | `elementwise_basic.mlir` [test/ttlang/Conversion/TTLToCompute/elementwise_basic.mlir:1-1]() |
-| `test/ttlang/Conversion/TTLToTTKernel/` | Lowering to hardware-specific ops | `convert-ttl-to-ttkernel` | `compute_fused_chain.mlir` [test/ttlang/Conversion/TTLToTTKernel/compute_fused_chain.mlir:5-7]() |
-| `test/ttlang/Translate/TTLToCpp/` | Verifying final C++ emission | `ttkernel-to-cpp` | `compute_with_data_movement.mlir` [test/ttlang/Translate/TTLToCpp/compute_with_data_movement.mlir:2-7]() |
-
-Sources: [test/ttlang/Dialect/TTL/Transforms/AssignDST/dst_seven_op_chain.mlir:1-4](), [test/ttlang/Conversion/TTLToCompute/elementwise_basic.mlir:1-3](), [test/ttlang/Conversion/TTLToTTKernel/compute_fused_chain.mlir:1-12](), [test/ttlang/Translate/TTLToCpp/compute_with_data_movement.mlir:1-15]()
-
----
-```
-
-
-#### SFPU Binary Logic
-
-
 ```mermaid
 graph TD
     subgraph "Natural Language Space"
@@ -2904,19 +2426,6 @@ graph TD
     AssignDST -- "Determines Path" --> FPU_Path
 ```
 
-**Verification Pattern:**
-- **FPU:** Expect `ttkernel.add_tiles` without preceding `ttkernel.copy_tile` for block arguments [test/ttlang/Conversion/TTLToTTKernel/compute_fused_chain.mlir:37-38]().
-- **SFPU:** Expect `ttkernel.copy_tile` for operands followed by `ttkernel.add_binary_tile` [test/ttlang/Conversion/TTLToTTKernel/compute_fused_chain.mlir:81-86]().
-
-Sources: [test/ttlang/Conversion/TTLToTTKernel/compute_fused_chain.mlir:1-103](), [test/ttlang/Dialect/TTL/Transforms/AssignDST/dst_seven_op_chain.mlir:28-60]()
-
----
-```
-
-
-#### Multi-Op Chains
-
-
 ```mermaid
 graph TD
     subgraph "Natural Language Space"
@@ -2937,14 +2446,7 @@ graph TD
     AssignDSTPass -- "Inserts Sync" --> TileRegsCommit
 ```
 
-Sources: [test/ttlang/Dialect/TTL/Transforms/AssignDST/dst_seven_op_chain.mlir:9-67](), [test/ttlang/Dialect/TTL/Transforms/AssignDST/dst_add_mul_exp_chain.mlir:1-38](), [test/ttlang/Dialect/TTL/Transforms/AssignDST/dst_tile_regs_acquire.mlir:1-28]()
-
----
-```
-
-
-### Test Infrastructure Mapping
-
+### Related: Test Infrastructure Mapping
 
 ```mermaid
 graph TD
@@ -2978,14 +2480,8 @@ graph TD
     MLIR --> FileCheck
     SimRunner --> Sim
 ```
-Sources: [[test/TESTING.md:16-32]](), [[test/lit.cfg.py:15-30]](), [[.github/workflows/call-test-hardware.yml:107-126]]()
 
----
-```
-
-
-#### Simulation Workflow
-
+### Related: Simulation Workflow
 
 ```mermaid
 graph LR
@@ -3015,14 +2511,8 @@ graph LR
     HW --> Report["JUnit XML Reports"]
     Sim --> Report
 ```
-Sources: [[.github/workflows/ci.yml:1-20]](), [[.github/workflows/call-test-hardware.yml:42-55]](), [[.github/workflows/call-test-sim.yml:8-15]]()
 
----
-```
-
-
-### Anatomy of a tt-lang Operation
-
+### Related: Anatomy of a tt-lang Operation
 
 ```mermaid
 graph TB
@@ -3050,12 +2540,7 @@ graph TB
     DFB2 --> DMWrite
 ```
 
-This diagram shows the standard structure of a tt-lang operation as seen in the element-wise tutorial. The `@ttl.operation` decorator defines the grid layout. `ttl.make_dataflow_buffer_like()` creates buffers for inter-thread communication. The `with` statement automatically manages DFB lifecycle (`reserve`/`push` and `wait`/`pop`).
-```
-
-
-### Multi-Core Work Distribution Pattern
-
+### Related: Multi-Core Work Distribution Pattern
 
 ```mermaid
 graph TB
@@ -3075,23 +2560,7 @@ graph TB
     CoreFunc --> Calc
 ```
 
-**Code Pattern from `step_3_multinode.py`:**
-```python
-@ttl.operation(grid=(4, 4))
-def __tutorial_operation(a, b, c, y):
-    grid_cols, grid_rows = ttl.grid_size(dims=2) # [examples/elementwise-tutorial/step_3_multinode.py:54]()
-    
-    @ttl.datamovement()
-    def tutorial_read():
-        node_col, node_row = ttl.node(dims=2) # [examples/elementwise-tutorial/step_3_multinode.py:96]()
-        for local_row in range(rows_per_node):
-            row = node_row * rows_per_node + local_row # [examples/elementwise-tutorial/step_3_multinode.py:102]()
-            # ... calculate tensor slice indices ...
-```
-
-
-### Inter-Core Communication with Pipes
-
+### Related: Inter-Core Communication with Pipes
 
 ```mermaid
 graph LR
@@ -3115,16 +2584,7 @@ graph LR
     DstDM --> DstDFB
 ```
 
-**Key Code Entities:**
-- `ttl.Pipe((0, 0), (0, slice(1, 4)))`: Defines a pipe from node (0,0) to nodes (0,1), (0,2), and (0,3).
-- `pipe_net.is_src()`: Predicate used to identify if the current node is the source in the `PipeNet`. [CHANGELOG.md:18]()
-- `pipe_net.is_dst()`: Predicate used to identify if the current node is a destination. [CHANGELOG.md:18]()
-- `ttl.copy(block, pipe)`: Moves data from a local buffer into the pipe for transmission.
-```
-
-
-#### System Mapping Diagram
-
+### Related: System Mapping Diagram
 
 ```mermaid
 graph TB
@@ -3158,9 +2618,7 @@ graph TB
     DMA -.-> BRISC
 ```
 
-
-#### Mapping 2D to 1D
-
+### Related: Mapping 2D to 1D
 
 ```mermaid
 graph TD
@@ -3189,20 +2647,6 @@ graph TD
     style B3 stroke-dasharray: 5 5
 ```
 
-In the generated C++ code for the compute kernel, the compiler materializes this calculation:
-- `size_t [[COLS:v[0-9]+]] = 2;` [test/python/simple_add_multitile.py:119]()
-- `size_t [[ROW_OFF:v[0-9]+]] = [[I]] * [[COLS]];` [test/python/simple_add_multitile.py:120]()
-- `size_t [[LIN_IDX:v[0-9]+]] = [[ROW_OFF]] + [[J]];` [test/python/simple_add_multitile.py:121]()
-
-Sources: [test/python/simple_add_multitile.py:118-122](), [docs/LOWERING_MULTITILE.md:150-152]()
-
----
-```
-
-
-#### 3. `ttl-lower-to-loops`
-
-
 ```mermaid
 graph LR
     subgraph "Python DSL"
@@ -3230,15 +2674,6 @@ add_tiles(...)"]
     PASS2 --> OP3
     OP3 --> CPP
 ```
-
-Sources: [docs/LOWERING_MULTITILE.md:32-165](), [test/python/simple_add_multitile.py:115-121]()
-
----
-```
-
-
-#### Dimension Mapping to Code Entities
-
 
 ```mermaid
 graph LR
@@ -3273,14 +2708,7 @@ graph LR
     BcastOp --> ScalarPattern
 ```
 
-Sources: [examples/broadcast.py:57-60](), [examples/general_broadcast.py:72-84](), [test/python/test_bcast_shape_expansion.py:11-13](), [python/sim/block.py:80-120](), [test/sim/test_math.py:18-101]()
-
----
-```
-
-
-### Multi-Core Grid Broadcasting
-
+### Related: Multi-Core Grid Broadcasting
 
 ```mermaid
 graph TD
@@ -3304,15 +2732,7 @@ graph TD
     ColCalc --> BcastCheck
 ```
 
-In a grid, if a tensor is being broadcast (e.g., a column vector `c`), every core in a specific row of the grid reads the same column slice of `c`, while cores in different rows read different slices [examples/broadcast.py:92-98]().
-
-Sources: [examples/broadcast.py:27-33](), [examples/broadcast.py:64-77](), [examples/broadcast.py:92-98]()
-59:T2a37,
-```
-
-
-#### Pipe Structure and Code Entities
-
+### Related: Pipe Structure and Code Entities
 
 ```mermaid
 graph LR
@@ -3350,19 +2770,7 @@ graph LR
     C00 -- "NOC Multicast" --> C03
 ```
 
-**Pipe Communication Patterns**
-
-| Pattern | Source | Destination Specification | Code Example |
-|---------|--------|-------------|--------------|
-| Unicast | Single core | `NodeCoord` | `Pipe((0, 0), (0, 1))` |
-| Multicast | Single core | `NodeRange` (using `slice`) | `Pipe((0, 0), (0, slice(1, 4)))` [examples/eltwise_pipe.py:70]() |
-
-Sources: [python/sim/pipe.py:42-92](), [examples/eltwise_pipe.py:70-71]()
-```
-
-
-#### Role-Based Execution Flow
-
+### Related: Role-Based Execution Flow
 
 ```mermaid
 graph TB
@@ -3396,17 +2804,7 @@ graph TB
     DstNode --> DstExec
 ```
 
-**Key API Methods:**
-- `pipe_net.is_active()`: Returns `True` if the current node is a participant in any pipe within the network. [python/sim/pipe.py:227-237]()
-- `pipe_net.if_src(callback)`: Executes `callback` only on the source core. The callback receives a `SrcPipeIdentity`. [python/sim/pipe.py:255-269]()
-- `pipe_net.if_dst(callback)`: Executes `callback` only on destination cores. The callback receives a `DstPipeIdentity`. [python/sim/pipe.py:271-285]()
-
-Sources: [python/sim/pipe.py:210-285](), [examples/eltwise_pipe.py:75-76]()
-```
-
-
-#### Streaming Data Flow Diagram
-
+### Related: Streaming Data Flow Diagram
 
 ```mermaid
 graph TB
@@ -3442,54 +2840,7 @@ graph TB
     Loop -.controls.-> DFB_Out
 ```
 
-**Key principle**: Process the tensor iteratively in small blocks, reusing the same DFB storage for each block.
-
-Sources: [test/python/test_large_dram_streaming.py:22-44](), [test/python/test_large_dram_streaming.py:59-104]()
-
----
-```
-
-
-#### Entity Relationship Diagram
-
-
-```mermaid
-graph LR
-    subgraph "Kernel_Definition [ttl.kernel]"
-        direction TB
-        K["fused_mul_add_streaming"]
-        
-        subgraph "DFB_Registry [Dataflow Buffers]"
-            D1["a_dfb: shape=(2,2)"]
-            D2["b_dfb: shape=(2,2)"]
-            D3["c_dfb: shape=(2,2)"]
-            D4["y_dfb: shape=(2,2)"]
-        end
-        
-        subgraph "Execution_Threads [Threads]"
-            Read["@ttl.datamovement()<br/>read_kernel"]
-            Compute["@ttl.compute()<br/>compute_kernel"]
-            Write["@ttl.datamovement()<br/>write_kernel"]
-        end
-    end
-
-    Read -->|"ttl.copy(DRAM -> DFB)"| D1
-    Read -->|"ttl.copy(DRAM -> DFB)"| D2
-    Read -->|"ttl.copy(DRAM -> DFB)"| D3
-    
-    D1 -->|"wait()"| Compute
-    D2 -->|"wait()"| Compute
-    D3 -->|"wait()"| Compute
-    Compute -->|"reserve()"| D4
-    Compute -->|"store()"| D4
-    
-    D4 -->|"wait()"| Write
-    Write -->|"ttl.copy(DFB -> DRAM)"| TensorY["ttnn.Tensor Y"]
-```
-
-
-#### Fusion Chain Lowering
-
+### Related: Fusion Chain Lowering
 
 ```mermaid
 graph TD
@@ -3512,9 +2863,7 @@ graph TD
     end
 ```
 
-
-#### Diagram: K-Split Execution Flow
-
+### Related: Diagram: K-Split Execution Flow
 
 ```mermaid
 graph TD
@@ -3552,14 +2901,8 @@ graph TD
     Out_CB -->|store| Out_DRAM[("Output (DRAM)")]
 
 ```
-Sources: [benchmarks/matmul/ksplit_kernel.py:73-104](), [benchmarks/matmul/ksplit_kernel.py:106-134](), [benchmarks/matmul/ksplit_kernel.py:136-168]()
 
----
-```
-
-
-#### Step 6 & 7: Shard K and All-Reduce
-
+### Related: Step 6 & 7: Shard K and All-Reduce
 
 ```mermaid
 graph LR
@@ -3583,14 +2926,8 @@ graph LR
     Read_K -->|DFB.push| Compute_K
     Compute_K -->|DFB.push| Write_K
 ```
-Sources: [examples/matmul-tutorial/step_5_multidevice_shard_m.py:25-62](), [examples/matmul-tutorial/step_7_multidevice_shard_k_all_reduce.py:48-82]()
 
----
-```
-
-
-#### Natural Language to Code Mapping
-
+### Related: Natural Language to Code Mapping
 
 ```mermaid
 graph TB
@@ -3618,9 +2955,7 @@ graph TB
     Intrinsics --> ttl_ast
 ```
 
-
-#### Mapping to Hardware
-
+### Related: Mapping to Hardware
 
 ```mermaid
 graph LR
@@ -3640,12 +2975,7 @@ graph LR
     Grid --- TO
 ```
 
-For details, see [Grid and Core Context API](#10.5).
-```
-
-
-#### Decorator Structure and Hardware Mapping
-
+### Related: Decorator Structure and Hardware Mapping
 
 ```mermaid
 graph TB
@@ -3692,14 +3022,8 @@ graph TB
     DM0Dec -. "TTLGenericCompiler" .-> DM0Func
     DM1Dec -. "TTLGenericCompiler" .-> DM1Func
 ```
-Sources: [python/ttl/ttl_api.py:98-117](), [python/ttl/_src/ttl_ast.py:128-145](), [docs/sphinx/specs/TTLangSpecification.md:60-62]()
 
----
-```
-
-
-#### Compute Thread Data Flow and C++ Mapping
-
+### Related: Compute Thread Data Flow and C++ Mapping
 
 ```mermaid
 graph LR
@@ -3729,14 +3053,8 @@ graph LR
     TileAcq --> MathInit
     MathExec --> TileRel
 ```
-Sources: [include/ttlang/Dialect/TTL/Passes.td:174-185](), [lib/Dialect/TTL/Pipelines/TTLPipelines.cpp:28-42]()
 
----
-```
-
-
-### API Workflow
-
+### Related: API Workflow
 
 ```mermaid
 graph TB
@@ -3787,12 +3105,7 @@ graph TB
     WITH_WAIT --> AUTO_POP
 ```
 
-Sources: [docs/sphinx/specs/TTLangSpecification.md:142-166](), [docs/sphinx/specs/TTLangSpecification.md:38-40]()
-```
-
-
-#### Natural Language to Code Entity Mapping
-
+### Related: Natural Language to Code Entity Mapping
 
 ```mermaid
 graph LR
@@ -3819,12 +3132,7 @@ graph LR
     E2 --- E5
 ```
 
-Sources: [lib/Dialect/TTL/Transforms/TTLVerifyDFBSPSC.cpp:5-23](), [docs/development/DFBManagement.md:51-66]()
-```
-
-
-#### Simulation State Machine and Locking
-
+### Related: Simulation State Machine and Locking
 
 ```mermaid
 graph TD
@@ -3858,17 +3166,7 @@ graph TD
     style TTLCopyOp stroke-width:2px
 ```
 
-**State Transitions:**
-- **Source Blocks**: Transition via `mark_copy_as_source()`. This prevents writes to the block while a copy is reading from it.
-- **Destination Blocks**: Transition via `mark_copy_as_dest()`. This locks the block against all user access (reads or writes) during the transfer.
-- **Completion**: Calling `tx.wait()` triggers `mark_tx_wait_complete()`, transitioning blocks back to accessible states once the `transfer()` method completes.
-
-Sources: [python/sim/copy.py:97-111](), [python/sim/copy.py:154-165](), [python/sim/copy.py:180-191]()
-```
-
-
-#### Operation Mapping Architecture
-
+### Related: Operation Mapping Architecture
 
 ```mermaid
 graph LR
@@ -3897,49 +3195,8 @@ graph LR
     TileOps --> TTK_Init
     TileOps --> TTK_Compute
 ```
-Sources: [include/ttlang/Dialect/TTL/TTLElementwiseOps.def:9-35](), [python/sim/math.py:30-66](), [python/sim/math.py:71-110]()
 
----
-```
-
-
-#### Reductions
-
-
-```mermaid
-graph TD
-    subgraph "Python Entity Space"
-        DSL_Bcast["ttl.block.broadcast()"]
-        DSL_Math["ttl.math.op()"]
-    end
-
-    subgraph "Simulation Logic (python/sim/block.py)"
-        CheckLayout["check_same_layout()"]
-        NormDims["Normalize Dims (d % ndim)"]
-        WithinTile["Step 1: Replicate within Tile<br/>(tile_h, tile_w expansion)"]
-        GridBcast["Step 2: Replicate across Grid<br/>(torch.expand)"]
-    end
-
-    subgraph "Code Entities"
-        BlockClass["class Block (dfb.py)"]
-        TorchExpand["torch.Tensor.expand"]
-    end
-
-    DSL_Bcast --> CheckLayout
-    CheckLayout --> NormDims
-    NormDims --> WithinTile
-    WithinTile --> GridBcast
-    GridBcast --> BlockClass
-    GridBcast -.-> TorchExpand
-```
-Sources: [python/sim/block.py:80-181](), [test/sim/test_math.py:117-186](), [python/sim/math.py:141-158]()
-
----
-```
-
-
-#### Data Flow and Synchronization
-
+### Related: Data Flow and Synchronization
 
 ```mermaid
 graph TD
@@ -3961,13 +3218,8 @@ graph TD
     Bcast --> Math
     Reserve --> Math
 ```
-Sources: [examples/broadcast.py:47-61](), [examples/general_broadcast.py:56-86](), [python/sim/math.py:151-158]()
-62:T26e9,
-```
 
-
-#### Grid vs Tensor Coordinate Systems
-
+### Related: Grid vs Tensor Coordinate Systems
 
 ```mermaid
 graph LR
@@ -3995,13 +3247,7 @@ graph LR
     TIdx --> TCol
 ```
 
-**Mapping Rule**:
-```python
-```
-
-
-### Dialect Entity Mapping
-
+### Related: Dialect Entity Mapping
 
 ```mermaid
 graph LR
@@ -4028,9 +3274,7 @@ graph LR
     Red --> L1Acc
 ```
 
-
-### Lowering and Transformation Pipeline
-
+### Related: Lowering and Transformation Pipeline
 
 ```mermaid
 graph LR
@@ -4060,9 +3304,7 @@ graph LR
     TTK --> EMIT
 ```
 
-
-#### Thread Architecture Mapping
-
+### Related: Thread Architecture Mapping
 
 ```mermaid
 graph TD
@@ -4096,14 +3338,7 @@ graph TD
     NOC --- BARRIER
 ```
 
-Sources: [lib/Dialect/TTL/Transforms/ConvertTTLToTTKernel.cpp:100-114](), [include/ttlang/Dialect/TTL/IR/TTLOpsUtils.h:31-37]()
-
----
-```
-
-
-### Pass Categories and Execution Model
-
+### Related: Pass Categories and Execution Model
 
 ```mermaid
 graph TD
@@ -4160,10 +3395,6 @@ graph TD
     ToEmitC --> FormExpr
 ```
 
-
-### Materialization Mechanism
-
-
 ```mermaid
 graph TB
     ["SourceVal"] -- "original type" --> ["MaterializeCall"]
@@ -4174,10 +3405,6 @@ graph TB
     ["CastOp"] -- "mlir::UnrealizedConversionCastOp lib/Dialect/Utils/ConversionUtils.h:107" --> ["TargetVal"]
 ```
 
-
-#### Materialization Rules:
-
-
 ```mermaid
 graph LR
     ["Producer Op"] -- "RankedTensor" --> ["Materialization Pass"]
@@ -4186,9 +3413,7 @@ graph LR
     ["Intermediate DFB"] -- "ttl.cb_wait" --> ["Consumer Op"]
 ```
 
-
-#### Development Workflow: From Code to Validation
-
+### Related: Development Workflow: From Code to Validation
 
 ```mermaid
 graph TB
@@ -4225,12 +3450,8 @@ graph TB
     Activate --> PyTest
     Activate --> SimTest
 ```
-Sources: [AGENTS.md:4-16](), [test/TESTING.md:16-27](), [python/ttl/ttl_api.py:1-50]()
-```
 
-
-#### Compiler Pipeline Architecture
-
+### Related: Compiler Pipeline Architecture
 
 ```mermaid
 graph LR
@@ -4261,14 +3482,6 @@ graph LR
     TTK -.-> OPT
     EC -.-> TRANS
 ```
-Sources: [test/TESTING.md:5-100](), [AGENTS.md:35-50](), [test/lit.cfg.py:98-102]()
-
-For details, see [MLIR Pass Development](#12.3).
-```
-
-
-#### System Component Map
-
 
 ```mermaid
 graph TD
@@ -4298,9 +3511,7 @@ graph TD
     SIM -- "Directly interprets" --> DSL
 ```
 
-
-### Testing Infrastructure
-
+### Related: Testing Infrastructure
 
 ```mermaid
 graph TD
@@ -4321,9 +3532,7 @@ graph TD
     SIM -- "Verifies" --> SCHED["Greenlet Scheduler"]
 ```
 
-
-### Pass Architecture in tt-lang
-
+### Related: Pass Architecture in tt-lang
 
 ```mermaid
 graph TB
@@ -4352,9 +3561,7 @@ graph TB
     Pipeline --> CLI
 ```
 
-
-### Pass Structure Components
-
+### Related: Pass Structure Components
 
 ```mermaid
 graph LR
@@ -4372,9 +3579,7 @@ graph LR
     Lib -->|"linked into"| Opt
 ```
 
-
-#### Pattern 2: Lowering to Hardware Ops (`ConvertTTLTileOpsToTTKernel`)
-
+### Related: Pattern 2: Lowering to Hardware Ops (`ConvertTTLTileOpsToTTKernel`)
 
 ```mermaid
 graph TD
@@ -4399,9 +3604,7 @@ graph TD
     Calc --> TTK_Op
 ```
 
-
-### Error Detection Pipeline
-
+### Related: Error Detection Pipeline
 
 ```mermaid
 graph TB
@@ -4441,12 +3644,8 @@ graph TB
     ["MLIROpVal"] -- "Fail" --> ["ErrorMsg"]
     ["PassVal"] -- "Fail" --> ["ErrorMsg"]
 ```
-Sources: [test/python/test_missing_device.py:23-35](), [test/python/test_missing_device.py:53-65]()
-```
 
-
-#### Tensor and Device Constraints
-
+### Related: Tensor and Device Constraints
 
 ```mermaid
 graph LR
@@ -4464,12 +3663,8 @@ graph LR
     ["DeviceCheck"] --> ["HostTensor"]
     ["IDCheck"] --> ["MixedDevices"]
 ```
-Sources: [test/python/test_missing_device.py:18-18](), [test/python/test_missing_device.py:151-162](), [test/python/test_missing_device.py:204-212]()
-```
 
-
-#### Error Formatting Features
-
+### Related: Error Formatting Features
 
 ```mermaid
 graph TD
@@ -4495,12 +3690,8 @@ graph TD
     ["format_error"] --> ["Context"]
     ["format_error"] --> ["Snippet"]
 ```
-Sources: [python/ttl/diagnostics.py:18-20](), [python/ttl/diagnostics.py:150-171](), [python/ttl/diagnostics.py:179-181](), [test/python/diagnostics_multi_error.py:18-18]()
-```
 
-
-#### /ttl-import: Kernel Translation
-
+### Related: /ttl-import: Kernel Translation
 
 ```mermaid
 graph TD
@@ -4524,9 +3715,7 @@ graph TD
     Sim -- "Writes Log" --> Log["/tmp/ttlang_test_output.log"]
 ```
 
-
-#### /ttl-export: Lowering to TT-Metalium
-
+### Related: /ttl-export: Lowering to TT-Metalium
 
 ```mermaid
 graph TD
@@ -4552,9 +3741,7 @@ graph TD
     PyRunner -- "Launches" --> CKernel
 ```
 
-
-#### Tile and Tensor Organization
-
+### Related: Tile and Tensor Organization
 
 ```mermaid
 graph TD
@@ -4578,9 +3765,7 @@ graph TD
     DFB_Obj --> Block_Obj
 ```
 
-
-#### Tensix Thread Coordination
-
+### Related: Tensix Thread Coordination
 
 ```mermaid
 graph LR
@@ -4608,9 +3793,7 @@ graph LR
     Pop -.-> Reserve
 ```
 
-
-### Core System Architecture
-
+### Related: Core System Architecture
 
 ```mermaid
 graph TD
@@ -4646,9 +3829,7 @@ graph TD
     TRISC --> DST
 ```
 
-
-### Simulation Infrastructure
-
+### Related: Simulation Infrastructure
 
 ```mermaid
 graph LR
@@ -4669,9 +3850,7 @@ graph LR
     DFB_SIM --> VAL
 ```
 
-
-#### Dataflow Buffers (DFB) and Blocks
-
+### Related: Dataflow Buffers (DFB) and Blocks
 
 ```mermaid
 graph LR
@@ -4693,13 +3872,6 @@ graph LR
     WAIT --> COMP
     COMP --> POP
 ```
-
-Sources: [python/sim/dfb.py:65-176](), [test/python/test_matmul_with_bias_spmd.py:80-140]()
-```
-
-
-#### Thread and Memory Organization
-
 
 ```mermaid
 graph TB
@@ -4725,28 +3897,3 @@ graph TB
     "BRISC" -->|"noc_async_write"| "NOC"
     "NCRISC" -->|"noc_async_read"| "NOC"
 ```
-
-
-#### Data Flow Mapping
-
-
-```mermaid
-graph LR
-    subgraph "DRAM_Tier[DRAM (Global)]"
-        "Tensor[RankedTensorType<br/>LayoutAttr]"
-    end
-    
-    subgraph "L1_Tier[L1 SRAM (Local)]"
-        "DFB[!ttl.cb<br/>CircularBufferType]"
-    end
-    
-    subgraph "DST_Tier[DST (Compute)]"
-        "DST_Idx[dst_idx attribute<br/>(TTLAssignDST)]"
-    end
-    
-    "DRAM_Tier" -- "ttl.copy (NCRISC)<br/>noc_async_read_tile" --> "L1_Tier"
-    "L1_Tier" -- "ttl.copy (MATH)<br/>copy_tile" --> "DST_Tier"
-    "DST_Tier" -- "ttl.store (MATH)<br/>pack_tile" --> "L1_Tier"
-    "L1_Tier" -- "ttl.copy (BRISC)<br/>noc_async_write_tile" --> "DRAM_Tier"
-```
-

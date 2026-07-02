@@ -335,6 +335,21 @@ Title: JIT Compilation Pipeline
 
 **Sources**: [tt_metal/jit_build/build.cpp 101-135](https://github.com/tenstorrent/tt-metal/blob/f30f8df0/tt_metal/jit_build/build.cpp#L101-L135)[tt_metal/jit_build/build.cpp 143-164](https://github.com/tenstorrent/tt-metal/blob/f30f8df0/tt_metal/jit_build/build.cpp#L143-L164)[tt_metal/jit_build/build.cpp 204-210](https://github.com/tenstorrent/tt-metal/blob/f30f8df0/tt_metal/jit_build/build.cpp#L204-L210)
 
+
+
+```mermaid
+graph LR
+    subgraph "JIT Build System"
+        JitEnv["BuildEnvManager"]
+        Compiler["riscv-tt-elf-g++:109"]
+        Linker["erisc-b0-kernel.ld:194"]
+    end
+    
+    Source[".cpp Kernel Source"] --> JitEnv
+    JitEnv --> Compiler
+    Compiler --> Linker
+    Linker --> Binary["Kernel ELF/Hex"]
+```
 ## Fast Dispatch and Command Queue
 
 Fast Dispatch uses dedicated dispatch cores (prefetcher and dispatcher) to process commands from the host. `HWCommandQueue` manages the host-device command queue interface. For details, see [Fast Dispatch and Command Queue System](https://deepwiki.com/tenstorrent/tt-metal/2.5-fast-dispatch-and-command-queue-system).

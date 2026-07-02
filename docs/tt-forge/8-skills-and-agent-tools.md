@@ -27,6 +27,32 @@ The following diagram illustrates how developer intent is mapped to specific cod
 
 **Sources:**[skills/tt-lang/SKILL.md 1-5](https://github.com/tenstorrent/tt-forge/blob/6f2d9645/skills/tt-lang/SKILL.md?plain=1#L1-L5)[skills/ttnn/SKILL.md 1-4](https://github.com/tenstorrent/tt-forge/blob/6f2d9645/skills/ttnn/SKILL.md?plain=1#L1-L4)[skills/tt-connect-remote-device/SKILL.md 1-5](https://github.com/tenstorrent/tt-forge/blob/6f2d9645/skills/tt-connect-remote-device/SKILL.md?plain=1#L1-L5)
 
+
+
+```mermaid
+graph TD
+    subgraph "Natural Language Space"
+        A["'I want to fuse these ops'"]
+        B["'I need to shard this tensor'"]
+        C["'Run this on remote hardware'"]
+    end
+
+    subgraph "Code Entity Space"
+        direction TB
+        A -->|Uses| S1["ttl.kernel"]
+        A -->|Uses| S2["ttl.compute"]
+        B -->|Uses| S3["ttnn.ShardTensorToMesh"]
+        B -->|Uses| S4["ttnn.MemoryConfig"]
+        C -->|Uses| S5["scripts/run-test.sh"]
+        C -->|Uses| S6["scripts/remote-run.sh"]
+    end
+
+    subgraph "Implementation Files"
+        S1 & S2 -.-> F1["skills/tt-lang/SKILL.md"]
+        S3 & S4 -.-> F2["skills/ttnn/SKILL.md"]
+        S5 & S6 -.-> F3["skills/tt-connect-remote-device/SKILL.md"]
+    end
+```
 ## Core Skill Categories
 
 ### 8.1 TT-Lang Kernel DSL

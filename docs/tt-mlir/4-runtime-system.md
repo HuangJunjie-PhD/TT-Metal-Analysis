@@ -177,11 +177,6 @@ Refresh this wiki
 
 Enter email to refresh
 
-## Additional Diagrams
-
-
-#### Dispatch Mechanism
-
 
 ```mermaid
 graph TB
@@ -217,19 +212,6 @@ graph TB
     HostDist --> DistImpl
 ```
 
-Sources: [runtime/lib/runtime.cpp:63-90](), [runtime/lib/runtime.cpp:114-126]()
-
-**Macro Logic:**
-- **Validation:** Uses `VALIDATE_IMPL` to ensure backend functions match the expected return type via `static_assert` [runtime/lib/runtime.cpp:49-54]().
-- **Routing:** Checks `HostRuntime` first. If `Local`, it branches into `DeviceRuntime` (TTNN vs TTMetal) [runtime/lib/runtime.cpp:74-84](). If `Distributed`, it routes to the distributed implementation [runtime/lib/runtime.cpp:85-89]().
-
----
-```
-
-
-#### Implementation Detail: TTAlchemist Singleton
-
-
 ```mermaid
 graph TD
     subgraph "tt_alchemist_C_Space"
@@ -256,9 +238,3 @@ graph TD
     Registry --> EmitC
     Context --> TTAlchemist
 ```
-
-**Diagram: tt-alchemist Architecture and Code Entities**
-
-Sources: [tools/tt-alchemist/csrc/lib/tt_alchemist.cpp:36-75](), [tools/tt-alchemist/include/tt-alchemist/tt_alchemist_c_api.hpp:7-9]()
-```
-

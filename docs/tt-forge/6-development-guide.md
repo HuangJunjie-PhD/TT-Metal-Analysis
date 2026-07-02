@@ -34,6 +34,37 @@ For a comprehensive guide on porting HuggingFace models, debugging common issues
 
 * * *
 
+
+
+```mermaid
+graph LR
+    subgraph "Frontend Space"
+        PT["PyTorch Model"]
+        JAX["JAX Model"]
+        ONNX["ONNX/TF"]
+    end
+
+    subgraph "Code Entities (Compiler)"
+        TTXLA["TT-XLA (PJRT)"]
+        TTFORGE["TT-Forge-ONNX"]
+        TTMLIR["TT-MLIR"]
+    end
+
+    subgraph "IR Space"
+        SHLO["StableHLO"]
+        TTIR["TTIR Dialect"]
+        TTNN["TTNN-IR"]
+    end
+
+    PT --> TTXLA
+    JAX --> TTXLA
+    ONNX --> TTFORGE
+    TTXLA --> SHLO
+    SHLO --> TTMLIR
+    TTFORGE --> TTIR
+    TTMLIR --> TTIR
+    TTIR --> TTNN
+```
 ## Running Benchmarks Locally
 
 ### Benchmark Execution Overview
@@ -42,6 +73,35 @@ The TT-Forge repository provides two primary benchmark execution paths: **torch-
 
 **Sources:**[.github/workflows/perf-benchmark.yml 1-266](https://github.com/tenstorrent/tt-forge/blob/6f2d9645/.github/workflows/perf-benchmark.yml#L1-L266)[docs/src/model-bring-up-guide.md 99-130](https://github.com/tenstorrent/tt-forge/blob/6f2d9645/docs/src/model-bring-up-guide.md?plain=1#L99-L130)
 
+
+
+```mermaid
+graph TB
+    Developer["Developer"]
+    
+    subgraph "Configuration Entities"
+        Matrix["perf-bench-matrix.json"]
+        Filter["filter-test-matrix.py"]
+    end
+    
+    subgraph "Execution Logic"
+        Pytest["pytest"]
+        Workflow["perf-benchmark.yml"]
+    end
+    
+    subgraph "Implementation Files"
+        XLABench["benchmark/tt-xla/resnet.py"]
+        ForgeBench["benchmark/tt-forge/mobilenetv2_basic.py"]
+    end
+    
+    Developer --> Matrix
+    Matrix --> Filter
+    Filter --> Pytest
+    Filter --> Workflow
+    
+    Pytest --> XLABench
+    Workflow --> XLABench
+```
 ### Direct Pytest Execution
 
 Benchmark scripts can be executed directly using `pytest`. Each benchmark file contains parameterized test functions.

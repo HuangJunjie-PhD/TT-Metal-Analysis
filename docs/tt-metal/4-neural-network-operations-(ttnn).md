@@ -307,11 +307,8 @@ Refresh this wiki
 
 Enter email to refresh
 
-## Additional Diagrams
 
-
-### Backward Operation Architecture
-
+### Related: Backward Operation Architecture
 
 ```mermaid
 graph TB
@@ -352,20 +349,6 @@ graph TB
     OutputGrad --> AssertPCC
 ```
 
-**Diagram: Backward Operation Invocation and Validation Flow**
-
-Backward operations follow a consistent architectural pattern:
-
-1.  **Python API**: User invokes `ttnn.operation_bw` with gradient and original inputs.
-2.  **C++ Backend**: Implementation logic resides in `unary_backward.cpp` for element-wise operations [ttnn/cpp/ttnn/operations/eltwise/unary_backward/unary_backward.cpp:35-63]() or `generic_reductions.cpp` for reduction operations [ttnn/cpp/ttnn/operations/reduction/generic/generic_reductions.cpp:31-40](). These functions often compose other ttnn operations or lower-level `prim` operations. For example, `clamp_bw` uses `ttnn::ge`, `ttnn::le`, `ttnn::logical_and`, and `ttnn::multiply` [ttnn/cpp/ttnn/operations/eltwise/unary_backward/unary_backward.cpp:57-60]().
-3.  **Golden function**: PyTorch reference implementation is attached via `ttnn.attach_golden_function` [tests/ttnn/unit_tests/operations/eltwise/test_unary.py:57-58]() and used to validate correctness during testing [tests/ttnn/unit_tests/operations/reduce/test_reduction.py:26-27]().
-4.  **Unit Testing**: Automated tests generate random shapes and dtypes, comparing device results against golden functions using PCC (Pearson Correlation Coefficient) or ULP (Unit in the Last Place) [tests/ttnn/unit_tests/operations/reduce/test_reduction.py:52-59]().
-```
-
-
-#### Precision Tuning for Performance
-
-
 ```mermaid
 graph LR
     classDef codeEntity fill:#eeeeee,stroke:#333,stroke-width:0.5px,font-family:monospace,font-size:12px
@@ -373,15 +356,6 @@ graph LR
     MathFidelitySetting[/"MathFidelitySetting\Enum"/]:::codeEntity --> ModelOptimizations
     OpGroup[/"OpGroup\Enum"/]:::codeEntity --> ModelOptimizations
 ```
-
-These settings are applied at the layer or model instantiation level to balance speed and accuracy trade-offs [models/tt_transformers/tt/model_config.py:61-110](), [models/tt_transformers/tt/model_config.py:113-140]().
-
----
-```
-
-
-#### Autograd Data Flow Diagram
-
 
 ```mermaid
 graph LR
@@ -391,14 +365,7 @@ graph LR
     GradOp --> InputGrad["Input->set_grad()"]
 ```
 
-Sources: [tt-train/sources/ttml/autograd/tensor.cpp:7-9](), [tt-train/tests/ops/rmsnorm_op_test.cpp:58-91]().
-
----
-```
-
-
-#### Stack Usage Data Flow
-
+### Related: Stack Usage Data Flow
 
 ```mermaid
 graph LR
@@ -417,19 +384,7 @@ graph LR
     Reader -->|writes stack usage summaries| Log
 ```
 
-- Stack usage data is collected during kernel execution.
-
-- Read back by WatcherDeviceReader and logged for diagnostics.
-
-Sources:  
-[tt_metal/impl/debug/watcher_device_reader.cpp:191-197]() (implied usage of RiscData and polling functions)
-
----
-```
-
-
-### Environment Variable Categories
-
+### Related: Environment Variable Categories
 
 ```mermaid
 graph LR
@@ -453,12 +408,7 @@ graph LR
     end
 ```
 
-Sources: [tt_metal/llrt/rtoptions.cpp:47-205]()
-```
-
-
-#### Modular Script Framework and Data Flow
-
+### Related: Modular Script Framework and Data Flow
 
 ```mermaid
 graph TD
@@ -495,14 +445,7 @@ graph TD
     Inspector -.-> DumpFastDispatch & DumpRunningOps
 ```
 
-_Sources: [tools/triage/triage.py:1-160](), [tools/triage/run_checks.py:112-158](), [tools/triage/dispatcher_data.py:89-151]()_
-
----
-```
-
-
-#### CCL High-Level Mapping Diagram
-
+### Related: CCL High-Level Mapping Diagram
 
 ```mermaid
 graph TD
@@ -533,4 +476,3 @@ graph TD
     Fabric --> Topo
     Worker --> all_gather
 ```
-

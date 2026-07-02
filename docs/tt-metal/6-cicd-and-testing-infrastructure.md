@@ -402,11 +402,8 @@ Refresh this wiki
 
 Enter email to refresh
 
-## Additional Diagrams
 
-
-### Quality Gate Tiers
-
+### Related: Quality Gate Tiers
 
 ```mermaid
 graph LR
@@ -426,10 +423,6 @@ graph LR
     style PC stroke-width:2px
 ```
 
-
-#### Validation Strategies in Post-Commit
-
-
 ```mermaid
 graph TD
     Start["Post-Commit Trigger<br/>.github/workflows/blackhole-post-commit.yaml"]
@@ -444,9 +437,7 @@ graph TD
     Build --> Models
 ```
 
-
-#### Team Hierarchy and Relationships
-
+### Related: Team Hierarchy and Relationships
 
 ```mermaid
 graph TB
@@ -475,4 +466,3 @@ graph TB
     OpsLeads -.->|"Oversees"| MM
     TTNNCore -.->|"Provides base for"| OpsLeads
 ```
-

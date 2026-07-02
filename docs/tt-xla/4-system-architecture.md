@@ -164,6 +164,59 @@ graph TB
 
 ## Core Components
 
+
+
+```mermaid
+graph TB
+    subgraph "Platform Layer"
+        TTPlatform["TTPlatform<br/>platform.py:81"]
+        TTConfig["TTConfig<br/>platform.py:40<br/>enable_const_eval<br/>min_context_len<br/>batch_size<br/>enable_data_parallel<br/>enable_tensor_parallel"]
+    end
+    
+    subgraph "Worker Layer"
+        TTWorker["TTWorker<br/>worker.py:51<br/>init_device()<br/>determine_available_memory()<br/>execute_model()"]
+    end
+    
+    subgraph "Model Execution"
+        TTModelRunner["TTModelRunner<br/>model_runner.py:206<br/>Generation tasks"]
+        TTPoolingModelRunner["TTPoolingModelRunner<br/>pooling_runner.py:218<br/>Pooling tasks"]
+    end
+    
+    subgraph "Attention Backend"
+        TTAttentionBackend["TTAttentionBackend<br/>attention.py:82<br/>get_kv_cache_shape()<br/>get_page_size()"]
+        TTAttentionBackendImpl["TTAttentionBackendImpl<br/>attention.py:190<br/>forward()"]
+        TTMetadata["TTMetadata<br/>attention.py:169<br/>cache_position<br/>attn_mask<br/>page_table"]
+    end
+    
+    subgraph "Scheduling"
+        AscendScheduler["AscendScheduler<br/>scheduler/ascend_scheduler.py:29<br/>Prefill-first scheduling"]
+    end
+    
+    subgraph "Utilities"
+        InputBatch["InputBatch<br/>input_batch.py:24<br/>Batch state management"]
+        ShardModel["shard_model()<br/>vllm_distributed_utils.py:284<br/>SPMD weight sharding"]
+        ReplaceModules["replace_modules()<br/>overrides.py:104<br/>TTRMSNorm override"]
+    end
+    
+    TTPlatform -->|"configures"| TTConfig
+    TTPlatform -->|"creates"| TTWorker
+    TTWorker -->|"instantiates"| TTModelRunner
+    TTWorker -->|"or instantiates"| TTPoolingModelRunner
+    TTModelRunner --> TTAttentionBackend
+    TTPoolingModelRunner --> TTAttentionBackend
+    TTAttentionBackend --> TTAttentionBackendImpl
+    TTAttentionBackendImpl --> TTMetadata
+    TTPlatform -->|"sets scheduler_cls"| AscendScheduler
+    TTModelRunner --> InputBatch
+    TTPoolingModelRunner --> InputBatch
+    TTModelRunner -->|"uses for SPMD"| ShardModel
+    TTModelRunner -->|"applies"| ReplaceModules
+    
+    style TTPlatform fill:#f9f9f9,stroke:#333,stroke-width:2px
+    style TTWorker fill:#f9f9f9,stroke:#333,stroke-width:2px
+    style TTModelRunner fill:#f9f9f9,stroke:#333,stroke-width:2px
+    style TTPoolingModelRunner fill:#f9f9f9,stroke:#333,stroke-width:2px
+```
 ### Framework Integration Layer
 
 TT-XLA provides thin wrapper packages for each supported framework that set up the PJRT plugin and enable framework-specific tracing and compilation:
@@ -444,211 +497,3 @@ Dismiss
 Refresh this wiki
 
 Enter email to refresh
-
-## Additional Diagrams
-
-
-### Build Options and Configuration Variables
-
-
-```mermaid
-graph LR
-    subgraph "Primary Build Options"
-        PerfTrace["TTMLIR_ENABLE_PERF_TRACE<br/>(default: ON)"]
-        PyBindings["TTMLIR_ENABLE_BINDINGS_PYTHON<br/>(default: OFF)"]
-        Explorer["TTXLA_ENABLE_EXPLORER<br/>(default: OFF)"]
-        PJRTTests["TTXLA_ENABLE_PJRT_TESTS<br/>(default: OFF)"]
-        Tracy["TTXLA_TRACY_ZONES<br/>(default: OFF)"]
-        Coverage["CODE_COVERAGE<br/>(default: OFF)"]
-    end
-    
-    subgraph "Cache Variables"
-        BuildType["TTMLIR_BUILD_TYPE<br/>(default: Release)"]
-    end
-    
-    subgraph "Derived Settings"
-        RTDebug["TT_RUNTIME_DEBUG"]
-    end
-    
-    Explorer -->|"implies"| PyBindings
-    Explorer -->|"enables"| RTDebug
-    BuildType -.->|"passed to tt-mlir"| TTMLIR["tt-mlir build"]
-    PerfTrace -.->|"passed to tt-mlir"| TTMLIR
-    PyBindings -.->|"passed to tt-mlir"| TTMLIR
-    RTDebug -.->|"passed to tt-mlir"| TTMLIR
-```
-
-**Diagram: Build Configuration Options and Dependencies**
-```
-
-
-#### Purpose and Mechanism
-
-
-```mermaid
-graph LR
-    subgraph "Without Composite"
-        Input1["torch.nn.functional.gelu"]
-        Decomp1["Multiple StableHLO ops<br/>mul, add, tanh, etc."]
-        TTIR1["Generic TTIR lowering"]
-    end
-    
-    subgraph "With Composite"
-        Input2["torch.nn.functional.gelu"]
-        Composite["stablehlo.composite<br/>name='tenstorrent.gelu'"]
-        TTIR2["ttir.gelu<br/>(native implementation)"]
-    end
-    
-    Input1 --> Decomp1 --> TTIR1
-    Input2 --> Composite --> TTIR2
-```
-
-**Diagram: Composite operations enable native TT-MLIR implementations**
-
-Sources: [python_package/tt_torch/composite_ops.py:1-25]()
-```
-
-
-### Code Entity Map
-
-
-```mermaid
-graph TD
-    subgraph "vllm_tt/input_batch.py"
-        IB["InputBatch\
-add_request(), remove_request()\
-temperature_cpu_tensor\
-top_k_cpu_tensor\
-bad_words_token_ids\
-logit_bias"]
-    end
-
-    subgraph "vllm_tt/metadata.py"
-        XLASM["XLASupportedSamplingMetadata\
-from_input_batch()\
-_compute_token_counts()\
-_compute_prompt_mask()\
-_compute_bad_words_mask()"]
-    end
-
-    subgraph "vllm_tt/sampler.py"
-        SAM["Sampler\
-forward()\
-sample()\
-apply_bad_words()\
-apply_logit_bias()\
-apply_penalties()\
-apply_temperature()\
-apply_min_p()\
-greedy_sample()\
-random_sample()"]
-        TOPKP["apply_top_k_top_p()\
-(module-level function)"]
-    end
-
-    subgraph "vllm_tt/model_runner.py"
-        MR["TTModelRunner\
-sample_from_logits_func\
-torch.compile(backend=tt)"]
-    end
-
-    IB -->|"from_input_batch()"| XLASM
-    XLASM -->|"passed to"| SAM
-    SAM --> TOPKP
-    MR -->|"compiles"| SAM
-```
-
-Sources: [integrations/vllm_plugin/vllm_tt/input_batch.py:24-210](), [integrations/vllm_plugin/vllm_tt/metadata.py:24-328](), [integrations/vllm_plugin/vllm_tt/sampler.py:14-244](), [integrations/vllm_plugin/vllm_tt/model_runner.py:438-446]()
-2b:T870b,
-```
-
-
-#### Exception-Based Detection
-
-
-```mermaid
-graph TB
-    ExceptionData["ExceptionData"]
-    
-    subgraph "Exception Properties"
-        ClassName["class_name<br/>(e.g., 'RuntimeError')"]
-        Message["message<br/>(exception.__str__())"]
-        ErrorLog["error_log<br/>(pytest traceback)"]
-        Stdout["stdout<br/>(captured output)"]
-        Stderr["stderr<br/>(captured errors)"]
-    end
-    
-    subgraph "ExceptionCheck Matchers"
-        ClassMatch["class_name match"]
-        MsgCheckers["message checkers<br/>(contains, starts_with, regex, etc.)"]
-        LogCheckers["error_log checkers<br/>(last_line, any, neg, etc.)"]
-        OutCheckers["stdout/stderr checkers"]
-        ComponentMatch["component match<br/>(ComponentChecker)"]
-    end
-    
-    ExceptionData -->|provides| ClassName
-    ExceptionData -->|provides| Message
-    ExceptionData -->|provides| ErrorLog
-    ExceptionData -->|provides| Stdout
-    ExceptionData -->|provides| Stderr
-    
-    ClassName --> ClassMatch
-    Message --> MsgCheckers
-    ErrorLog --> LogCheckers
-    Stdout --> OutCheckers
-    Stderr --> OutCheckers
-    ErrorLog --> ComponentMatch
-    
-    ClassMatch -->|all must pass| Result["ExceptionCheck.check()<br/>returns True/False"]
-    MsgCheckers -->|all must pass| Result
-    LogCheckers -->|all must pass| Result
-    OutCheckers -->|all must pass| Result
-    ComponentMatch -->|must pass| Result
-```
-
-
-#### Debugging a Compilation Issue
-
-
-```mermaid
-graph TB
-    Issue["Compilation Error<br/>or Wrong Output"]
-    
-    Issue --> EnableExport["Set export_path + export_model_name"]
-    EnableExport --> RunModel["Run model to trigger compilation"]
-    RunModel --> ExamineVHLO["Examine vhlo_*.mlir<br/>Input from framework"]
-    
-    ExamineVHLO --> CheckSHLO{"SHLO stage<br/>looks correct?"}
-    CheckSHLO -->|No| FrameworkIssue["Framework serialization issue<br/>Check JAX/PyTorch version"]
-    CheckSHLO -->|Yes| CheckTTIR{"TTIR stage<br/>looks correct?"}
-    
-    CheckTTIR -->|No| SHLOIssue["SHLO→TTIR lowering issue<br/>Check tt-mlir pipeline"]
-    CheckTTIR -->|Yes| CheckTTNN{"TTNN stage<br/>looks correct?"}
-    
-    CheckTTNN -->|No| TTNNIssue["TTIR→TTNN lowering issue<br/>Check optimization passes"]
-    CheckTTNN -->|Yes| RuntimeIssue["Runtime execution issue<br/>Check device logs"]
-    
-    style Issue fill:#fee
-```
-
-**Workflow Example**:
-
-1. **Enable IR Export**:
-```python
-torch_xla.set_custom_compile_options({
-    "export_path": "./debug",
-    "export_model_name": "problematic_model",
-})
-```
-
-2. **Trigger Compilation**:
-```python
-output = model(input)
-torch_xla.sync()
-```
-
-3. **Examine Generated IRs**:
-```bash
-ls debug/irs/
-```
-

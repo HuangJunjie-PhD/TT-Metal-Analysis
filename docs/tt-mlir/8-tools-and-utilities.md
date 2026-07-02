@@ -253,11 +253,57 @@ Refresh this wiki
 
 Enter email to refresh
 
-## Additional Diagrams
 
 
-#### Workflow Entity Association
+```mermaid
+graph TB
+    subgraph "User Interface Layer"
+        CLI["ttrt CLI<br/>(tools/ttrt/__main__.py)"]
+        PythonAPI["ttrt Python Package<br/>(tools/ttrt/common)"]
+    end
+    
+    subgraph "ttrt Core (Python)"
+        Run["class Run<br/>(tools/ttrt/common/run.py)"]
+        Perf["class Perf<br/>(tools/ttrt/common/perf.py)"]
+        Query["class Query<br/>(tools/ttrt/common/query.py)"]
+        Read["class Read<br/>(tools/ttrt/common/read.py)"]
+        EmitPy["class EmitPy<br/>(tools/ttrt/common/emitpy.py)"]
+    end
+    
+    subgraph "Callback System"
+        PreCallback["pre_op_get_callback_fn<br/>(tools/ttrt/common/callback.py)"]
+        PostCallback["post_op_get_callback_fn<br/>(tools/ttrt/common/callback.py)"]
+    end
+    
+    subgraph "C++ Runtime Bridge"
+        TTMLIRRuntime["libTTMLIRRuntime.so<br/>(runtime/lib/runtime.cpp)"]
+        PerfEnv["perf::Env<br/>(runtime/include/tt/runtime/perf.h)"]
+    end
+    
+    subgraph "Backend Execution"
+        ProgramExecutor["ProgramExecutor<br/>(runtime/include/tt/runtime/detail/ttnn/program_executor.h)"]
+        Device["Tenstorrent Hardware"]
+    end
+    
+    CLI --> Run
+    CLI --> Perf
+    CLI --> Query
+    CLI --> EmitPy
+    
+    Run --> PreCallback
+    Run --> PostCallback
+    
+    Run --> TTMLIRRuntime
+    Perf --> TTMLIRRuntime
+    
+    TTMLIRRuntime --> ProgramExecutor
+    ProgramExecutor --> Device
+    
+    Perf -.-> PerfEnv
+```
 
+
+### Related: Workflow Entity Association
 
 ```mermaid
 graph TD
@@ -281,14 +327,7 @@ graph TD
     CMake -- "Configures build for" --> Dylib
 ```
 
-Sources: [lib/Conversion/TTNNToEmitC/TTNNToEmitC.cpp:80-92](), [tools/ttnn-standalone/CMakeLists.txt:158-175](), [tools/ttnn-standalone/emitc_compiler.py:1-35]()
-
----
-```
-
-
-### PR Workflow Job Graph
-
+### Related: PR Workflow Job Graph
 
 ```mermaid
 graph TD
@@ -340,18 +379,7 @@ graph TD
   I --> J
 ```
 
-Sources: [.github/workflows/on-pr.yml:28-145]()
-
-The `downstream-checks` job is specifically triggered when the PR branch is named `uplift`. It uses the GitHub CLI (`gh`) to trigger workflows in `tenstorrent/tt-forge-onnx` and `tenstorrent/tt-xla`, passing the current `tt-mlir` SHA as `mlir_override` to validate cross-repo compatibility.
-
-Sources: [.github/workflows/on-pr.yml:85-125]()
-
----
-```
-
-
-#### Test Execution Workflow
-
+### Related: Test Execution Workflow
 
 ```mermaid
 graph TB
@@ -363,9 +391,7 @@ graph TB
     "FileCheck" -->|"Verify"| "Result[Pass/Fail]"
 ```
 
-
-### Integrated Tools Build
-
+### Related: Integrated Tools Build
 
 ```mermaid
 graph TD
@@ -385,47 +411,3 @@ graph TD
     ttnn_dylib --> lib_tt_metal
     ttnn_dylib --> lib_ttnncpp
 ```
-
-Sources: [tools/ttnn-standalone/CMakeLists.txt:120-125](), [tools/ttnn-standalone/CMakeLists.txt:161-175](), [lib/CMakeLists.txt:71-113]()
-
----
-```
-
-
-## Save results to JSON
-
-
-```mermaid
-graph TB
-    ["ttrt_query_CLI"] -- "calls" --> DISPATCH["tt::runtime::getCurrentSystemDesc()<br/>runtime/lib/runtime.cpp"]
-    
-    subgraph "Backend_Implementation"
-        SD_ENTRY["tt::runtime::system_desc::getCurrentSystemDesc()<br/>runtime/lib/common/system_desc.cpp"]
-    end
-    
-    subgraph "Hardware_Query"
-        DEVICE["tt::tt_metal::distributed::MeshDevice"]
-        CORES["logical_grid_size()"]
-        MEM["l1_size_per_core()<br/>dram_size_per_channel()"]
-        ALIGN["get_alignment()"]
-        ETH["get_active_ethernet_cores()"]
-    end
-    
-    FLATBUF["flatbuffers::FlatBufferBuilder"]
-    FILE["system_desc.ttsys"]
-    
-    DISPATCH -- "calls" --> SD_ENTRY
-    SD_ENTRY -- "queries" --> DEVICE
-    DEVICE -- "obtains" --> CORES
-    DEVICE -- "obtains" --> MEM
-    DEVICE -- "obtains" --> ALIGN
-    DEVICE -- "obtains" --> ETH
-    
-    CORES -- "serializes_to" --> FLATBUF
-    MEM -- "serializes_to" --> FLATBUF
-    ALIGN -- "serializes_to" --> FLATBUF
-    ETH -- "serializes_to" --> FLATBUF
-    
-    FLATBUF -- "writes" --> FILE
-```
-

@@ -243,11 +243,6 @@ Refresh this wiki
 
 Enter email to refresh
 
-## Additional Diagrams
-
-
-#### SingletonDeviceContext
-
 
 ```mermaid
 graph LR
@@ -270,18 +265,3 @@ graph LR
     getDevice --> MockDevice
     closeInstance --> MeshDevice
 ```
-
-**Key Methods:**
-- `getInstance()`: Returns singleton instance [lib/OpModel/TTNN/SingletonDeviceContext.cpp:24-28]().
-- `openDevice()`: Initializes device based on environment or mock settings [lib/OpModel/TTNN/SingletonDeviceContext.cpp:80-124]().
-- `getDevice()`: Returns pointer to active device [include/ttmlir/OpModel/TTNN/SingletonDeviceContext.h:48-48]().
-- `isMockDevice()`: Returns whether mock mode is active [include/ttmlir/OpModel/TTNN/SingletonDeviceContext.h:53-53]().
-- `closeInstance()`: Closes device and cleans up resources [lib/OpModel/TTNN/SingletonDeviceContext.cpp:39-49]().
-
-The context uses a `ProgramCacheState` RAII helper to preserve and restore the program cache state during queries, as queries typically require the cache to be disabled for accurate measurement [lib/OpModel/TTNN/TTNNOpModel.cpp:60-74]().
-
-Sources: [lib/OpModel/TTNN/SingletonDeviceContext.cpp:17-148](), [lib/OpModel/TTNN/TTNNOpModel.cpp:60-74]()
-
----
-```
-

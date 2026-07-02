@@ -31,6 +31,38 @@ The following diagram illustrates how natural language prompts and high-level go
 
 * * *
 
+
+
+```mermaid
+graph TD
+    subgraph "Natural Language Space"
+        UserPrompt["User Prompt / Issue / PR Comment"]
+        WorkflowDispatch["workflow_dispatch (Prompt Input)"]
+    end
+
+    subgraph "Agent Orchestration (GitHub Actions)"
+        ClaudeAction["anthropics/claude-code-action@v1"]
+        ClaudeYAML[".github/workflows/claude.yml"]
+        CallClaudeYAML[".github/workflows/call-claude.yml"]
+    end
+
+    subgraph "Code Entity Space"
+        CLAUDE_MD["CLAUDE.md (Style & Context)"]
+        SkillsDir[".claude/skills/ (Task Blueprints)"]
+        ForgeModels["tt-forge-models (Target Repository)"]
+        TTXLA["tt-xla (Frontend Environment)"]
+    end
+
+    UserPrompt --> ClaudeYAML
+    WorkflowDispatch --> CallClaudeYAML
+    ClaudeYAML --> ClaudeAction
+    CallClaudeClaudeYAML --> ClaudeAction
+    
+    ClaudeAction -.-> CLAUDE_MD
+    ClaudeAction -.-> SkillsDir
+    ClaudeAction -->|Executes Bash| TTXLA
+    ClaudeAction -->|Writes Code| ForgeModels
+```
 ## Core AI Components
 
 ### Claude Code Integration
@@ -56,6 +88,31 @@ The most advanced use of AI in this repository is the automated onboarding of Hu
 
 For details, see [Automated Model Bringup](https://deepwiki.com/tenstorrent/tt-forge/7.2-automated-model-bringup).
 
+
+
+```mermaid
+graph LR
+    subgraph "Workflow Logic"
+        MB_Master[".github/workflows/ai-model-bringup-master.yml"]
+        MB_Single[".github/workflows/ai-model-bringup.yml"]
+    end
+
+    subgraph "Skill Definitions"
+        CPU_Skill[".claude/skills/model-bringup-cpu/SKILL.md"]
+        HW_Skill[".claude/skills/model-bringup-tt-hardware/SKILL.md"]
+    end
+
+    subgraph "Implementation Classes"
+        ForgeModel["ForgeModel (base.py)"]
+        ModelLoader["ModelLoader (loader.py)"]
+    end
+
+    MB_Master -->|Batch| MB_Single
+    MB_Single -->|Invoke| CPU_Skill
+    MB_Single -->|Invoke| HW_Skill
+    CPU_Skill -->|Generates| ModelLoader
+    ModelLoader --|> ForgeModel
+```
 ### AI Installation Validation
 
 The repository includes an autonomous "Installation Auditor" that evaluates the clarity and completeness of the setup documentation. The agent attempts to install `tt-forge` and run demos from a clean environment, reporting any friction points or missing dependencies.

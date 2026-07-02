@@ -177,11 +177,8 @@ Refresh this wiki
 
 Enter email to refresh
 
-## Additional Diagrams
 
-
-#### Frontend Layer Architecture
-
+### Related: Frontend Layer Architecture
 
 ```mermaid
 graph TB
@@ -228,15 +225,6 @@ graph TB
     TTIR -->|"TT-MLIR Compiler"| Compiled
 ```
 
-Sources: [README.md:27-32](), [demos/README.md:7-18](), [demos/tt-xla/nlp/jax/gpt_demo.py:39-41]()
-
----
-```
-
-
-#### JAX Integration (jax.jit)
-
-
 ```mermaid
 graph LR
     subgraph "JAX Workflow"
@@ -258,12 +246,7 @@ graph LR
     PJRT -.-> Device
 ```
 
-Sources: [demos/tt-xla/nlp/jax/gpt_demo.py:26-45](), [README.md:93]()
-```
-
-
-### Compiler Architecture Overview
-
+### Related: Compiler Architecture Overview
 
 ```mermaid
 graph TB
@@ -322,15 +305,6 @@ graph TB
     TTMetal_IR -.-> TTRT
 ```
 
-**Diagram: TT-MLIR Compiler Architecture and Tooling**
-
-The compiler follows a multi-stage lowering strategy where high-level operations are progressively transformed into hardware-specific implementations. The central TTIR dialect acts as a common representation that can be lowered to multiple backend targets depending on the desired abstraction level [CLAUDE.md:74-80]().
-```
-
-
-#### StableHLO-IR
-
-
 ```mermaid
 graph LR
     subgraph "Frontend Sources"
@@ -350,15 +324,6 @@ graph LR
     Conversion --> TTIR_Output["TTIR Dialect"]
 ```
 
-**Diagram: StableHLO-IR Input Path**
-
-StableHLO provides a well-defined operation set that captures the semantics of ML computations without framework-specific quirks. It is the standard MLIR representation used by XLA-based frontends [CLAUDE.md:76-76]().
-```
-
-
-#### TTNN Dialect
-
-
 ```mermaid
 graph TB
     subgraph "TTNN Dialect Entities"
@@ -373,15 +338,6 @@ graph TB
     TTNN_Ops --> TTNN_Lib
     TTNN_Layout --> TTNN_Lib
 ```
-
-**Diagram: TTNN Dialect to Library Mapping**
-
-TTNN operations are designed to have a straightforward mapping to TTNN library calls, which provide optimized implementations for Tenstorrent hardware [CLAUDE.md:81-81]().
-```
-
-
-### Optimization Passes
-
 
 ```mermaid
 graph TB
@@ -399,12 +355,7 @@ graph TB
     Shard --> TTNN_Out["Lowered TTNN/Metal IR"]
 ```
 
-**Diagram: Optimization Pass Pipeline**
-```
-
-
-#### Layer Hierarchy
-
+### Related: Layer Hierarchy
 
 ```mermaid
 graph TB
@@ -446,9 +397,7 @@ graph TB
     KMD --> Blackhole
 ```
 
-
-### Runtime Component Interaction
-
+### Related: Runtime Component Interaction
 
 ```mermaid
 graph LR
@@ -485,9 +434,7 @@ graph LR
     Kernel_API --> NoC_Transfer
 ```
 
-
-### Workflow Overview
-
+### Related: Workflow Overview
 
 ```mermaid
 graph TB
@@ -531,9 +478,7 @@ graph TB
     DemoFail --> DemoProduce
 ```
 
-
-#### Demo Execution Architecture
-
+### Related: Demo Execution Architecture
 
 ```mermaid
 graph TB
@@ -570,9 +515,7 @@ graph TB
     Container --> RunDemo
 ```
 
-
-#### Model Categories Overview
-
+### Related: Model Categories Overview
 
 ```mermaid
 graph TB
@@ -606,12 +549,7 @@ graph TB
     GPT2Demo --> Mesh
 ```
 
-Sources: [demos/tt-xla/cnn/resnet_demo.py:1-71](), [demos/tt-xla/nlp/jax/gpt_demo.py:1-98](), [demos/tt-xla/nlp/pytorch/bge3_demo.py:1-63]()
-```
-
-
-#### Code Entity Mapping
-
+### Related: Code Entity Mapping
 
 ```mermaid
 graph TB
@@ -657,13 +595,6 @@ graph TB
     DemoFunc --> PostProcess
 ```
 
-Sources: [benchmark/tt-xla/resnet.py:32-42](), [demos/tt-xla/cnn/resnet_demo.py:18-38](), [demos/tt-xla/cnn/resnet_hf_demo.py:23-35]()
-```
-
-
-#### Core Benchmarking Functions
-
-
 ```mermaid
 graph LR
     subgraph "Model Execution"
@@ -689,10 +620,6 @@ graph LR
     Serialize --> Create
     Create --> Print
 ```
-
-
-#### Code Entity Mapping: Benchmark Integration
-
 
 ```mermaid
 graph LR
@@ -722,15 +649,7 @@ graph LR
     VBench -->|"unpacks config"| VTest
 ```
 
-Each `benchmark()` function serves as the entry point for the dynamic benchmark execution system. It extracts configuration values and calls the corresponding test function:
-- UNet: [benchmark/tt-xla/unet.py:222-248]()
-- Segformer: [benchmark/tt-xla/segformer.py:250-276]()
-- ViT: [benchmark/tt-xla/vit.py:250-276]()
-```
-
-
-### Architecture
-
+### Related: Architecture
 
 ```mermaid
 graph TB
@@ -801,92 +720,7 @@ graph TB
     style StaticCacheInit fill:#f9f9f9
 ```
 
-**Component Roles:**
-
-| Component | File Location | Responsibility |
-|-----------|---------------|----------------|
-| `test_llm()` | [benchmark/tt-xla/llms.py:55-168]() | Pytest entry point, configuration precedence, result saving |
-| `load_llm_configs()` | [benchmark/tt-xla/llms.py:26-48]() | Load model configurations from JSON file |
-| `benchmark_llm_torch_xla()` | [benchmark/tt-xla/llm_benchmark.py:232-456]() | Main benchmark orchestration and measurement |
-| `setup_model_and_tokenizer()` | [benchmark/tt-xla/llm_benchmark.py:49-66]() | Instantiate HuggingFace model and tokenizer |
-| `construct_inputs()` | [benchmark/tt-xla/llm_benchmark.py:69-117]() | Tokenize prompts, create `StaticCache` |
-| `transfer_to_device()` | [benchmark/tt-xla/llm_benchmark.py:120-136]() | Move tensors to XLA device |
-| `generate_and_benchmark()` | [benchmark/tt-xla/llm_benchmark.py:139-208]() | Autoregressive generation loop with timing |
-```
-
-
-#### System Flow
-
-
-```mermaid
-graph TB
-    subgraph "Model Sources"
-        TorchHub["torch.hub<br/>(PyTorch Vision)"]
-        HF["HuggingFace Transformers<br/>(ViT, Segformer)"]
-        Timm["timm library<br/>(EfficientNet, VoVNet)"]
-        PTCV["pytorchcv<br/>(UNet)"]
-        Custom["Custom Models<br/>(MNIST Linear)"]
-        ONNX["ONNX Models<br/>(ResNet, Roberta)"]
-        Paddle["PaddlePaddle<br/>(BLIP)"]
-    end
-    
-    subgraph "Benchmark Entry Points"
-        MobileNet["mobilenetv2_basic.py<br/>test_mobilenetv2_basic()"]
-        VoVNet["vovnet.py<br/>test_vovnet_timm()"]
-        MNIST["mnist_linear.py<br/>test_mnist_linear()"]
-        ViT["vit.py<br/>test_vit_base()"]
-        EfficientNet["efficientnet_timm.py<br/>test_efficientnet_timm()"]
-        UNet["unet.py<br/>test_unet()"]
-        Segformer["segformer.py<br/>test_segformer()"]
-        ResNetONNX["resnet_demo.py<br/>run_resnet_onnx()"]
-        BLIPPaddle["blip_demo.py<br/>run_blip_demo_case()"]
-    end
-    
-    subgraph "Common Workflow"
-        LoadModel["Load Framework Model<br/>ModelLoader.load_model()"]
-        LoadData["Load/Generate Input Data<br/>load_benchmark_dataset()"]
-        Configure["Configure Compiler<br/>CompilerConfig<br/>MLIRConfig"]
-        Compile["forge.compile()<br/>TVM → MLIR → TTNN"]
-        DeviceConfig["configure_devices()<br/>DeviceSettings"]
-        Verify["verify()<br/>AutomaticValueChecker"]
-        Measure["Performance Measurement<br/>time.time() loop"]
-        CPUBaseline["measure_cpu_fps()<br/>CPU Baseline"]
-        Results["Structured Results<br/>measurements, device_info"]
-    end
-    
-    TorchHub --> MobileNet
-    Timm --> VoVNet
-    Timm --> EfficientNet
-    Custom --> MNIST
-    HF --> ViT
-    PTCV --> UNet
-    HF --> Segformer
-    ONNX --> ResNetONNX
-    Paddle --> BLIPPaddle
-    
-    MobileNet --> LoadModel
-    VoVNet --> LoadModel
-    MNIST --> LoadModel
-    ViT --> LoadModel
-    EfficientNet --> LoadModel
-    UNet --> LoadModel
-    Segformer --> LoadModel
-    ResNetONNX --> LoadModel
-    BLIPPaddle --> LoadModel
-    
-    LoadModel --> LoadData
-    LoadData --> Configure
-    Configure --> Compile
-    Compile --> DeviceConfig
-    DeviceConfig --> Verify
-    Verify --> Measure
-    LoadModel --> CPUBaseline
-    Measure --> Results
-```
-
-
-#### Execution Phases
-
+### Related: Execution Phases
 
 ```mermaid
 graph TB
@@ -965,9 +799,7 @@ graph TB
     BuildResult --> ReturnResult
 ```
 
-
-### Performance Metrics Overview
-
+### Related: Performance Metrics Overview
 
 ```mermaid
 graph TB
@@ -1002,10 +834,6 @@ graph TB
     CreateResult --> JsonOutput
 ```
 
-
-#### Multi-Output Support
-
-
 ```mermaid
 graph LR
     Output["Model Output"]
@@ -1020,10 +848,6 @@ graph LR
     SingleTensor --> Predictions
     MultipleTensors --> Predictions
 ```
-
-
-### Overview of Test Workflows
-
 
 ```mermaid
 graph TB
@@ -1077,9 +901,7 @@ graph TB
     FailSendMsg --> ProduceData
 ```
 
-
-#### Basic Tests Architecture
-
+### Related: Basic Tests Architecture
 
 ```mermaid
 graph TB
@@ -1126,10 +948,6 @@ graph TB
     RunsOn --> RunTest
 ```
 
-
-#### Test Implementation
-
-
 ```mermaid
 graph LR
     subgraph "Frontend Systems"
@@ -1148,17 +966,6 @@ graph LR
     TTTorch --> Torch_Script
     TTForgeONNX --> ONNX_Script
 ```
-
-| Frontend | Test Script | Implementation Detail |
-|----------|-------------|-----------------------|
-| `tt-xla` | `basic_tests/tt-xla/demo_test.py` | Uses `jax.jit` and `jax.devices("tt")` to compute `m * x + b`. |
-| `tt-torch` | `basic_tests/tt-torch/demo_test.py` | Uses `torch.compile(model, backend="tt")` with a simple `AddTensors` module. |
-| `tt-forge-onnx` | `basic_tests/tt-forge-onnx/demo_test.py` | Uses `forge.compile` and `forge.verify` to validate elementwise addition. |
-```
-
-
-#### High-Level System Diagram
-
 
 ```mermaid
 graph TD
@@ -1195,10 +1002,6 @@ graph TD
     Notify -->|Always| Data
 ```
 
-
-#### System Flow Diagram
-
-
 ```mermaid
 graph TB
     Input["models-matrix.json<br/>Hierarchical test configuration"]
@@ -1226,10 +1029,6 @@ graph TB
     Output --> Strategy
     Strategy --> Jobs
 ```
-
-
-#### filter_matrix Function
-
 
 ```mermaid
 graph TD
@@ -1264,32 +1063,6 @@ graph TD
     MatchName -->|No| Exclude
 ```
 
-
-#### Basic Tests Workflow
-
-
-```mermaid
-graph LR
-    Input["inputs.project-filter<br/>inputs.runner-filter"]
-    
-    subgraph "build_matrix Job"
-        LoopF["For each frontend"]
-        LoopR["For each run_on"]
-        JQ["jq -n '. += [{frontend, runs_on}]'"]
-    end
-    
-    Output["outputs.json_matrix"]
-    
-    Input --> LoopF
-    LoopF --> LoopR
-    LoopR --> JQ
-    JQ --> Output
-```
-
-
-### Repository Discovery and Enumeration
-
-
 ```mermaid
 graph LR
     GetReposJob["get-repos Job<br/>ubuntu-latest"]
@@ -1308,26 +1081,7 @@ graph LR
     OutputMatrix --> UpdateConsumer
 ```
 
-The action reads the repository list from `set-release-facts` and produces a JSON matrix.
-
-**Repository Filtering:**
-- If `inputs.repo` is specified, only that repository is included [.github/workflows/daily-releaser.yml:61]().
-- Otherwise, all repositories defined in `set-release-facts` are processed.
-- The list is defined in the configuration within the `set-release-facts` action.
-
-**Matrix Strategy:**
-The JSON output is consumed by downstream jobs using GitHub Actions matrix strategy:
-
-```yaml
-strategy:
-  fail-fast: false
-  matrix:
-    include: ${{ fromJson(needs.get-repos.outputs.json_results) }}
-```
-
-
-#### Workflow Invocation Contract
-
+### Related: Workflow Invocation Contract
 
 ```mermaid
 graph LR
@@ -1354,22 +1108,7 @@ graph LR
     UpdateInvoke --> RCParams
 ```
 
-**Nightly Release Invocation:**
-```yaml
-uses: ./.github/workflows/release.yml
-with:
-  draft: ${{ inputs.draft || false }}
-  repo: ${{ matrix.repo }}
-  overwrite_releases: ${{ inputs.overwrite_releases || false }}
-  release_type: nightly
-  repo_short: ${{ matrix.repo_short }}
-```
-[.github/workflows/daily-releaser.yml:91-98]()
-```
-
-
-### Nightly Release Workflow Execution
-
+### Related: Nightly Release Workflow Execution
 
 ```mermaid
 graph TB
@@ -1439,9 +1178,7 @@ graph TB
     GitTag --> GHRelease
 ```
 
-
-#### RC Workflow Execution
-
+### Related: RC Workflow Execution
 
 ```mermaid
 graph TB
@@ -1470,12 +1207,7 @@ graph TB
     GitTag --> GHRelease
 ```
 
-The workflow checks for existing releases to prevent duplicate builds. This is controlled by the `overwrite_releases` parameter in the `release.yml` workflow [.github/workflows/release.yml:115-135]().
-```
-
-
-#### Test Workflow Structure
-
+### Related: Test Workflow Structure
 
 ```mermaid
 graph TB
@@ -1496,13 +1228,6 @@ graph TB
     FirstPatch --> SecondPatch
     SecondPatch --> Validate
 ```
-
-The test validates the existence of tags like `draft.tt-mlir.X.Y.0rc1` and `draft.tt-mlir.X.Y.0` [.github/workflows/test-rc-stable-release-lifecycle.yml:154-161]() and ensures non-expected versions do not exist [.github/workflows/test-rc-stable-release-lifecycle.yml:163-166]().
-```
-
-
-#### Workflow Integration Diagram
-
 
 ```mermaid
 graph TB
@@ -1555,12 +1280,7 @@ graph TB
     SetFactsPub -.->|36 outputs| PublishPyPI
 ```
 
-The action is invoked three times within a single release workflow execution (once per job) to ensure consistent configuration across all stages. Each invocation receives the same inputs and produces identical outputs, providing a deterministic configuration layer.
-```
-
-
-#### Component Association Diagram
-
+### Related: Component Association Diagram
 
 ```mermaid
 graph LR
@@ -1609,9 +1329,7 @@ graph LR
     SetFacts -->|"prerelease<br/>make_latest<br/>repo_full"| PublishGH
 ```
 
-
-### Architecture Overview
-
+### Related: Architecture Overview
 
 ```mermaid
 graph TB
@@ -1674,9 +1392,7 @@ graph TB
     TTForgeRepo --> TTPyPI
 ```
 
-
-#### Code Entity Relationship Diagram
-
+### Related: Code Entity Relationship Diagram
 
 ```mermaid
 graph TB
@@ -1720,12 +1436,7 @@ graph TB
     BdistWheel --> PyPIForge
 ```
 
-Sources: [.github/actions/tt-forge-wheel/action.yml:1-88](), [.github/scripts/template-setup.py:1-19]()
-```
-
-
-#### Conditional Build Execution
-
+### Related: Conditional Build Execution
 
 ```mermaid
 graph TD
@@ -1747,23 +1458,6 @@ graph TD
     CheckOverwrite -->|true| BuildImage
     CheckOverwrite -->|false| SkipBuild
 ```
-
-The conditional logic appears at [.github/workflows/release.yml:173]():
-```yaml
-if: ${{ (steps.set-release-facts.outputs.skip_docker_build == 'false' && 
-         steps.check_release.outputs.release_exists == 'false') || 
-        (steps.set-release-facts.outputs.skip_docker_build == 'false' && 
-         inputs.overwrite_releases) }}
-```
-
-Sources: [.github/actions/set-release-facts/action.yaml:174-175](), [.github/actions/set-release-facts/action.yaml:217-248](), [.github/workflows/release.yml:173]()
-
----
-```
-
-
-#### System Components
-
 
 ```mermaid
 graph TB
@@ -1845,9 +1539,7 @@ graph TB
     CleanupTest --> DeleteDraft
 ```
 
-
-#### Validation Steps
-
+### Related: Validation Steps
 
 ```mermaid
 graph LR
@@ -1888,40 +1580,7 @@ graph LR
     CheckBranchExists -->|Missing branch| Failure
 ```
 
-
-#### Test Execution
-
-
-```mermaid
-graph TB
-    Trigger["Push/PR to release code<br/>or workflow_dispatch"]
-    
-    TestWorkflow["test-nightly-releaser.yml<br/>────────────<br/>Single job:<br/>test-daily-nightly-releaser"]
-    
-    DailyReleaser["Calls daily-releaser.yml<br/>────────────<br/>with:<br/>  draft: true<br/>  overwrite_releases: false<br/>  repo: optional filter"]
-    
-    GetRepos["daily-releaser:<br/>get-repos job<br/>────────────<br/>Lists all repos or filtered repo"]
-    
-    NightlyPath["For each repo:<br/>Calls release.yml<br/>────────────<br/>type: nightly<br/>draft: true"]
-    
-    RCStablePath["For each repo:<br/>Calls update-releases.yml<br/>────────────<br/>draft: true"]
-    
-    DraftArtifacts["Creates draft artifacts:<br/>────────────<br/>Draft nightly releases<br/>Draft RC/stable updates<br/>Draft branches"]
-    
-    Trigger --> TestWorkflow
-    TestWorkflow --> DailyReleaser
-    DailyReleaser --> GetRepos
-    
-    GetRepos --> NightlyPath
-    GetRepos --> RCStablePath
-    
-    NightlyPath --> DraftArtifacts
-    RCStablePath --> DraftArtifacts
-```
-
-
-#### Benchmark Execution Overview
-
+### Related: Benchmark Execution Overview
 
 ```mermaid
 graph TB
@@ -1951,9 +1610,7 @@ graph TB
     Workflow --> XLABench
 ```
 
-
-### Benchmark Infrastructure Architecture
-
+### Related: Benchmark Infrastructure Architecture
 
 ```mermaid
 graph TD
@@ -1984,6 +1641,7 @@ graph TD
     RunStep -- "executes" --> PythonScript["python {matrix.path}"]
 ```
 
+### Related: Benchmark Infrastructure Architecture
 
 ```mermaid
 graph LR
@@ -2012,9 +1670,7 @@ graph LR
     Device --> P150
 ```
 
-
-### Demo Test Workflow Architecture
-
+### Related: Demo Test Workflow Architecture
 
 ```mermaid
 graph TB
@@ -2070,16 +1726,7 @@ graph TB
     RunDemo --> FailNotify
 ```
 
-**Workflow Execution Flow**
-
-The workflow is triggered by `workflow_dispatch` (manual) or `workflow_call` (from release workflows). The `set-matrix` job uses `filter-test-matrix.py` to parse `models-matrix.json` based on the provided `project-filter` and `test-filter` [.github/workflows/demo-tests.yml:72-77](). Each test runs in parallel within a Docker container that has direct hardware access via `--device /dev/tenstorrent` [.github/workflows/demo-tests.yml:97]().
-
-Sources: [.github/workflows/demo-tests.yml:54-212]()
-```
-
-
-#### Automated Model Bringup
-
+### Related: Automated Model Bringup
 
 ```mermaid
 graph LR
@@ -2105,9 +1752,7 @@ graph LR
     ModelLoader --|> ForgeModel
 ```
 
-
-#### Implementation Architecture
-
+### Related: Implementation Architecture
 
 ```mermaid
 graph TD
@@ -2131,12 +1776,8 @@ graph TD
         K --> L["Post Result to GitHub"]
     end
 ```
-Sources: [.github/workflows/claude.yml:1-33](), [.github/workflows/claude.yml:35-91](), [.github/workflows/claude-code-review.yml:1-18]()
-```
 
-
-#### Code Entity Mapping
-
+### Related: Code Entity Mapping
 
 ```mermaid
 graph LR
@@ -2159,12 +1800,6 @@ graph LR
     C4 -.->|"Governs"| C1
     C4 -.->|"Governs"| C3
 ```
-Sources: [CLAUDE.md:15-62](), [CLAUDE.md:86-112]()
-```
-
-
-#### Data Flow and Entity Mapping
-
 
 ```mermaid
 graph TD
@@ -2191,10 +1826,6 @@ graph TD
     end
 ```
 
-
-#### AI Agent Pipeline
-
-
 ```mermaid
 graph TD
     subgraph "GitHub Actions Context"
@@ -2217,9 +1848,7 @@ graph TD
     end
 ```
 
-
-#### Kernel Execution Flow
-
+### Related: Kernel Execution Flow
 
 ```mermaid
 graph TD
@@ -2245,12 +1874,8 @@ graph TD
     DRAM[("DRAM / L1 Storage")] -- "Load" --> R1
     W2 -- "Store" --> DRAM
 ```
-Sources: [skills/tt-lang/SKILL.md:56-63](), [skills/tt-lang/TTLangSpecification.md:52-54]()
-```
 
-
-#### System Entity Mapping
-
+### Related: System Entity Mapping
 
 ```mermaid
 graph TD
@@ -2274,14 +1899,6 @@ graph TD
     C -- "ttnn.to_device(E/G)" --> H
     C -- "ttnn.to_device(E/G)" --> I
 ```
-Sources: [skills/ttnn/SKILL.md:103-108](), [skills/ttnn/SKILL.md:110-130](), [skills/ttnn/multi_device.md:46-51]()
-
----
-```
-
-
-#### 2D Sharding Types
-
 
 ```mermaid
 graph LR
@@ -2301,8 +1918,3 @@ graph LR
         BS --> CR
     end
 ```
-Sources: [skills/ttnn/tensor_sharding.md:23-162]()
-
----
-```
-

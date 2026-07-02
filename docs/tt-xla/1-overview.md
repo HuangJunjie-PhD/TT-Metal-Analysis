@@ -604,11 +604,6 @@ Refresh this wiki
 
 Enter email to refresh
 
-## Additional Diagrams
-
-
-#### Installation Process
-
 
 ```mermaid
 graph LR
@@ -625,9 +620,7 @@ graph LR
     I -.-> D
 ```
 
-
-#### Build Dependency Chain
-
+### Related: Build Dependency Chain
 
 ```mermaid
 graph TD
@@ -663,10 +656,6 @@ graph TD
     end
 ```
 
-
-### Configuration Workflow
-
-
 ```mermaid
 graph TD
     A["Start: Fresh System"] --> B["Run TT-Installer"]
@@ -685,9 +674,7 @@ graph TD
     E -.->|Creates| M["Python Environment<br/>~/.tenstorrent-venv"]
 ```
 
-
-#### Device Architecture Overview
-
+### Related: Device Architecture Overview
 
 ```mermaid
 graph TB
@@ -711,10 +698,6 @@ graph TB
     C --> F
     C --> G
 ```
-
-
-### Hardware-to-Runtime Integration
-
 
 ```mermaid
 graph TD
@@ -743,17 +726,6 @@ graph TD
     E --> F
 ```
 
-This layered architecture ensures that:
-1. Hardware is properly initialized through kernel drivers
-2. Memory is efficiently managed through hugepages
-3. TT-Metal provides device abstraction
-4. PJRT exposes devices to ML frameworks
-```
-
-
-### PyTorch Model Execution Flow
-
-
 ```mermaid
 graph TB
     UserCode["User Python Script"]
@@ -779,38 +751,6 @@ graph TB
     Execute --> PJRTPlugin
     PJRTPlugin --> StableHLO
 ```
-
-The execution flow follows a specific sequence where device type configuration precedes model instantiation, and compilation happens before inference. The `torch.compile(backend='tt')` call triggers the TT-XLA compiler pipeline.
-```
-
-
-#### Device Configuration
-
-
-```mermaid
-graph LR
-    SetType["xr.set_device_type('TT')"]
-    GetDevice["torch_xla.device()"]
-    Transfer["tensor.to(device)"]
-    
-    SetType --> GetDevice
-    GetDevice --> Transfer
-    
-    subgraph "Runtime Configuration"
-        DeviceType["XLA_DEVICE_TYPE=TT"]
-        DeviceCount["xr.global_runtime_device_count()"]
-    end
-    
-    SetType --> DeviceType
-    GetDevice --> DeviceCount
-```
-
-The device type must be set via `xr.set_device_type("TT")` before acquiring device handles. This configures the XLA runtime to target Tenstorrent hardware through the PJRT plugin.
-```
-
-
-### JAX Model Execution Flow
-
 
 ```mermaid
 graph TB
@@ -842,12 +782,7 @@ graph TB
     PJRTCompile --> TTMLIR
 ```
 
-JAX uses decorator-based compilation with `@jax.jit`, which traces the function and compiles it through the PJRT plugin to TT-MLIR.
-```
-
-
-### Build System Architecture
-
+### Related: Build System Architecture
 
 ```mermaid
 graph TB
@@ -909,10 +844,6 @@ graph TB
     Wheel --> DockerImages
 ```
 
-
-#### External Dependencies
-
-
 ```mermaid
 graph TB
     subgraph "Dependency Configuration"
@@ -958,88 +889,6 @@ graph TB
     LoguruBuild --> LoguruLib
 ```
 
-**tt-mlir Configuration:**
-
-The tt-mlir dependency is built with extensive CMake arguments:
-
-- `CMAKE_BUILD_TYPE=${TTMLIR_BUILD_TYPE}`: Separate build type from main project
-- `CMAKE_CXX_COMPILER_LAUNCHER=ccache`: Enable build caching
-- `DTT_RUNTIME_ENABLE_TTNN=ON`: Enable TTNN backend
-- `DTTMLIR_ENABLE_STABLEHLO=ON`: Enable StableHLO frontend
-- `DTTMLIR_ENABLE_RUNTIME=ON`: Enable runtime libraries
-- `DTT_RUNTIME_DEBUG=${TT_RUNTIME_DEBUG}`: Debug mode for runtime
-- `DTTMLIR_ENABLE_OPMODEL=ON`: Enable operation model
-- `DTTMLIR_ENABLE_EXPLORER=${TTXLA_ENABLE_EXPLORER}`: Optional explorer tools
-- `DTTMLIR_ENABLE_TESTS=OFF`: Skip tests in external project
-
-The build process includes a `PATCH_COMMAND` that installs Python requirements for tt-mlir before building:
-
-```bash
-PATCH_COMMAND mkdir -p ${TTMLIR_BUILD_DIR}
-COMMAND TTPJRT_SOURCE_DIR=${TTPJRT_SOURCE_DIR} bash ${TTPJRT_SOURCE_DIR}/venv/install_ttmlir_requirements.sh
-```
-
-**Environment Variables:**
-
-If `TT_METAL_RUNTIME_ROOT` is not set, the build sets it to point to tt-metal within tt-mlir's build tree. This is handled via the `WITH_METAL_RUNTIME_ROOT_SET` variable.
-```
-
-
-#### Setup Configuration
-
-
-```mermaid
-graph TB
-    subgraph "SetupConfig Dataclass"
-        BuildType["build_type<br/>release/codecov/debug/explorer"]
-        Version["version<br/>0.1.YYMMDD+dev.SHA"]
-        Requirements["requirements<br/>From requirements.txt"]
-        Description["description_with_versions<br/>Includes commit SHAs"]
-    end
-    
-    subgraph "Wheel Structure"
-        PJRTPackage["pjrt_plugin_tt/<br/>Main package"]
-        JAXPlugin["jax_plugin_tt/<br/>JAX wrapper"]
-        TorchPlugin["torch_plugin_tt/<br/>PyTorch wrapper"]
-        TracyModule["tracy/<br/>Profiler wrapper"]
-        TTNNModule["ttnn/<br/>TTNN wrapper"]
-    end
-    
-    subgraph "Package Contents"
-        PluginSO["pjrt_plugin_tt.so<br/>PJRT plugin binary"]
-        TTMetalDir["tt-metal/<br/>Runtime dependencies"]
-        LibDir["lib/<br/>Shared libraries"]
-        InitFiles["__init__.py files<br/>Plugin registration"]
-    end
-    
-    BuildType --> PJRTPackage
-    Version --> PJRTPackage
-    
-    PJRTPackage --> PluginSO
-    PJRTPackage --> TTMetalDir
-    PJRTPackage --> LibDir
-    
-    JAXPlugin --> InitFiles
-    TorchPlugin --> InitFiles
-```
-
-**Version Generation:**
-
-The wheel version follows the pattern `0.1.YYMMDD+dev.SHA` where:
-- `YYMMDD`: Date of the commit in format YYMMDD
-- `SHA`: Short Git commit hash
-
-This version is generated dynamically:
-
-```python
-short_hash = subprocess.check_output(["git", "rev-parse", "--short", "HEAD\
-1d:T4feb,
-```
-
-
-### CMake Project Structure
-
-
 ```mermaid
 graph TB
     Root["Root CMakeLists.txt<br/>(TT_PJRT project)"]
@@ -1068,12 +917,7 @@ graph TB
     Utils -.->|"links against"| Loguru
 ```
 
-**Diagram: CMake Project Structure and Subdirectory Organization**
-```
-
-
-### Dependency Installation Flow
-
+### Related: Dependency Installation Flow
 
 ```mermaid
 graph TB
@@ -1128,12 +972,7 @@ graph TB
     PJRT_Build --> Python_Install
 ```
 
-**Diagram: Complete Dependency Build and Installation Flow**
-```
-
-
-### Image Dependency Flow
-
+### Related: Image Dependency Flow
 
 ```mermaid
 graph TB
@@ -1162,16 +1001,7 @@ graph TB
     CI_BUILD_VENV -.->|"copies toolchain<br/>(with venv)"| TOOLCHAIN
 ```
 
-**Image Dependency Flow**: The base image extends tt-mlir's base image with XLA-specific dependencies. The CI and IRD images both start from the XLA base but receive different versions of the tt-mlir toolchain from intermediate build stages. CI gets a clean toolchain without virtual environment for test execution, while IRD includes the full toolchain with venv for interactive development.
-
-Sources: [.github/Dockerfile.base:3](), [.github/Dockerfile.ci:5-8](), [.github/Dockerfile.ci:15](), [.github/Dockerfile.ci:25]()
-
----
-```
-
-
-#### Intermediate Build Stages
-
+### Related: Intermediate Build Stages
 
 ```mermaid
 graph LR
@@ -1186,13 +1016,6 @@ graph LR
     CI_CLEAN -.->|"rm -rf venv"| VENV_REMOVED["Toolchain without venv<br/>/opt/ttmlir-toolchain"]
     CI_VENV -.->|"keeps venv"| VENV_KEPT["Toolchain with venv<br/>/opt/ttmlir-toolchain"]
 ```
-
-**Intermediate Stage Strategy**: [.github/Dockerfile.ci:5-12]() creates two intermediate stages from tt-mlir's CI image. The `ci-build-with-venv` stage preserves the complete toolchain, while `ci-build` removes the virtual environment at `/opt/ttmlir-toolchain/venv` to create a clean runtime environment for CI tests.
-```
-
-
-#### Build Script Flow
-
 
 ```mermaid
 graph TB
@@ -1250,15 +1073,6 @@ graph TB
     BUILD_LOOP --> DONE
 ```
 
-**Build Script Control Flow**: The script validates tt-mlir dependencies, calculates content-based tags, and conditionally builds images. The `--check-only` flag enables cache validation without building.
-
-Sources: [.github/build-docker-images.sh:1-99]()
-```
-
-
-#### Tag Computation
-
-
 ```mermaid
 graph TB
     DOCKERFILE_BASE[".github/Dockerfile.base"]
@@ -1282,49 +1096,6 @@ graph TB
     COMBINE --> SHA2
     SHA2 --> TAG
 ```
-
-**Tag Calculation Process**: The `get-docker-tag.sh` script computes a content-based tag by hashing the two Dockerfiles, then combining with the tt-mlir dependency tag.
-
-[.github/get-docker-tag.sh:19-21]() implements the calculation:
-
-```bash
-DOCKERFILE_HASH=$( (cat .github/Dockerfile.base .github/Dockerfile.ci | sha256sum) | cut -d ' ' -f 1)
-COMBINED_HASH=$( (echo $DOCKERFILE_HASH $MLIR_DOCKER_TAG | sha256sum) | cut -d ' ' -f 1)
-echo dt-$COMBINED_HASH
-```
-
-**Tag Format**: `dt-{sha256}` where the hash is computed from:
-1. Dockerfile contents (`.github/Dockerfile.base` and `.github/Dockerfile.ci` concatenated)
-2. tt-mlir dependency tag (transitively includes tt-mlir and tt-metal versions)
-
-This ensures any change to system packages or Dockerfile instructions produces a new unique tag. Python requirements files are **not** part of the hash because they are not baked into the images.
-
-Sources: [.github/get-docker-tag.sh:1-22](), [.github/build-docker-images.sh:46]()
-</thinking>
-</old_str>
-<new_str>
-**Tag Calculation Process**: The `get-docker-tag.sh` script computes a content-based tag by hashing the two Dockerfiles, then combining with the tt-mlir dependency tag.
-
-[.github/get-docker-tag.sh:19-21]() implements the calculation:
-
-```bash
-DOCKERFILE_HASH=$( (cat .github/Dockerfile.base .github/Dockerfile.ci | sha256sum) | cut -d ' ' -f 1)
-COMBINED_HASH=$( (echo $DOCKERFILE_HASH $MLIR_DOCKER_TAG | sha256sum) | cut -d ' ' -f 1)
-echo dt-$COMBINED_HASH
-```
-
-**Tag Format**: `dt-{sha256}` where the hash is computed from:
-1. Dockerfile contents (`.github/Dockerfile.base` and `.github/Dockerfile.ci` concatenated)
-2. tt-mlir dependency tag (transitively includes tt-mlir and tt-metal versions)
-
-This ensures any change to system packages or Dockerfile instructions produces a new unique tag. Python requirements files are **not** part of the hash because they are not baked into the images.
-
-Sources: [.github/get-docker-tag.sh:1-22](), [.github/build-docker-images.sh:46]()
-```
-
-
-#### Workflow Structure
-
 
 ```mermaid
 graph TB
@@ -1382,15 +1153,6 @@ graph TB
     TAG_LATEST --> END
 ```
 
-**Workflow Job Dependencies**: The workflow uses conditional execution to skip builds when cached images exist. The `set-latest-tag` job updates the `latest` tag only for pushes to main.
-
-Sources: [.github/workflows/call-build-docker.yml:1-140]()
-```
-
-
-#### Build Workflow Integration
-
-
 ```mermaid
 graph LR
     DOCKER_BUILD["Build Docker Image<br/>call-build-docker.yml"]
@@ -1408,15 +1170,7 @@ graph LR
     DOCKER_BUILD -.->|"Provides CI image"| TEST_EXEC
 ```
 
-**Integration Pattern**: Docker images are built first to establish the environment, then artifact caching determines if native builds are needed, and finally tests execute in the CI image.
-
-Sources: [.github/workflows/call-build-docker.yml](), see also [Build and Artifact Management](#7.2)
-20:T3833,
-```
-
-
-### Pipeline Architecture
-
+### Related: Pipeline Architecture
 
 ```mermaid
 graph TB
@@ -1470,27 +1224,6 @@ graph TB
     Codegen --> SOImage
 ```
 
-**Key Pipeline Stages:**
-
-| Stage | Input Dialect | Output Dialect | Function | Lines | Purpose |
-|-------|--------------|----------------|----------|-------|---------|
-| Parse | Text MLIR | VHLO | `createVHLOModule()` | 377-393 | Parse versioned HLO with `mlir::parseSourceString()` |
-| VHLO→SHLO | VHLO | StableHLO | `convertFromVHLOToSHLO()` | 395-413 | Deserialize with `createStablehloDeserializePipeline()` |
-| Frontend | StableHLO | StableHLO | `runFrontendSHLOPipeline()` | 415-426 | Annotate arguments with `annotateArgumentAttributes()` |
-| Sharding | StableHLO | StableHLO | `collectInputShardings()`<br/>`collectOutputShardings()` | 437-584 | Extract GSPMD/Shardy sharding metadata |
-| Compiler | StableHLO | StableHLO | `runCompilerStableHLOPipeline()` | 746-772 | Run `createStableHLOPipeline()` for optimizations |
-| XLA Clean | StableHLO | StableHLO | `cleanForXlaIngestion()` | 309-318 | Strip Shardy attributes (if used) |
-| SHLO→TTIR | StableHLO | TTIR | `convertFromSHLOToTTIR()` | 774-800 | Convert with `createStableHLOToTTIRPipeline()` |
-| TTIR→TTNN | TTIR | TTNN | `convertFromTTIRToTTNN()` | 892-1037 | Lower with `createTTIRToTTNNBackendPipeline()` |
-| Backend | TTNN | Binary/Code | `buildModuleForTTNNRuntime()`<br/>or `buildModuleForTTNNCodegen()` | 1062-1279 | Generate flatbuffer via `ttnnToFlatbuffer()` or code via `TTAlchemistHandler` |
-
-Sources: [pjrt_implementation/src/api/module_builder/module_builder.cc:208-1279]()
-```
-
-
-#### Class Structure
-
-
 ```mermaid
 graph TB
     ModuleBuilder["ModuleBuilder<br/>pjrt_implementation/inc/api/<br/>module_builder/module_builder.h:121"]
@@ -1521,9 +1254,7 @@ graph TB
     Builders --> Helpers
 ```
 
-
-#### Graph Counter System
-
+### Related: Graph Counter System
 
 ```mermaid
 graph LR
@@ -1543,15 +1274,6 @@ graph LR
     Reset --> Increment
     Increment --> Append
 ```
-
-This mechanism allows tracking multiple graphs in a single execution (e.g., forward pass as `g0`, backward pass as `g1`):
-
-Sources: [pjrt_implementation/src/api/module_builder/module_builder.cc:222-229](), [pjrt_implementation/inc/api/module_builder/module_builder.h:356-358]()
-```
-
-
-#### CompileOptions Structure
-
 
 ```mermaid
 graph TB
@@ -1579,13 +1301,6 @@ graph TB
     CompileOptions --> Performance
     CompileOptions --> Export
 ```
-
-Sources: [pjrt_implementation/inc/api/compile_options.h:27-124]()
-```
-
-
-### Backend Runtime Selection
-
 
 ```mermaid
 graph TB
@@ -1636,9 +1351,7 @@ graph TB
     CodeFiles --> SOImage
 ```
 
-
-### Pipeline Overview
-
+### Related: Pipeline Overview
 
 ```mermaid
 graph TB
@@ -1682,9 +1395,7 @@ graph TB
     MetadataExtract --> Output
 ```
 
-
-#### Fusion Provider Architecture
-
+### Related: Fusion Provider Architecture
 
 ```mermaid
 graph TB
@@ -1727,10 +1438,6 @@ graph TB
     ReplacePattern --> TorchRewriter
 ```
 
-
-### Metadata Propagation
-
-
 ```mermaid
 graph TB
     subgraph "Compile Time"
@@ -1760,9 +1467,7 @@ graph TB
     SetMetadata --> HLONode
 ```
 
-
-### XLAExecutor and Graph Cutting
-
+### Related: XLAExecutor and Graph Cutting
 
 ```mermaid
 graph TB
@@ -1800,9 +1505,7 @@ graph TB
     OutputCheck -->|"Has mutations"| SyncAll
 ```
 
-
-### System Overview
-
+### Related: System Overview
 
 ```mermaid
 graph LR
@@ -1818,24 +1521,7 @@ graph LR
     Decomp --> Output
 ```
 
-**Diagram: Three-stage transformation pipeline for custom operations**
-
-Sources: [python_package/tt_torch/backend/backend.py:37-96]()
-
-The pipeline executes transformations in this order:
-
-| Stage | Purpose | Implementation |
-|-------|---------|----------------|
-| Fusion Passes | Detect multi-op patterns (e.g., RMS norm) and fuse them | `run_fusion_passes()` |
-| Composite Ops | Wrap supported high-level ops (GELU, layer norm) as StableHLO composites | `handle_composite_ops()` |
-| Decompositions | Break down unsupported ops into primitive operations | `populate_decompositions()` |
-
-Sources: [python_package/tt_torch/backend/backend.py:43-68]()
-```
-
-
-#### Architecture
-
+### Related: Architecture
 
 ```mermaid
 graph TB
@@ -1866,15 +1552,6 @@ graph TB
     Table --> RunDecomp
     Export --> RunDecomp
 ```
-
-**Diagram: Decomposition system architecture showing registration and execution flow**
-
-Sources: [python_package/tt_torch/backend/decompositions.py:382-398](), [python_package/tt_torch/backend/backend.py:61-68]()
-```
-
-
-#### Custom Decomposition Categories
-
 
 ```mermaid
 graph LR
@@ -1921,27 +1598,7 @@ graph LR
     CLW --> MatMul
 ```
 
-**Diagram: Interpolation decomposition hierarchy showing operation mapping to matmul-based implementations**
-
-The linear interpolation implementation is derived from JAX's `jax.image.resize` and modified to support PyTorch's `align_corners=True` mode:
-
-Sources: [python_package/tt_torch/backend/decompositions.py:17-182](), [python_package/tt_torch/backend/decompositions.py:358-369]()
-
-Key functions:
-- `compute_linear_weight()` [25-60]: Generates interpolation weight matrix
-- `compute_nearest_weight()` [63-72]: Generates nearest-neighbor weight matrix  
-- `upsample_linear()` [75-100]: Applies successive 1D interpolations via matmul
-
-#### Matrix Operations
-
-High-dimensional matrix multiplication is decomposed into `einsum` to preserve sharding specifications in SPMD mode:
-
-```python
-```
-
-
-#### Fusion Provider Architecture
-
+### Related: Fusion Provider Architecture
 
 ```mermaid
 graph TB
@@ -1980,14 +1637,7 @@ graph TB
     Replace --> Filter
 ```
 
-**Diagram: Fusion provider architecture with automatic registration**
-
-Sources: [python_package/tt_torch/fusion_providers.py:20-91]()
-```
-
-
-### Integration in Compilation Pipeline
-
+### Related: Integration in Compilation Pipeline
 
 ```mermaid
 graph TB
@@ -2013,21 +1663,7 @@ graph TB
     Other --> Output
 ```
 
-**Diagram: Custom operations integration in torch_pass_pipeline**
-
-The ordering is critical:
-1. **Fusion passes** run first to detect and fuse multi-op patterns
-2. **Composite ops** wrap fused patterns and individual high-level ops
-3. **Decompositions** break down remaining unsupported operations
-
-This ensures that fusion patterns can be wrapped as composites, and decompositions only apply to operations that weren't fused or wrapped.
-
-Sources: [python_package/tt_torch/backend/backend.py:37-96]()
-```
-
-
-### Integration Architecture
-
+### Related: Integration Architecture
 
 ```mermaid
 graph TB
@@ -2080,22 +1716,7 @@ graph TB
     PJRTPlugin -.Tensors.-> XLAInterface
 ```
 
-**JAX Backend Integration Architecture**
-
-The integration consists of three main layers:
-
-1. **JAX Framework Layer**: JAX's native JIT compilation and XLA interface
-2. **Plugin Wrapper Layer**: `jax_plugin_tt` module that registers the PJRT plugin
-3. **PJRT Implementation Layer**: `pjrt_plugin_tt.so` providing device management and compilation
-
-Sources: [README.md:19-33](), [docs/src/getting_started.md:1-3]()
-
----
-```
-
-
-### JAX Compilation Flow
-
+### Related: JAX Compilation Flow
 
 ```mermaid
 graph LR
@@ -2153,12 +1774,7 @@ graph LR
     Results --> UserFunc
 ```
 
-**JAX JIT Compilation and Execution Flow**
-```
-
-
-### StableHLO Graph Generation
-
+### Related: StableHLO Graph Generation
 
 ```mermaid
 graph TB
@@ -2194,12 +1810,7 @@ graph TB
     DTypeInfo --> TTIROps
 ```
 
-**StableHLO Graph Structure and Conversion**
-```
-
-
-#### Test Discovery and Entry Points
-
+### Related: Test Discovery and Entry Points
 
 ```mermaid
 graph TB
@@ -2243,10 +1854,6 @@ graph TB
     TestImpl --> JaxTester
 ```
 
-
-#### ModelTester Hierarchy
-
-
 ```mermaid
 graph TB
     subgraph "Abstract Base Classes"
@@ -2282,9 +1889,7 @@ graph TB
     TorchWorkload --> Workload
 ```
 
-
-#### Dynamic Test Discovery
-
+### Related: Dynamic Test Discovery
 
 ```mermaid
 graph LR
@@ -2312,9 +1917,7 @@ graph LR
     TestID --> CollectionTime
 ```
 
-
-#### ComparisonConfig and Metrics
-
+### Related: ComparisonConfig and Metrics
 
 ```mermaid
 graph TB
@@ -2350,10 +1953,6 @@ graph TB
     Compare --> CompResult
 ```
 
-
-#### Bringup Stage Detection
-
-
 ```mermaid
 graph TB
     subgraph "Stage Markers"
@@ -2383,57 +1982,6 @@ graph TB
     Parse --> MLIRFail
     Parse --> RTFail
 ```
-
-The stage detection logic at [tests/runner/test_utils.py:191-218]() reads the marker file and maps stages to status codes.
-```
-
-
-#### FailingReasonsFinder
-
-
-```mermaid
-graph TB
-    subgraph "Input Data"
-        Exception["Exception object"]
-        Traceback["Exception traceback"]
-        Stdout["stdout logs"]
-        Stderr["stderr logs"]
-    end
-    
-    subgraph "Analysis"
-        BuildData["build_ex_data()"]
-        ExceptionData["ExceptionData<br/>class_name, message, error_log"]
-        FindReason["find_reason_by_exception()"]
-    end
-    
-    subgraph "Classification Rules"
-        ComponentChecks["ComponentChecker enum<br/>METAL, TTNN, TORCH, XLA,<br/>TTMLIR, FRONTEND"]
-        PatternMatch["Pattern matching<br/>M.contains(), M.last_line()"]
-    end
-    
-    subgraph "Output"
-        FailingReason["FailingReasons enum<br/>Component + Description"]
-        Summary["Error summary string"]
-    end
-    
-    Exception --> BuildData
-    Traceback --> BuildData
-    Stdout --> BuildData
-    Stderr --> BuildData
-    
-    BuildData --> ExceptionData
-    ExceptionData --> FindReason
-    
-    FindReason --> ComponentChecks
-    ComponentChecks --> PatternMatch
-    
-    PatternMatch --> FailingReason
-    PatternMatch --> Summary
-```
-
-
-#### Metadata Collection
-
 
 ```mermaid
 graph TB
@@ -2485,10 +2033,6 @@ graph TB
     XfailCheck --> Xfail
 ```
 
-
-#### Parallelism Configuration
-
-
 ```mermaid
 graph TB
     subgraph "Test Parametrization"
@@ -2529,10 +2073,6 @@ graph TB
     ShardSpec --> Workload
 ```
 
-
-#### LLM Tests (Prefill/Decode)
-
-
 ```mermaid
 graph TB
     subgraph "Test Parameters"
@@ -2569,58 +2109,7 @@ graph TB
     Tester --> CompareResults
 ```
 
-
-#### Parallel Test Execution
-
-
-```mermaid
-graph TB
-    subgraph "Matrix Generation"
-        Preset["test-matrix-presets/*.json"]
-        Generate["generate-test-config"]
-        Matrix["Test matrix per architecture"]
-    end
-    
-    subgraph "Test Splitting"
-        Duration[".test_durations"]
-        Split["--splits=N --group=G"]
-        Balanced["Load-balanced groups"]
-    end
-    
-    subgraph "Parallel Execution"
-        Group1["run-tests group=1"]
-        Group2["run-tests group=2"]
-        GroupN["run-tests group=N"]
-    end
-    
-    subgraph "Result Collection"
-        JUnit["JUnit XML reports"]
-        Properties["Test properties"]
-        Artifacts["collected_irs/"]
-    end
-    
-    Preset --> Generate
-    Generate --> Matrix
-    
-    Duration --> Split
-    Matrix --> Split
-    Split --> Balanced
-    
-    Balanced --> Group1
-    Balanced --> Group2
-    Balanced --> GroupN
-    
-    Group1 --> JUnit
-    Group2 --> JUnit
-    GroupN --> JUnit
-    
-    JUnit --> Properties
-    JUnit --> Artifacts
-```
-
-
-#### FailingReasonsFinder Architecture
-
+### Related: FailingReasonsFinder Architecture
 
 ```mermaid
 graph TB
@@ -2674,12 +2163,7 @@ graph TB
     UpdateMeta --> SetAttrs
 ```
 
-**Classification Process**: When a test raises an exception, the `update_test_metadata_for_exception()` function captures stdout/stderr and builds an `ExceptionData` object containing the exception class name, message, and full traceback. The `FailingReasonsFinder.find_reason_by_exception()` method converts the exception to `ExceptionData` and calls `find_reason_by_ex_data()`. This iterates through all patterns in the `FailingReasons` enum, calling `FailingReason.check()` on each. An `ExceptionCheck` matches if all its conditions pass: class name matches, component checker passes, and all message/log/stdout/stderr matchers return true. The first matching pattern is returned as an `ExceptionReason` with the failing reason enum and extracted summary.
-```
-
-
-#### Discovery Flow
-
+### Related: Discovery Flow
 
 ```mermaid
 graph TB
@@ -2734,15 +2218,6 @@ graph TB
     style L fill:#f9f9f9
 ```
 
-**Discovery Process**: At test collection time, `TorchDynamicLoader.setup_test_discovery()` and `JaxDynamicLoader.setup_test_discovery()` scan the `tt_forge_models` repository to find all loader classes. Each loader represents a model variant and must implement `load_model()` and `load_inputs()`. The loaders are validated and collected into `test_entries_torch` and `test_entries_jax` lists, which are then used by pytest's parametrize decorator.
-
-Sources: [tests/runner/test_models.py:51-58](), [tests/runner/utils/dynamic_loader.py:1-150]()
-```
-
-
-#### Parameterization Structure
-
-
 ```mermaid
 graph LR
     subgraph "Test Parameters"
@@ -2770,15 +2245,6 @@ graph LR
     D --> G
     D --> H
 ```
-
-**Test ID Generation**: Test IDs are generated by combining model path, variant, parallelism, and run mode. The format is `{model}/{framework}-{variant}-{parallelism}-{run_mode}`. Architecture markers (n150, p150, etc.) are added based on `supported_archs` in the test configuration.
-
-Sources: [tests/runner/test_models.py:247-302](), [tests/runner/utils/dynamic_loader.py:207-248]()
-```
-
-
-#### Training-Specific Flow
-
 
 ```mermaid
 graph TB
@@ -2820,15 +2286,6 @@ graph TB
     K --> M
     L --> M
 ```
-
-**Training Execution**: Training tests compare both forward outputs and gradients. The same random gradient tensor is used for both CPU and TT backward passes to ensure deterministic comparison. Gradient sharding is applied for tensor parallel training.
-
-Sources: [tests/infra/testers/single_chip/model/torch_model_tester.py:247-328]()
-```
-
-
-#### Property Recording Flow
-
 
 ```mermaid
 graph TB
@@ -2889,15 +2346,6 @@ graph TB
     K --> R
 ```
 
-**Property Recording**: `record_model_test_properties()` is called in the finally block to ensure properties are recorded even on failure. It computes bringup status, extracts metrics from comparison results, and applies pytest markers.
-
-Sources: [tests/runner/test_utils.py:483-628]()
-```
-
-
-#### Bringup Status Classification
-
-
 ```mermaid
 graph TD
     A["Test Execution Flow"]
@@ -2935,14 +2383,7 @@ graph TD
     J -->|No| N
 ```
 
-**Bringup Status**: The bringup status indicates where in the pipeline a test failed. It is determined from the `._bringup_stage.txt` file written by the C++ compilation pipeline, or by comparing PCC values for passing tests.
-
-Sources: [tests/runner/test_utils.py:191-263](), [tests/runner/test_utils.py:504-567]()
-```
-
-
-### Architecture Overview
-
+### Related: Architecture Overview
 
 ```mermaid
 graph TB
@@ -3008,10 +2449,6 @@ graph TB
     style RecordProps fill:#f9f9f9
 ```
 
-
-#### Tensor Parallel Configuration
-
-
 ```mermaid
 graph TB
     subgraph "Test Configuration Files"
@@ -3045,14 +2482,7 @@ graph TB
     TestMetadata --> Execution["Test Execution"]
 ```
 
-**Tensor Parallel Test Configuration Example**
-
-```yaml
-```
-
-
-#### Test Routing by Parallelism
-
+### Related: Test Routing by Parallelism
 
 ```mermaid
 graph TB
@@ -3106,10 +2536,6 @@ graph TB
     TesterTest --> RecordProps
 ```
 
-
-#### JAX-Specific Multi-Chip Testers
-
-
 ```mermaid
 graph LR
     subgraph "JAX Test Files"
@@ -3138,14 +2564,7 @@ graph LR
     JaxMesh --> JaxDevices
 ```
 
-**JAX Multi-Chip Configuration Examples:**
-
-```yaml
-```
-
-
-#### Test Selection by Architecture
-
+### Related: Test Selection by Architecture
 
 ```mermaid
 graph TB
@@ -3174,9 +2593,7 @@ graph TB
     CheckSupported -->|No| Skip
 ```
 
-
-#### Docker Image Pipeline
-
+### Related: Docker Image Pipeline
 
 ```mermaid
 graph TB
@@ -3220,21 +2637,7 @@ graph TB
     CheckMain -->|yes| TagLatest
 ```
 
-**Image Types:**
-- `tt-xla-base-ubuntu-22-04`: Minimal runtime environment
-- `tt-xla-ci-ubuntu-22-04`: Development tools, pytest, etc.
-- `tt-xla-ird-ubuntu-22-04`: IRD (Internal Runner Daemon) environment
-- `tt-xla-cibuildwheel-manylinux-2-34`: Manylinux wheel building
-
-**Tagging Strategy:**
-- Tag format: `ghcr.io/tenstorrent/tt-xla/<image-name>:<hash>`
-- Hash computed from: Dockerfile content + TT-MLIR SHA + toolchain version
-- Main branch commits get `:latest` tag via `skopeo copy`
-```
-
-
-#### Wheel Build and Artifact Caching
-
+### Related: Wheel Build and Artifact Caching
 
 ```mermaid
 graph TB
@@ -3286,31 +2689,7 @@ graph TB
     VLLMWheel --> UploadVLLM
 ```
 
-**Artifact Naming:**
-- Release build: `xla-whl-release-{sha}`
-- Explorer build: `xla-whl-explorer-{sha}` (includes tt-alchemist tools)
-- Debug build: `xla-whl-debug` (no SHA, always rebuild)
-- vLLM plugin: `vllm-tt-whl-release-{sha}`
-- Alchemist: `alchemist-lib-release-{sha}` (library + templates)
-
-**Reuse Conditions** (artifact cache hit):
-1. Not a pull request event (`github.event_name != 'pull_request'`)
-2. Not a merge commit (exactly 1 parent)
-3. No `mlir_override` input specified
-4. Exact artifact name match in repository
-
-**Pruning Operations** (reduce wheel size):
-- Remove static archives (`.a` files) from `lib/` and `lib64/`
-- Remove CMake and pkgconfig files
-- Remove include directories
-- Strip debug symbols from `.so` files using `strip --strip-unneeded`
-- Deduplicate shared objects by SHA256 hash, replace with symlinks
-- Remove broken symlinks (from tt-umd issues)
-```
-
-
-#### Test Execution Flow
-
+### Related: Test Execution Flow
 
 ```mermaid
 graph TB
@@ -3367,37 +2746,6 @@ graph TB
     Consolidate --> JUnitReport
 ```
 
-**Key Test Execution Features:**
-
-1. **Dynamic Timeout Calculation:**
-   - Reads `.test_durations` file with historical test times
-   - Uses `calculate_test_timeout.py` to estimate group runtime
-   - Adds buffer for variance
-   - Falls back to 240 minutes for tests with `notimeout` marker
-
-2. **Test Splitting:**
-   - Uses pytest-split plugin with `--splitting-algorithm least_duration`
-   - Distributes tests across `parallel-groups` workers
-   - Each worker runs `--group N` of `--splits M`
-
-3. **Rerun Logic:**
-   - On GitHub Actions retry (`github.run_attempt > 1`)
-   - Downloads test reports from previous attempt
-   - Extracts failed test names with `find_all_failed_tests.py`
-   - Creates `.pytest_tests_to_run` file
-   - Pytest runs only tests in that file
-
-4. **Pytest Forking:**
-   - Used for torch tests to isolate FX graph compilation
-   - Controlled by job name pattern matching
-   - Skipped for multichip tests due to subprocess issues
-   - Provides better progress reporting (`-vv` vs `-sv`)
-```
-
-
-#### Benchmark Workflow
-
-
 ```mermaid
 graph TB
     subgraph BenchTrigger["Benchmark Triggers"]
@@ -3446,32 +2794,7 @@ graph TB
     Aggregate --> CompareBaseline
 ```
 
-**Performance Metrics Collected:**
-- Compilation time (first run)
-- Inference time (warm runs)
-- Throughput (tokens/second for LLMs)
-- Memory usage (if `--log-memory` enabled)
-
-**Benchmark Hardware Configurations:**
-- **n150**: Single device performance baseline
-- **llmbox**: Multi-device tensor parallel (4 or 8 chips)
-- **galaxy**: Large-scale deployment (6U rack)
-
-**Report Format:**
-```json
-{
-  "test_id": "job_id",
-  "model_name": "llama_3_1_8b_instruct",
-  "hardware": "n150",
-  "compile_time_ms": 12500,
-  "inference_time_ms": 850,
-  "throughput_tokens_per_sec": 42.3
-}
-```
-
-
-#### Test Report Processing
-
+### Related: Test Report Processing
 
 ```mermaid
 graph TB
@@ -3528,28 +2851,6 @@ graph TB
     UpdateDurations --> CommitChanges
 ```
 
-**Test Property Tags** (attached via `pytest_collection_modifyitems`):
-```python
-tags = {
-    "test_name": "test_llama_inference",
-    "specific_test_case": "test_llama_inference[llama-2-7b-single-device]",
-    "model_name": "llama-2-7b",
-    "model_info": {...},  # ModelInfo.to_report_dict()
-    "run_mode": "inference",
-    "parallelism": "single_device",
-    "bringup_status": "EXPECTED_PASSING",
-    "pcc": "0.99",
-    "atol": "0.01"
-}
-```
-
-These properties are serialized into the JUnit XML `<testcase>` elements and used for dashboard visualization and failure analysis.
-```
-
-
-#### Failure Notification
-
-
 ```mermaid
 graph LR
     subgraph FailNotify["fail-notify job"]
@@ -3574,20 +2875,6 @@ graph LR
     CheckCondition -->|no| SendSuccess
 ```
 
-**Slack Payload:**
-```json
-{
-  "text": "Bad bad nightly: <workflow_run_url>",
-  "channel": "C08GYB57C8M",
-  "unfurl_links": false,
-  "unfurl_media": false
-}
-```
-
-
-#### Scheduled Workflows
-
-
 ```mermaid
 graph LR
     Daily["schedule-nightly.yml<br/>Cron: '0 0 * * *'<br/>Midnight UTC"]
@@ -3600,13 +2887,6 @@ graph LR
     Weekly --> WeeklyTests["model-test-passing-weekly.json<br/>model-test-xfail-weekly.json"]
     Training --> TrainingTests["model-test-training-xfail-weekly.json"]
 ```
-
-**Nightly workflow** runs three separate test jobs concurrently using `if: success() || failure()` to ensure all jobs run regardless of failures ([.github/workflows/schedule-nightly.yml:42-55]()).
-```
-
-
-### Workflow File Organization
-
 
 ```mermaid
 graph TB
@@ -3653,13 +2933,6 @@ graph TB
     Test --> GenMatrix
     GenMatrix --> GenScript
 ```
-
-**Pattern**: Trigger workflows call reusable workflows using `uses: ./.github/workflows/call-*.yml`. This promotes code reuse and consistent behavior across different triggers.
-```
-
-
-#### PR Workflow Job DAG
-
 
 ```mermaid
 graph TB
@@ -3727,17 +3000,6 @@ graph TB
     BuildDocs --> CheckGreen
 ```
 
-**Dependency Patterns:**
-1. **Sequential**: `inspect-changes` → `build-image` → `build-ttxla-*` → `test-*`
-2. **Parallel Builds**: `build-ttxla-release`, `build-ttxla-explorer`, `build-ttxla-debug` run concurrently after `build-image`
-3. **Parallel Tests**: All test jobs run concurrently after builds complete
-4. **Final Gate**: `check-all-green` waits for all jobs using `if: always()` and `needs: [...]` ([.github/workflows/pr-main.yml:154-175]())
-```
-
-
-### Reusable Workflow Pattern
-
-
 ```mermaid
 graph LR
     subgraph "Trigger Workflows"
@@ -3768,9 +3030,7 @@ graph LR
     RW3 --> RW4
 ```
 
-
-### Matrix Generation Pipeline
-
+### Related: Matrix Generation Pipeline
 
 ```mermaid
 graph TB
@@ -3808,9 +3068,7 @@ graph TB
     Matrix --> GroupID
 ```
 
-
-### Notification System
-
+### Related: Notification System
 
 ```mermaid
 graph TB
@@ -3839,21 +3097,7 @@ graph TB
     SendSuccess --> Slack
 ```
 
-**Implementation:**
-1. `fail-notify` job uses `needs: [all-test-jobs]` and `if: always()` to run regardless of test outcomes
-2. `alls-green` action checks if any jobs failed
-3. Branch check ensures notifications only for main branch
-4. Separate webhooks for different notification types (nightly, weekly, experimental)
-
-**Channels:**
-- `SLACK_NIGHTLY_FAIL` / `SLACK_NIGHTLY_SUCCESS`: Nightly test results
-- `SLACK_WEEKLY_FAIL` / `SLACK_WEEKLY_SUCCESS`: Weekly test results  
-- `SLACK_EXPERIMENTAL_NIGHTLY`: Experimental test results
-```
-
-
-#### Workflow Parameter Flow
-
+### Related: Workflow Parameter Flow
 
 ```mermaid
 graph LR
@@ -3887,12 +3131,7 @@ graph LR
     end
 ```
 
-Sources: [.github/workflows/call-build.yml:23-35](), [.github/workflows/call-test.yml:10-25](), [.github/workflows/schedule-nightly.yml:19-37]()
-```
-
-
-### Test Report Aggregation
-
+### Related: Test Report Aggregation
 
 ```mermaid
 graph TB
@@ -3933,14 +3172,7 @@ group_suite: true"]
     DL --> Flatten --> JUnit
 ```
 
-The `--pattern test-reports-{test_matrix_hash}-*` glob ensures only reports from the current matrix configuration are included, even if previous runs' artifacts are still present. The `include_passed` input to `call-test.yml` controls whether the JUnit report shows passed tests.
-
-Sources: [.github/workflows/call-test.yml:382-408]()
-```
-
-
-#### Generation Process
-
+### Related: Generation Process
 
 ```mermaid
 graph LR
@@ -3957,17 +3189,7 @@ graph LR
     RunTests --> JobN["Job Instance N<br/>runs-on: n300-llmbox"]
 ```
 
-The `generate-matrix-test` job at [.github/workflows/call-test.yml:48-53]() calls `call-generate-matrix.yml` with the `test_suite` input parameter. This workflow:
-
-1. Loads the specified JSON preset file
-2. Parses the matrix entries
-3. Outputs the matrix as `test_matrix` for downstream jobs
-4. Generates a hash `test_matrix_hash` for artifact naming
-```
-
-
-#### Execution Flow with Parallelization
-
+### Related: Execution Flow with Parallelization
 
 ```mermaid
 graph TB
@@ -3994,10 +3216,6 @@ graph TB
     Execute2 --> Report2["Upload Report<br/>report_job_id.xml"]
 ```
 
-
-#### Duration-Based Timeout Calculation
-
-
 ```mermaid
 graph LR
     Collect["pytest --collect-only"] --> CheckNotimeout["Check for notimeout Marker"]
@@ -4012,14 +3230,7 @@ graph LR
     Default --> SetTimeout
 ```
 
-From [.github/workflows/call-test.yml:303-318]():
-
-The script at `.github/scripts/calculate_test_timeout.py` looks up each test in `.test_durations` and calculates the estimated runtime with a buffer for compilation and overhead.
-```
-
-
-#### Pytest Marker System
-
+### Related: Pytest Marker System
 
 ```mermaid
 graph TB
@@ -4037,20 +3248,7 @@ graph TB
     Check3 --> Include
 ```
 
-Common marker categories:
-
-| Marker Category | Examples | Purpose |
-|-----------------|----------|---------|
-| **Hardware** | `n150`, `p150`, `n300`, `n300-llmbox` | Target specific hardware |
-| **Trigger** | `push`, `nightly`, `extended` | Control when tests run |
-| **Status** | `expected_passing`, `model_test` | Filter by test status |
-| **Size** | `large`, `notimeout` | Handle resource-intensive tests |
-| **Parallelism** | `single_device`, `dual_chip`, `tensor_parallel`, `data_parallel` | Filter by parallelism mode |
-```
-
-
-### Benchmark Data Collection Flow
-
+### Related: Benchmark Data Collection Flow
 
 ```mermaid
 graph TB
@@ -4090,9 +3288,7 @@ graph TB
     style UploadPerf fill:#f9f9f9
 ```
 
-
-#### Artifact Naming Convention
-
+### Related: Artifact Naming Convention
 
 ```mermaid
 graph LR
@@ -4122,10 +3318,6 @@ graph LR
     
     style Example fill:#f9f9f9
 ```
-
-
-#### Duration Extraction from JUnit XML
-
 
 ```mermaid
 graph TB
@@ -4167,9 +3359,7 @@ graph TB
     style JSONFile fill:#f9f9f9
 ```
 
-
-#### vLLM Pooling Performance Test
-
+### Related: vLLM Pooling Performance Test
 
 ```mermaid
 graph TB
@@ -4216,9 +3406,7 @@ graph TB
     style PrintResults fill:#f9f9f9
 ```
 
-
-### Performance Data Workflow Summary
-
+### Related: Performance Data Workflow Summary
 
 ```mermaid
 graph TB
@@ -4262,9 +3450,7 @@ graph TB
     style LoadDurations fill:#f9f9f9
 ```
 
-
-#### Core Compilation Options
-
+### Related: Core Compilation Options
 
 ```mermaid
 graph LR
@@ -4296,33 +3482,7 @@ graph LR
     end
 ```
 
-**PyTorch Example**:
-```python
-import torch_xla
-torch_xla.set_custom_compile_options({
-    "optimization_level": "2",
-    "enable_bfp8_conversion": "true",
-    "math_fidelity": "hifi4",
-    "export_path": "./debug_ir",
-    "export_model_name": "my_model_v1",
-})
-```
-
-**JAX Example**:
-```python
-import jax
-@jax.jit(compiler_options={
-    "optimization_level": "1",
-    "enable_trace": "true",
-    "export_path": "/tmp/ir_export",
-})
-def my_function(x):
-    return x @ x.T
-```
-
-
-#### Sanitization Process
-
+### Related: Sanitization Process
 
 ```mermaid
 graph LR
@@ -4344,22 +3504,7 @@ graph LR
     Done --> XLA["Return to XLA<br/>via OptimizedProgram"]
 ```
 
-**Key Transformations**:
-
-1. **Attribute Stripping**: Removes `ttcore.*` and `ttir.*` attributes from function signatures
-2. **Location Removal**: Strips all `loc` attributes to reduce size and avoid XLA parser issues
-3. **Shardy Output Extraction** (when using Shardy):
-   - Extracts `sdy.manual_computation` output shardings
-   - Converts `TensorShardingAttr` to HloShardingV2 string format
-   - Injects as `mhlo.spmd_output_sharding` module attribute
-   - Simplifies main function body (removes illegal `sdy.manual_computation`)
-
-**HloShardingV2 Format**: `{devices=[<tile_dims>]<=<reshape_dims>]T(<transpose_perm>) last_tile_dim_replicate}`
-```
-
-
-#### Activation Script Workflow
-
+### Related: Activation Script Workflow
 
 ```mermaid
 graph TB
@@ -4401,12 +3546,7 @@ $PATH"]
     SetAlias --> Complete["Ready for development"]
 ```
 
-Sources: [docs/src/getting_started_build_from_source.md:123-149]()
-```
-
-
-#### Dependency File Structure
-
+### Related: Dependency File Structure
 
 ```mermaid
 graph TB
@@ -4439,12 +3579,7 @@ timm, flax"]
     CMakeBuild["cmake --build build"] --> TTMLIRScript
 ```
 
-Sources: [.gitignore:20-30]()
-```
-
-
-#### TT-MLIR Dependency Installation
-
+### Related: TT-MLIR Dependency Installation
 
 ```mermaid
 graph TB
@@ -4475,15 +3610,6 @@ requirements_cache/LLVM_VERSION.txt"]
 third_party/tt-mlir/src/tt-mlir/\
 build-requirements.txt"]
 ```
-
-The script performs version-aware caching to avoid re-downloading LLVM requirements on every build. Requirements are cached in `venv/bin/requirements_cache/` and keyed by LLVM commit hash.
-
-Sources: [docs/src/getting_started_build_from_source.md:117-121]()
-```
-
-
-#### Complete Installation Flow
-
 
 ```mermaid
 graph TB
@@ -4525,12 +3651,7 @@ lib/python3.12/site-packages"]
     InstallPlugin --> Ready["Development environment ready"]
 ```
 
-Sources: [docs/src/getting_started_build_from_source.md:114-172]()
-```
-
-
-### Build Process Overview
-
+### Related: Build Process Overview
 
 ```mermaid
 graph TB
@@ -4579,9 +3700,7 @@ graph TB
     style N fill:#e8f5e9
 ```
 
-
-#### Build Flow Diagram
-
+### Related: Build Flow Diagram
 
 ```mermaid
 graph TB
@@ -4635,9 +3754,7 @@ graph TB
     style LOG fill:#fff3e0
 ```
 
-
-#### Test Discovery and Parametrization
-
+### Related: Test Discovery and Parametrization
 
 ```mermaid
 graph TB
@@ -4676,19 +3793,7 @@ graph TB
     style ModelLoader fill:#f9f9f9
 ```
 
-**Figure: Test Discovery and Parametrization Flow**
-
-The test system uses dynamic loaders to discover models and variants at runtime:
-
-1. **Discovery:** `TorchDynamicLoader.discover_loader_paths()` walks the `third_party/tt_forge_models/` directory tree looking for `pytorch/loader.py` files
-2. **Variant Loading:** For each loader, `get_model_variants()` queries available variants from `ModelLoader.query_available_variants()`
-3. **Test Entry Creation:** Each (loader_path, variant) pair becomes a `ModelTestEntry`
-4. **Parametrization:** `@pytest.mark.parametrize` generates test instances for each combination of (test_entry, run_mode, parallelism)
-```
-
-
-#### Compilation Configuration
-
+### Related: Compilation Configuration
 
 ```mermaid
 graph LR
@@ -4722,18 +3827,7 @@ graph LR
     style serialize fill:#f9f9f9
 ```
 
-**Figure: Compilation Configuration and Serialization Flow**
-
-The `CompilerConfig` object controls compilation behavior and serialization:
-
-- `export_path`: Directory where IR artifacts are written
-- `export_model_name`: Base name for artifact files
-- `experimental_enable_weight_bfp8_conversion`: Enable BFP8 weight conversion
-```
-
-
-#### Pre-Commit Hook Configuration
-
+### Related: Pre-Commit Hook Configuration
 
 ```mermaid
 graph TB
@@ -4773,9 +3867,7 @@ graph TB
     Hooks --> Fail
 ```
 
-
-#### CI Test Matrix
-
+### Related: CI Test Matrix
 
 ```mermaid
 graph LR
@@ -4811,9 +3903,7 @@ graph LR
     Results --> PerfCheck
 ```
 
-
-#### PR Review Process
-
+### Related: PR Review Process
 
 ```mermaid
 graph TB
@@ -4861,10 +3951,6 @@ graph TB
     Approve --> Merge
 ```
 
-
-#### Common Development Patterns
-
-
 ```mermaid
 graph TB
     subgraph "Development Iteration"
@@ -4911,4 +3997,3 @@ graph TB
     ReviewApprove --> Iterate
     Iterate --> Code
 ```
-

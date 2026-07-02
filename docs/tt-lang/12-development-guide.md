@@ -34,6 +34,48 @@ This guide covers development environment setup, the build-test-debug cycle, MLI
 3.   **Simulator Enhancement**: Extending the execution model in `python/sim/` using cooperative scheduling with greenlets [AGENTS.md 16](https://github.com/tenstorrent/tt-lang/blob/d76e6233/AGENTS.md?plain=1#L16-L16)
 4.   **Testing Infrastructure**: Adding validation in `test/` using lit or pytest [test/TESTING.md 16-27](https://github.com/tenstorrent/tt-lang/blob/d76e6233/test/TESTING.md?plain=1#L16-L27)
 
+
+
+```mermaid
+graph TB
+    subgraph "DRAM_Banks" ["DRAM Banks"]
+        DRAM["DRAM<br/>~100MB per chip<br/>Lower bandwidth"]
+    end
+    
+    subgraph "Core_Grid" ["Core Grid (e.g. 10x13)"]
+        subgraph "Core_xy" ["Core (x,y)"]
+            L1["L1 SRAM<br/>~1.5MB per core<br/>High bandwidth"]
+            MATH["MATH Thread<br/>(TRISC)"]
+            BRISC["BRISC Thread<br/>(Writer DM)"]
+            NCRISC["NCRISC Thread<br/>(Reader DM)"]
+        end
+        
+        subgraph "Adjacent_Cores" ["Adjacent Cores"]
+            L1_Other["L1 SRAM<br/>(other cores)"]
+        end
+    end
+    
+    subgraph "NOC_Network" ["NOC (Network-on-Chip)"]
+        NOC0["NOC0<br/>Read path"]
+        NOC1["NOC1<br/>Write path"]
+    end
+    
+    DRAM -->|"noc_async_read"| NOC0
+    NOC0 -->|"DMA"| L1
+    
+    L1 -->|"noc_async_write"| NOC1
+    NOC1 -->|"DMA"| DRAM
+    
+    L1 -->|"multicast/unicast"| NOC1
+    NOC1 -->|"pipe transfer"| L1_Other
+    
+    NCRISC -.->|"controls"| NOC0
+    BRISC -.->|"controls"| NOC1
+    MATH -.->|"reads from"| L1
+```
+
+Sources: [python/ttl/ttl_api.py:98-98](), [benchmarks/matmul/config.py:76-78](), [benchmarks/matmul/NOTES.md:68-74]()
+```
 ### Development Workflow: From Code to Validation
 
 The following diagram maps the high-level development stages to the specific code entities and tools used in the `tt-lang` repository.
@@ -42,6 +84,45 @@ Title: tt-lang Development Flow
 
 Sources: [AGENTS.md 4-16](https://github.com/tenstorrent/tt-lang/blob/d76e6233/AGENTS.md?plain=1#L4-L16)[test/TESTING.md 16-27](https://github.com/tenstorrent/tt-lang/blob/d76e6233/test/TESTING.md?plain=1#L16-L27)[python/ttl/ttl_api.py 1-50](https://github.com/tenstorrent/tt-lang/blob/d76e6233/python/ttl/ttl_api.py#L1-L50)
 
+
+
+```mermaid
+graph TB
+    subgraph "Natural Language Space"
+        DSL["Python DSL Extension"]
+        Pass["MLIR Pass Development"]
+        Sim["Simulator Enhancement"]
+    end
+
+    subgraph "Code Entity Space"
+        API["python/ttl/ttl_api.py"]
+        Transforms["lib/Dialect/TTL/Transforms/"]
+        SimCode["python/sim/"]
+        
+        CMake["cmake --build build"]
+        Activate["source build/env/activate"]
+        
+        Lit["check-ttlang-mlir"]
+        PyLit["check-ttlang-python-lit"]
+        PyTest["check-ttlang-pytest"]
+        SimTest["pytest test/sim"]
+    end
+    
+    DSL --> API
+    Pass --> Transforms
+    Sim --> SimCode
+    
+    API --> Activate
+    Transforms --> CMake
+    SimCode --> Activate
+    
+    CMake --> Lit
+    Activate --> PyLit
+    Activate --> PyTest
+    Activate --> SimTest
+```
+Sources: [AGENTS.md:4-16](), [test/TESTING.md:16-27](), [python/ttl/ttl_api.py:1-50]()
+```
 ## Development Workflow
 
 ### Setting Up the Development Environment
@@ -107,6 +188,41 @@ Sources: [test/TESTING.md 5-100](https://github.com/tenstorrent/tt-lang/blob/d76
 
 For details, see [MLIR Pass Development](https://deepwiki.com/tenstorrent/tt-lang/12.3-mlir-pass-development).
 
+
+
+```mermaid
+graph LR
+    subgraph "Frontend"
+        AST["Python AST"]
+        TGC["TTLGenericCompiler"]
+    end
+
+    subgraph "Dialects"
+        TTL["TTL Dialect"]
+        TTK["TTKernel Dialect"]
+        EC["EmitC Dialect"]
+    end
+
+    subgraph "Tools"
+        OPT["ttlang-opt"]
+        TRANS["ttlang-translate"]
+    end
+
+    AST --> TGC
+    TGC --> TTL
+    TTL -- "Passes (lib/Dialect/TTL/Transforms)" --> TTL
+    TTL -- "Lowering" --> TTK
+    TTK --> EC
+    EC -- "EmitC" --> CPP["C++ Kernel"]
+    
+    TTL -.-> OPT
+    TTK -.-> OPT
+    EC -.-> TRANS
+```
+Sources: [test/TESTING.md:5-100](), [AGENTS.md:35-50](), [test/lit.cfg.py:98-102]()
+
+For details, see [MLIR Pass Development](#12.3).
+```
 ## Troubleshooting
 
 Common development hurdles include:

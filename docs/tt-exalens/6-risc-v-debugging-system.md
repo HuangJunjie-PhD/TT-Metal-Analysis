@@ -31,6 +31,53 @@ The RISC-V debugging system consists of multiple layers that abstract hardware-s
 
 Sources: [ttexalens/hardware/baby_risc_debug.py 468-480](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/ttexalens/hardware/baby_risc_debug.py#L468-L480)[ttexalens/hardware/baby_risc_debug.py 218-240](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/ttexalens/hardware/baby_risc_debug.py#L218-L240)
 
+
+
+```mermaid
+graph TB
+    subgraph HighLevel["High-Level Interface"]
+        RiscDebug["RiscDebug<br/>(Abstract Base)"]
+        RiscLocation["RiscLocation<br/>(location, risc_name, neo_id)"]
+        RiscDebugStatus["RiscDebugStatus<br/>(is_halted, is_ebreak_hit)"]
+    end
+    
+    subgraph ImplLayer["Implementation Layer"]
+        BabyRiscDebug["BabyRiscDebug<br/>(Main Implementation)"]
+        BabyRiscDebugHardware["BabyRiscDebugHardware<br/>(Hardware Interface)"]
+        BabyRiscInfo["BabyRiscInfo<br/>(Core Configuration)"]
+    end
+    
+    subgraph PlatformSpecific["Platform-Specific"]
+        BlackholeBabyRiscDebug["BlackholeBabyRiscDebug"]
+        WormholeBabyRiscDebug["WormholeBabyRiscDebug"]
+        QuasarBabyRiscDebug["QuasarBabyRiscDebug"]
+    end
+    
+    subgraph HardwareRegs["Hardware Registers"]
+        RISC_DBG_CNTL0["RISC_DBG_CNTL0<br/>(Control Register 0)"]
+        RISC_DBG_CNTL1["RISC_DBG_CNTL1<br/>(Control Register 1)"]
+        RISC_DBG_STATUS0["RISC_DBG_STATUS0<br/>(Status Register 0)"]
+        RISC_DBG_STATUS1["RISC_DBG_STATUS1<br/>(Status Register 1)"]
+    end
+    
+    RiscDebug --> RiscLocation
+    RiscDebug --> RiscDebugStatus
+    BabyRiscDebug --> RiscDebug
+    BabyRiscDebug --> BabyRiscDebugHardware
+    BabyRiscDebug --> BabyRiscInfo
+    
+    BlackholeBabyRiscDebug --> BabyRiscDebug
+    WormholeBabyRiscDebug --> BabyRiscDebug
+    QuasarBabyRiscDebug --> BabyRiscDebug
+    
+    BabyRiscDebugHardware --> RISC_DBG_CNTL0
+    BabyRiscDebugHardware --> RISC_DBG_CNTL1
+    BabyRiscDebugHardware --> RISC_DBG_STATUS0
+    BabyRiscDebugHardware --> RISC_DBG_STATUS1
+```
+
+Sources: [ttexalens/hardware/baby_risc_debug.py:468-480](), [ttexalens/hardware/baby_risc_debug.py:218-240]()
+```
 ### Virtual Register Interface
 
 The debug hardware provides a virtual register interface accessed through physical debug registers. Commands are issued by writing to control registers and results are read from status registers.
@@ -145,6 +192,41 @@ The debugging system provides two memory access paths: NOC-based access for L1 m
 
 Sources: [ttexalens/hardware/baby_risc_debug.py 701-750](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/ttexalens/hardware/baby_risc_debug.py#L701-L750)
 
+
+
+```mermaid
+graph TB
+    subgraph AccessRequest["Access Request"]
+        Client["Client Code"]
+        BRD["BabyRiscDebug"]
+    end
+    
+    subgraph AddrTranslation["Address Translation"]
+        BRI["BabyRiscInfo"]
+        MemBlock["MemoryBlock"]
+    end
+    
+    subgraph AccessPaths["Access Paths"]
+        NOCPath["NOC Access Path<br/>(L1 Memory)"]
+        DebugPath["Debug Interface Path<br/>(Private Memory)"]
+    end
+    
+    subgraph HW["Hardware"]
+        L1["L1 Memory<br/>(NOC Accessible)"]
+        Private["Private Memory<br/>(Debug Only)"]
+    end
+    
+    Client --> BRD
+    BRD --> BRI
+    BRI --> MemBlock
+    MemBlock --> |"noc_address != None"| NOCPath
+    MemBlock --> |"noc_address == None"| DebugPath
+    NOCPath --> L1
+    DebugPath --> Private
+```
+
+Sources: [ttexalens/hardware/baby_risc_debug.py:701-750]()
+```
 ### General Purpose Register (GPR) Access
 
 The RISC-V architecture provides 32 general-purpose registers (x0-x31) plus the program counter (PC). Register x0 is hardwired to zero.
@@ -208,6 +290,37 @@ The `read_memory_bytes()` and `write_memory_bytes()` methods support unaligned a
 `def write_memory_bytes(self, address: int, data: bytes):    noc_address = self.baby_risc_info.translate_to_noc_address(address)    if noc_address is not None and not self.is_in_reset():        self.risc_info.noc_block.location.noc_write(noc_address, data, use_4B_mode=True)    else:        super().write_memory_bytes(address, data)`
 Sources: [ttexalens/hardware/baby_risc_debug.py 696-785](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/ttexalens/hardware/baby_risc_debug.py#L696-L785)[ttexalens/hardware/blackhole/baby_risc_debug.py 38-47](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/ttexalens/hardware/blackhole/baby_risc_debug.py#L38-L47)
 
+
+
+```mermaid
+graph LR
+    UnalignedReq["Unaligned Request<br/>addr=0x101, size=2"]
+    ReadWord["Read aligned word<br/>at 0x100 (4 bytes)"]
+    Extract["Extract bytes<br/>offset 1, count 2"]
+    Result["Return bytes<br/>at positions 1-2"]
+    
+    UnalignedReq --> ReadWord
+    ReadWord --> Extract
+    Extract --> Result
+```
+
+For writes:
+```mermaid
+graph LR
+    UnalignedWrite["Unaligned Write<br/>addr=0x102, data=[A,B]"]
+    ReadWord["Read word at 0x100"]
+    Modify["Modify bytes<br/>Replace positions 2-3"]
+    WriteBack["Write word back<br/>to 0x100"]
+    
+    UnalignedWrite --> ReadWord
+    ReadWord --> Modify
+    Modify --> WriteBack
+```
+
+Sources: [test/ttexalens/unit_tests/test_lib.py:284-360]()
+
+---
+```
 ### Private Memory Access Context Manager
 
 The `ensure_private_memory_access()` context manager enables access to private memory by temporarily taking the core out of reset if necessary.
@@ -333,6 +446,46 @@ The `ElfLoader` class handles loading executable code into RISC-V cores, managin
 
 Sources: [ttexalens/elf_loader.py 12-233](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/ttexalens/elf_loader.py#L12-L233)
 
+
+
+```mermaid
+graph TB
+    subgraph ClientLayer["Client Layer"]
+        LoadAPI["load_elf()<br/>run_elf()"]
+    end
+    
+    subgraph ElfLoaderClass["ElfLoader"]
+        ElfLoader["ElfLoader"]
+        LoadSections["load_elf_sections()"]
+        RemapAddr["remap_address()"]
+        WriteBlock["write_block()"]
+        ReadBlock["read_block()"]
+    end
+    
+    subgraph MemAccessSel["Memory Access Selection"]
+        IsPrivate{"Inside Private<br/>Memory?"}
+        DebugWrite["write_block_through_debug()"]
+        NOCWrite["location.noc_write()"]
+    end
+    
+    subgraph HardwareMem["Hardware"]
+        L1Mem["L1 Memory"]
+        PrivateMem["Private Memory"]
+    end
+    
+    LoadAPI --> ElfLoader
+    ElfLoader --> LoadSections
+    LoadSections --> RemapAddr
+    LoadSections --> WriteBlock
+    WriteBlock --> IsPrivate
+    IsPrivate -->|"Yes"| DebugWrite
+    IsPrivate -->|"No"| NOCWrite
+    DebugWrite --> PrivateMem
+    NOCWrite --> L1Mem
+```
+
+Sources: [ttexalens/elf_loader.py:12-233]()
+```
 ### Loading Process
 
 The ELF loading process consists of several stages:

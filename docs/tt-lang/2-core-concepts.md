@@ -85,6 +85,77 @@ For details, see [Memory Architecture](https://deepwiki.com/tenstorrent/tt-lang/
 
 * * *
 
+
+
+```mermaid
+graph TB
+    subgraph "Profiler Data Source"
+        [profile_log_device.csv] --> ["Device profiler output<br/>ZONE_START/ZONE_END pairs"]
+        [CSV Header] --> ["CHIP_FREQ[MHz]<br/>Core coordinates"]
+    end
+    
+    subgraph "Trace Conversion"
+        Parser["csv_to_trace_events()"]
+        Filter["Filter Wrapper Zones<br/>_WRAPPER_ZONES<br/>BRISC-FW, TRISC-KERNEL, etc"]
+        Normalize["Normalize Timestamps<br/>Start at 0"]
+        Events["Chrome Trace Events<br/>{name, cat, ph:X, ts, dur, pid, tid}"]
+    end
+    
+    subgraph "HTTP Server"
+        Handler["_TraceHandler<br/>BaseHTTPRequestHandler"]
+        Landing["Landing Page<br/>_LANDING_HTML<br/>Fetch + postMessage"]
+        TraceJSON["trace.json<br/>Cached in memory"]
+    end
+    
+    subgraph "Client Browser"
+        OpenPage["Open http://localhost:PORT"]
+        FetchTrace["Fetch /trace.json"]
+        OpenPerfetto["Open Perfetto UI<br/>ui.perfetto.dev"]
+        PostMessage["postMessage to Perfetto<br/>with ArrayBuffer"]
+    end
+    
+    Parser --> Filter
+    Filter --> Normalize
+    Normalize --> Events
+    Events --> TraceJSON
+    
+    TraceJSON --> Handler
+    Landing --> Handler
+    
+    Handler --> OpenPage
+    OpenPage --> Landing
+    Landing --> FetchTrace
+    FetchTrace --> TraceJSON
+    Landing --> OpenPerfetto
+    OpenPerfetto --> PostMessage
+    PostMessage --> TraceJSON
+```
+
+
+```mermaid
+graph TD
+    subgraph "Global_Memory_Space"
+        DRAM["DRAM (ttnn.Tensor)"]
+    end
+
+    subgraph "Tensix_Core_Node"
+        subgraph "L1_SRAM"
+            DFB["DataflowBuffer (CircularBuffer)"]
+        end
+        
+        subgraph "Compute_Engine"
+            DST["DST_Registers (TTLAssignDST)"]
+        end
+    end
+
+    DRAM -- "ttl.copy()" --> DFB
+    DFB -- "ttl.math ops" --> DST
+    DST -- "Block.store()" --> DFB
+    DFB -- "ttl.copy()" --> DRAM
+```
+
+For details, see [Memory Architecture](#2.3).
+```
 ## Execution Model
 
 ### Grid and Nodes
@@ -97,6 +168,69 @@ A **Grid** defines the space of nodes (Tensix Cores) to which the operation is s
 *   **Multi-core:** Involves partitioning tensors across a grid, often using Single-Program-Multiple-Data (SPMD) mode [docs/sphinx/specs/TTLangSpecification.md 101-102](https://github.com/tenstorrent/tt-lang/blob/d76e6233/docs/sphinx/specs/TTLangSpecification.md?plain=1#L101-L102) Multi-core execution can be configured using TT-NN Mesh Devices for multi-chip grids [docs/sphinx/specs/TTLangSpecification.md 101-102](https://github.com/tenstorrent/tt-lang/blob/d76e6233/docs/sphinx/specs/TTLangSpecification.md?plain=1#L101-L102)
 
 ### Code Entity Relationship Diagram
+
+```mermaid
+graph LR
+    subgraph "Kernel_Definition [ttl.kernel]"
+        direction TB
+        K["fused_mul_add_streaming"]
+        
+        subgraph "DFB_Registry [Dataflow Buffers]"
+            D1["a_dfb: shape=(2,2)"]
+            D2["b_dfb: shape=(2,2)"]
+            D3["c_dfb: shape=(2,2)"]
+            D4["y_dfb: shape=(2,2)"]
+        end
+        
+        subgraph "Execution_Threads [Threads]"
+            Read["@ttl.datamovement()<br/>read_kernel"]
+            Compute["@ttl.compute()<br/>compute_kernel"]
+            Write["@ttl.datamovement()<br/>write_kernel"]
+        end
+    end
+
+    Read -->|"ttl.copy(DRAM -> DFB)"| D1
+    Read -->|"ttl.copy(DRAM -> DFB)"| D2
+    Read -->|"ttl.copy(DRAM -> DFB)"| D3
+    
+    D1 -->|"wait()"| Compute
+    D2 -->|"wait()"| Compute
+    D3 -->|"wait()"| Compute
+    Compute -->|"reserve()"| D4
+    Compute -->|"store()"| D4
+    
+    D4 -->|"wait()"| Write
+    Write -->|"ttl.copy(DFB -> DRAM)"| TensorY["ttnn.Tensor Y"]
+```
+
+
+
+```mermaid
+graph LR
+    subgraph "Python_DSL_Space"
+        Op["@ttl.operation [python/ttl/ttl_api.py:67]"]
+        Comp["@ttl.compute [python/ttl/ttl_api.py:74]"]
+        DM["@ttl.datamovement [python/ttl/ttl_api.py:78]"]
+        DFB_API["ttl.make_dataflow_buffer_like [examples/elementwise-tutorial/step_3_multinode.py:62]"]
+    end
+
+    subgraph "Hardware_Entity_Space"
+        Node["Tensix Core (Node)"]
+        TRISC["TRISC (Math Thread)"]
+        BRISC["BRISC/NCRISC (DM Thread)"]
+        CB["CircularBuffer (L1)"]
+    end
+
+    Op -- "Spawns on Grid" --> Node
+    Comp -- "Compiles to" --> TRISC
+    DM -- "Compiles to" --> BRISC
+    DFB_API -- "Maps to" --> CB
+    TRISC -- "cb_wait/cb_pop" --> CB
+    BRISC -- "cb_reserve/cb_push" --> CB
+```
+
+For details, see [Execution Model](#2.4).
+```
 
 For details, see [Execution Model](https://deepwiki.com/tenstorrent/tt-lang/2.4-execution-model).
 

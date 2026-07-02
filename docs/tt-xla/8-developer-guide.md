@@ -38,6 +38,63 @@ TT-XLA development follows a standard workflow centered around the virtual envir
 
 * * *
 
+
+
+```mermaid
+graph TB
+    Start["Start Development"]
+    
+    Start --> Activate["source venv/activate"]
+    Activate --> HWCheck{"Hardware<br/>configured?"}
+    HWCheck -->|No| TTInstaller["Run tt-installer<br/>Configure hugepages"]
+    HWCheck -->|Yes| CodeChange["Make code changes"]
+    TTInstaller --> CodeChange
+    
+    CodeChange --> Build["cmake --build build"]
+    Build --> Test["pytest tests/"]
+    
+    Test --> TestPass{"Tests pass?"}
+    TestPass -->|No| Debug["Debug with IR dumps<br/>Tracy profiling<br/>Logs"]
+    TestPass -->|Yes| Commit["git commit"]
+    
+    Debug --> CodeChange
+    
+    Commit --> PR["Open Pull Request"]
+    PR --> CI["CI runs tests<br/>on multiple hardware"]
+    CI --> CIPass{"CI passes?"}
+    CIPass -->|No| Debug
+    CIPass -->|Yes| Merge["Merge"]
+```
+
+
+```mermaid
+graph TB
+    TestExec["Test Execution"]
+    CPURef["CPU Reference<br/>Run"]
+    TTDevice["TT Device<br/>Run"]
+    Compare["Comparison<br/>_compare()"]
+    CompConfig["ComparisonConfig"]
+    Results["ComparisonResult[]"]
+    Evaluate["Evaluator._assert_on_results()"]
+    Status["Test Status<br/>PASSED/INCORRECT_RESULT"]
+    
+    TestExec --> CPURef
+    TestExec --> TTDevice
+    CPURef --> Compare
+    TTDevice --> Compare
+    CompConfig --> Compare
+    Compare --> Results
+    Results --> Evaluate
+    Evaluate --> Status
+    
+    style CompConfig fill:#f9f9f9
+    style Results fill:#f9f9f9
+```
+
+**Diagram: High-level comparison flow during test execution**
+
+Sources: [tests/infra/testers/single_chip/model/torch_model_tester.py:170-278](), [tests/runner/test_utils.py:363-451]()
+```
 ## System Requirements
 
 TT-XLA development requires specific system dependencies and hardware configuration.
@@ -192,6 +249,61 @@ The `CompileOptions` struct controls all aspects of model compilation. These opt
 
 * * *
 
+
+
+```mermaid
+graph LR
+    subgraph "Optimization Control"
+        OptLevel["optimization_level<br/>0: No optimization<br/>1: Basic passes<br/>2: Advanced passes"]
+        BFP8["enable_bfp8_conversion<br/>Auto BF16→BFP8 conversion"]
+        WeightBFP8["experimental_enable_weight_bfp8_conversion<br/>BFP8 weight conversion"]
+        MathFidelity["math_fidelity<br/>lofi/hifi2/hifi3/hifi4/ttnn_default"]
+        FP32DestAcc["fp32_dest_acc_en<br/>FP32 accumulation"]
+    end
+    
+    subgraph "Performance Features"
+        Trace["enable_trace<br/>Host overhead elimination"]
+        ConstEval["enable_const_eval<br/>Constant folding"]
+        ConstEvalCPU["enable_const_eval_on_cpu<br/>CPU execution for constants"]
+        PermuteMatmul["experimental_enable_permute_matmul_fusion<br/>Fuse transpose + matmul"]
+    end
+    
+    subgraph "Backend Selection"
+        Backend["backend<br/>TTNNFlatbuffer<br/>TTNNCodegenCpp<br/>TTNNCodegenPy"]
+    end
+    
+    subgraph "Debug/Export"
+        ExportPath["export_path<br/>IR dump directory"]
+        ExportModelName["export_model_name<br/>Model identifier"]
+        ExportTensors["export_tensors<br/>Save inputs to disk"]
+        PerfMetrics["ttnn_perf_metrics_enabled<br/>Performance metrics"]
+        PerfOutput["ttnn_perf_metrics_output_file<br/>Metrics output path"]
+    end
+```
+
+**PyTorch Example**:
+```python
+import torch_xla
+torch_xla.set_custom_compile_options({
+    "optimization_level": "2",
+    "enable_bfp8_conversion": "true",
+    "math_fidelity": "hifi4",
+    "export_path": "./debug_ir",
+    "export_model_name": "my_model_v1",
+})
+```
+
+**JAX Example**:
+```python
+import jax
+@jax.jit(compiler_options={
+    "optimization_level": "1",
+    "enable_trace": "true",
+    "export_path": "/tmp/ir_export",
+})
+def my_function(x):
+    return x @ x.T
+```
 ## IR Export and Debugging Workflow
 
 One of the most powerful debugging tools is the ability to export intermediate representations (IRs) at each stage of compilation. This allows inspection of transformations applied to your model.
@@ -335,6 +447,49 @@ The wheel will be generated in `python_package/dist/` with embedded native binar
 `export LOGURU_DEBUG_LOGGING=1export TT_METAL_LOGGER_LEVEL=DEBUGpython my_model.py 2>&1 | tee compilation.log`
 **Sources**: [pjrt_implementation/src/api/module_builder/module_builder.cc 217-380](https://github.com/tenstorrent/tt-xla/blob/c77995f6/pjrt_implementation/src/api/module_builder/module_builder.cc#L217-L380)
 
+
+
+```mermaid
+graph TB
+    Issue["Compilation Error<br/>or Wrong Output"]
+    
+    Issue --> EnableExport["Set export_path + export_model_name"]
+    EnableExport --> RunModel["Run model to trigger compilation"]
+    RunModel --> ExamineVHLO["Examine vhlo_*.mlir<br/>Input from framework"]
+    
+    ExamineVHLO --> CheckSHLO{"SHLO stage<br/>looks correct?"}
+    CheckSHLO -->|No| FrameworkIssue["Framework serialization issue<br/>Check JAX/PyTorch version"]
+    CheckSHLO -->|Yes| CheckTTIR{"TTIR stage<br/>looks correct?"}
+    
+    CheckTTIR -->|No| SHLOIssue["SHLO→TTIR lowering issue<br/>Check tt-mlir pipeline"]
+    CheckTTIR -->|Yes| CheckTTNN{"TTNN stage<br/>looks correct?"}
+    
+    CheckTTNN -->|No| TTNNIssue["TTIR→TTNN lowering issue<br/>Check optimization passes"]
+    CheckTTNN -->|Yes| RuntimeIssue["Runtime execution issue<br/>Check device logs"]
+    
+    style Issue fill:#fee
+```
+
+**Workflow Example**:
+
+1. **Enable IR Export**:
+```python
+torch_xla.set_custom_compile_options({
+    "export_path": "./debug",
+    "export_model_name": "problematic_model",
+})
+```
+
+2. **Trigger Compilation**:
+```python
+output = model(input)
+torch_xla.sync()
+```
+
+3. **Examine Generated IRs**:
+```bash
+ls debug/irs/
+```
 ### Testing with Custom Compiler Options
 
 The test infrastructure provides `CompilerConfig` for programmatic control of compilation:
@@ -366,6 +521,40 @@ When using `PJRT_Executable_OptimizedProgram` to retrieve the compiled IR for in
 
 * * *
 
+
+
+```mermaid
+graph LR
+    Original["Original SHLO Module<br/>with TT attributes"]
+    
+    Original --> Clone["Clone module"]
+    Clone --> Strip["Strip ttcore/ttir attributes<br/>from function args/results"]
+    Strip --> RemoveLoc["Remove debug locations<br/>mlir::createStripDebugInfoPass"]
+    RemoveLoc --> RemoveMesh["Remove sdy.mesh operations"]
+    
+    RemoveMesh --> CheckManual{"Has sdy.manual_computation?"}
+    CheckManual -->|Yes| ExtractShardy["Extract output shardings<br/>Convert to HloShardingV2"]
+    CheckManual -->|No| Done["Sanitized Module"]
+    
+    ExtractShardy --> InjectAttr["Inject mhlo.spmd_output_sharding<br/>module attribute"]
+    InjectAttr --> Simplify["Simplify main function<br/>Replace body with dummy outputs"]
+    Simplify --> Done
+    
+    Done --> XLA["Return to XLA<br/>via OptimizedProgram"]
+```
+
+**Key Transformations**:
+
+1. **Attribute Stripping**: Removes `ttcore.*` and `ttir.*` attributes from function signatures
+2. **Location Removal**: Strips all `loc` attributes to reduce size and avoid XLA parser issues
+3. **Shardy Output Extraction** (when using Shardy):
+   - Extracts `sdy.manual_computation` output shardings
+   - Converts `TensorShardingAttr` to HloShardingV2 string format
+   - Injects as `mhlo.spmd_output_sharding` module attribute
+   - Simplifies main function body (removes illegal `sdy.manual_computation`)
+
+**HloShardingV2 Format**: `{devices=[<tile_dims>]<=<reshape_dims>]T(<transpose_perm>) last_tile_dim_replicate}`
+```
 ## Debugging Tools Summary
 
 | Tool | Purpose | Configuration |

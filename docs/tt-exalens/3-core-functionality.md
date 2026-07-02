@@ -666,9 +666,6 @@ Refresh this wiki
 
 Enter email to refresh
 
-## Additional Diagrams
-
-
 ## Get program counter
 
 

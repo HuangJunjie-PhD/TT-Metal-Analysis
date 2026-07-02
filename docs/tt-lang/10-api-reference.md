@@ -48,6 +48,33 @@ The following diagram maps high-level programming concepts to the specific Pytho
 
 * * *
 
+
+
+```mermaid
+graph TB
+    subgraph "Public API (ttl.ttl_api)"
+        Decorators["Decorators<br/>@ttl.operation<br/>@ttl.compute<br/>@ttl.datamovement"]
+        DataStructures["Data Structures<br/>DataflowBuffer<br/>TensorBlock<br/>CopyTransferHandler"]
+        MemOps["Memory Operations<br/>ttl.copy()<br/>Tensor Slicing"]
+        TypeUtils["Type Utilities<br/>dtype_utils.py<br/>tile_bytes_from_dtype"]
+        Intrinsics["Intrinsics<br/>ttl.grid_size()<br/>ttl.node()"]
+        MathOps["Math Operations<br/>ttl.math.reduce_sum<br/>ttl.math.abs"]
+    end
+    
+    subgraph "Implementation Modules"
+        ttl_api["ttl_api.py<br/>Decorator & Kernel Runner"]
+        ttl_ast["_src/ttl_ast.py<br/>MLIR Generation"]
+        operators["operators.py<br/>TensorBlock, Copy"]
+        dfb["dataflow_buffer.py<br/>DataflowBuffer/CircularBuffer"]
+    end
+    
+    Decorators --> ttl_api
+    Decorators --> ttl_ast
+    DataStructures --> dfb
+    DataStructures --> operators
+    MemOps --> operators
+    Intrinsics --> ttl_ast
+```
 ## Kernel Decorators and Context
 
 Kernel programs are defined using specific decorators that delineate the hardware threads and the overall operation entry point.
@@ -127,6 +154,34 @@ For details, see [Tile Math Operations](https://deepwiki.com/tenstorrent/tt-lang
 
 * * *
 
+
+
+```mermaid
+graph TD
+    subgraph "Python Entity Space"
+        DSL_Bcast["ttl.block.broadcast()"]
+        DSL_Math["ttl.math.op()"]
+    end
+
+    subgraph "Simulation Logic (python/sim/block.py)"
+        CheckLayout["check_same_layout()"]
+        NormDims["Normalize Dims (d % ndim)"]
+        WithinTile["Step 1: Replicate within Tile<br/>(tile_h, tile_w expansion)"]
+        GridBcast["Step 2: Replicate across Grid<br/>(torch.expand)"]
+    end
+
+    subgraph "Code Entities"
+        BlockClass["class Block (dfb.py)"]
+        TorchExpand["torch.Tensor.expand"]
+    end
+
+    DSL_Bcast --> CheckLayout
+    CheckLayout --> NormDims
+    NormDims --> WithinTile
+    WithinTile --> GridBcast
+    GridBcast --> BlockClass
+    GridBcast -.-> TorchExpand
+```
 ## Grid and Core Context API
 
 The Grid API allows kernels to determine their location and the total size of the execution space.
@@ -146,6 +201,28 @@ For details, see [Grid and Core Context API](https://deepwiki.com/tenstorrent/tt
 
 * * *
 
+
+
+```mermaid
+graph LR
+    subgraph "Natural Language Space"
+        Grid["Grid Specification"]
+        CoreCoord["Core Coordinates"]
+    end
+    
+    subgraph "Code Entity Space"
+        GS["ttl.grid_size()"]
+        NC["ttl.node()"]
+        TO["@ttl.operation(grid=...)"]
+    end
+    
+    Grid --- GS
+    CoreCoord --- NC
+    Grid --- TO
+```
+
+For details, see [Grid and Core Context API](#10.5).
+```
 ## Compiler Options
 
 The behavior of the compilation pipeline can be tuned using `CompilerOptions`. These can be set via command-line flags, environment variables, or the `@ttl.operation` decorator [python/ttl/compiler_options.py 129-137](https://github.com/tenstorrent/tt-lang/blob/d76e6233/python/ttl/compiler_options.py#L129-L137)

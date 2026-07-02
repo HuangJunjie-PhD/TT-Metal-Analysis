@@ -253,11 +253,6 @@ Refresh this wiki
 
 Enter email to refresh
 
-## Additional Diagrams
-
-
-#### DataType Conversion
-
 
 ```mermaid
 graph TB
@@ -281,12 +276,7 @@ graph TB
     OM_FUNC --> OM_TYPE
 ```
 
-Sources: [include/ttmlir/Target/Utils/MLIRToFlatbuffer.h:166-198](), [lib/OpModel/TTNN/Conversion.cpp:24-45]()
-```
-
-
-#### Runtime Context Management
-
+### Related: Runtime Context Management
 
 ```mermaid
 graph LR
@@ -313,14 +303,7 @@ graph LR
     GetHost --> HostRT
 ```
 
-Sources: [runtime/lib/runtime.cpp:170-225](), [runtime/include/tt/runtime/runtime.h:35-42](), [runtime/include/tt/runtime/detail/common/runtime_context.h:10-40]()
-
----
-```
-
-
-#### Layout Conversion Logic
-
+### Related: Layout Conversion Logic
 
 ```mermaid
 graph TD
@@ -330,10 +313,6 @@ graph TD
     ConvLogic -->|Layout Change| Typecast["ttnn::to_layout (ROW_MAJOR/TILE)"]
     ConvLogic -->|Memory Change| ToMemCfg["ttnn::to_memory_config"]
 ```
-
-
-#### GoldenMapTensor Class
-
 
 ```mermaid
 graph LR
@@ -356,24 +335,6 @@ graph LR
         ShardWise -.->|"returns"| GMT
     end
 ```
-
-**Key Features** [tools/golden/mapping.py:50-143]():
-
-| Feature | Description |
-|---------|-------------|
-| **Attribute forwarding** | Read-only tensor attributes (shape, dtype, etc.) forwarded to first shard [tools/golden/mapping.py:50-69]() |
-| **Mutating methods** | Operations like `to()`, `reshape()`, `permute()` return new `GoldenMapTensor` instances [tools/golden/mapping.py:72-96]() |
-| **BF16 Upcasting** | Automatically upcasts BF16 for CPU matmuls to avoid slowness on hardware without BF16 support [tools/golden/mapping.py:98-99]() |
-| **Runtime conversion** | `golden_map_tensor_as_torch_tensors()` ensures shards are contiguous and compatible with runtime [tools/golden/mapping.py:138-153]() |
-
-Sources: [tools/golden/mapping.py:36-153]()
-
----
-```
-
-
-#### Test Function Structure
-
 
 ```mermaid
 graph TD
@@ -400,23 +361,6 @@ graph TD
     Pipeline --> Execute
     Execute --> Validate
 ```
-
-**Key API Functions** [tools/builder/base/builder_apis.py:46-127]():
-
-| Function | Purpose |
-|----------|---------|
-| `compile_and_execute_ttir()` | Orchestrates full pipeline for `TTIR` dialect [tools/builder/base/builder_apis.py:46-74]() |
-| `compile_and_execute_shlo()` | Orchestrates full pipeline for `StableHLO` dialect [tools/builder/base/builder_apis.py:76-104]() |
-| `build_module()` | Context manager that handles builder instantiation and module construction [tools/builder/base/builder_apis.py:150-184]() |
-
-Sources: [test/python/golden/test_ttir_ops.py:47-71](), [tools/builder/base/builder_apis.py:46-184]()
-
----
-```
-
-
-#### Test Definitions
-
 
 ```mermaid
 graph TD
@@ -451,7 +395,3 @@ graph TD
     jit_sh -- "validates" --> JIT_LIB
     emitc_sh -- "links" --> EMITC_LIB
 ```
-
-Sources: [.github/settings/tests.json:1-43](), [.github/test_scripts/builder.sh:12-35]()
-```
-

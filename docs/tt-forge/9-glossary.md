@@ -37,6 +37,34 @@ The following diagram maps the high-level software stack components to their res
 
 * * *
 
+
+
+```mermaid
+graph TD
+    subgraph "Frontend Layer"
+        A["PyTorch/JAX"] -- "torch_xla / PJRT" --> B["TT-XLA"]
+        C["ONNX/TF"] -- "TVM" --> D["TT-Forge-ONNX"]
+    end
+
+    subgraph "TT-MLIR Compiler"
+        B -- "StableHLO" --> E["TTIR Dialect"]
+        D -- "TVM Relay/IR" --> E
+        E -- "Optimization Passes" --> F["TTNN Dialect"]
+        F -- "Lowering" --> G["TTKernel Dialect"]
+    end
+
+    subgraph "Runtime & Hardware"
+        F -- "Dispatch" --> H["TT-Metalium (TTNN)"]
+        G -- "Custom Kernels" --> I["TT-Metalium (TTMetal)"]
+        H --> J["Wormhole/Blackhole Silicon"]
+        I --> J
+    end
+
+    style B fill:none,stroke-width:2px
+    style D fill:none,stroke-width:2px
+    style E fill:none,stroke-width:2px
+    style H fill:none,stroke-width:2px
+```
 ## Core Terms and Definitions
 
 ### A

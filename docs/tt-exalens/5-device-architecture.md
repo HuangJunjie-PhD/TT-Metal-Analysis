@@ -30,6 +30,55 @@ The Device Architecture layer provides:
 *   **NOC operation management**: Read/write operations with automatic failover and timeout detection
 *   **Register access abstraction**: Unified interface for BAR0, NOC, and configuration register access
 
+
+
+```mermaid
+graph TB
+  subgraph "ttexalens/register_store.py"
+    RD["RegisterDescription"]
+    CRD["ConfigurationRegisterDescription"]
+    DRD["DebugRegisterDescription"]
+    RCRD["RiscControlRegisterDescription"]
+    TGPRD["TensixGeneralPurposeRegisterDescription"]
+    NSR["NocStatusRegisterDescription"]
+    NCR["NocConfigurationRegisterDescription"]
+    NCTRL["NocControlRegisterDescription"]
+    ARRD["ArcResetRegisterDescription"]
+    RSI["RegisterStoreInitialization"]
+    RS["RegisterStore"]
+    RDT["REGISTER_DATA_TYPE"]
+    FRV["format_register_value()"]
+    PRV["parse_register_value()"]
+    RD --> CRD
+    RD --> DRD
+    RD --> RCRD
+    RD --> TGPRD
+    RD --> NSR
+    RD --> NCR
+    RD --> NCTRL
+    RD --> ARRD
+    RSI --> RS
+  end
+  subgraph "ttexalens/hardware/tensix_registers_description.py"
+    TRD["TensixRegisterDescription"]
+    TDBD["TensixDebugBusDescription"]
+  end
+  subgraph "ttexalens/hardware/wormhole/functional_worker_registers.py"
+    WH_MAP["register_map: dict[str, RegisterDescription]"]
+  end
+  subgraph "ttexalens/hardware/blackhole/functional_worker_registers.py"
+    BH_MAP["register_map: dict[str, RegisterDescription]"]
+  end
+  RS --> RD
+  RS --> RDT
+  WH_MAP --> RS
+  BH_MAP --> RS
+```
+
+Sources: [ttexalens/register_store.py:1-20](), [ttexalens/hardware/tensix_registers_description.py](), [ttexalens/hardware/wormhole/functional_worker_registers.py:1-15](), [ttexalens/hardware/blackhole/functional_worker_registers.py:1-15]()
+
+---
+```
 ## Device Class Hierarchy
 
 The `Device` class is an abstract base class that defines the common interface. Platform-specific implementations inherit from it and override behavior where necessary.
@@ -76,6 +125,53 @@ The Device class maintains cached coordinate translation dictionaries for fast c
 
 **Sources:**[ttexalens/device.py 273-333](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/ttexalens/device.py#L273-L333)[ttexalens/coordinate.py](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/ttexalens/coordinate.py)
 
+
+
+```mermaid
+graph TB
+    subgraph "Coordinate Translation Maps"
+        ToNoc0["_to_noc0 dict<br/>Key: (coord, system, core_type)<br/>Value: noc0_coord"]
+        FromNoc0["_from_noc0 dict<br/>Key: (noc0_coord, system)<br/>Value: (coord, core_type)"]
+    end
+    
+    subgraph "Supported Systems"
+        Noc0["NOC0<br/>(canonical)"]
+        Noc1["NOC1"]
+        Logical["Logical"]
+        Translated["Translated"]
+        Die["Die"]
+    end
+    
+    subgraph "Translation Sources"
+        UmdConvert["UMD convert_from_noc0()"]
+        DieConvert["__noc_to_die()"]
+        BlockType["Block Type Mapping"]
+    end
+    
+    Noc1 --> UmdConvert
+    Logical --> UmdConvert
+    Translated --> UmdConvert
+    Die --> DieConvert
+    
+    UmdConvert --> ToNoc0
+    UmdConvert --> FromNoc0
+    DieConvert --> ToNoc0
+    DieConvert --> FromNoc0
+    BlockType --> ToNoc0
+    BlockType --> FromNoc0
+    
+    ToNoc0 -.->|"Used by"| Noc0
+    FromNoc0 -.->|"Used by"| Noc0
+```
+
+**Translation Methods:**
+
+| Method | Signature | Purpose |
+|--------|-----------|---------|
+| `to_noc0()` | `(coord_tuple, coord_system, core_type) -> tuple[int, int]` | Convert any coordinate to NOC0 |
+| `from_noc0()` | `(noc0_tuple, coord_system) -> tuple[tuple[int, int], str]` | Convert NOC0 to any system |
+| `_init_coordinate_systems()` | `() -> None` | Build translation caches at initialization |
+```
 ## NOC Operations and Failover
 
 The Device provides `noc_read()` and `noc_write()` methods for memory access. These operations support automatic NOC failover when timeout errors are detected.
@@ -130,6 +226,49 @@ The Device supports multiple register access mechanisms depending on the registe
 
 **Sources:**[ttexalens/register_store.py 63-103](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/ttexalens/register_store.py#L63-L103)[ttexalens/register_store.py 286-318](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/ttexalens/register_store.py#L286-L318)[ttexalens/device.py 248-263](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/ttexalens/device.py#L248-L263)
 
+
+
+```mermaid
+graph TB
+    RegisterAccess["Register Access Request"]
+    
+    Bar0Check{"BAR0 address<br/>available?"}
+    NocCheck{"NOC address<br/>available?"}
+    CfgCheck{"Configuration<br/>register?"}
+    PrivateCheck{"Private address<br/>available?"}
+    
+    Bar0Read["device.bar0_read32()"]
+    NocRead["location.noc_read32()"]
+    CfgRead["Write index to control register<br/>Read from data register"]
+    PrivateRead["risc_debug.read_memory()"]
+    
+    Error["Error: No access method"]
+    
+    RegisterAccess --> Bar0Check
+    Bar0Check -->|Yes| Bar0Read
+    Bar0Check -->|No| NocCheck
+    
+    NocCheck -->|Yes| NocRead
+    NocCheck -->|No| CfgCheck
+    
+    CfgCheck -->|Yes| CfgRead
+    CfgCheck -->|No| PrivateCheck
+    
+    PrivateCheck -->|Yes| PrivateRead
+    PrivateCheck -->|No| Error
+```
+
+**Register Types:**
+
+| Register Type | Access Method | Use Case |
+|--------------|---------------|----------|
+| `DebugRegisterDescription` | Direct NOC or Private | Debug interface registers |
+| `ConfigurationRegisterDescription` | Indexed (control + data registers) | Configuration space |
+| `RiscControlRegisterDescription` | NOC or Private | RISC-V control registers |
+| `NocStatusRegisterDescription` | NOC read | NOC status monitoring |
+| `NocConfigurationRegisterDescription` | NOC read/write | NOC configuration |
+| `ArcResetRegisterDescription` | BAR0 | ARC reset control |
+```
 ## Device Properties and Metadata
 
 The Device class exposes several cached properties for device metadata and capabilities.
@@ -209,6 +348,37 @@ Each platform-specific device must implement:
 **Sources:**[ttexalens/device.py 104-126](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/ttexalens/device.py#L104-L126)[ttexalens/device.py 392-398](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/ttexalens/device.py#L392-L398)
 
 ## Context Integration
+
+
+```mermaid
+graph LR
+    Context["Context"]
+    Devices["devices property<br/>dict[int, Device]"]
+    DeviceIds["device_ids property<br/>SortedSet[int]"]
+    UmdApi["UmdApi"]
+    ClusterDesc["ClusterDescriptor"]
+    
+    Context --> Devices
+    Context --> DeviceIds
+    Context --> UmdApi
+    Context --> ClusterDesc
+    
+    Devices -.-> |"Created by"| DeviceFactory["Device.create()"]
+    DeviceFactory --> UmdApi
+    
+    DeviceIds --> ClusterDesc
+```
+
+**Context Configuration Affecting Device Operations:**
+
+| Context Property | Effect on Device |
+|-----------------|------------------|
+| `use_noc1` | Initial NOC priority: `[1, 0]` vs `[0, 1]` |
+| `use_4B_mode` | Single-word vs block transfers |
+| `dma_read_threshold` | When to use DMA vs NOC for reads |
+| `dma_write_threshold` | When to use DMA vs NOC for writes |
+| `noc_failover` | Enable/disable automatic NOC failover |
+```
 
 The Device is always associated with a `Context` object that provides global configuration and manages the device collection.
 
