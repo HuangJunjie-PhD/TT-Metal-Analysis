@@ -1,0 +1,19 @@
+TD
+  Debugging["Debugging"] --> Watcher["Watcher Debug System"]
+  Debugging --> DPrint["Kernel Debugging Tools (DPRINT)"]
+  Debugging --> EnvVars["Debug Environment Variables"]
+
+  Profiling["Profiling"] --> DeviceProfiler["Device Profiler"]
+  Profiling --> TracyProfiler["Tracy Integration"]
+
+  Triage["Triage/Post-Mortem"] --> TriageTool["triage.py & TTExaLens"]
+  Triage --> AutoTriage["Auto-Triage CI Tooling"]
+
+  Watcher -->|logs & asserts| LogFiles["Watcher Logs (watcher.log)"]
+  DPrint -->|debug output| Console["Host Console/Log"]
+  DeviceProfiler -->|metrics & events| TracyProfiler
+  TriageTool -->|fault & state info| Logs
+
+  MetalContext["MetalContext Singleton"] -->|configures & manages| Watcher
+  MetalContext -->|configures & manages| DPrint
+  MetalContext -->|configures & manages| DeviceProfiler

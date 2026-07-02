@@ -1,0 +1,54 @@
+TD
+  A["pre-commit\
+(call-pre-commit.yml)"]
+  B["build-image\
+(call-build-docker.yml)"]
+  C["prepare-run\
+(call-prepare-run.yml)"]
+  D["release-build\
+(call-build-release.yml)"]
+  E["debug-build\
+(call-build-debug.yml)"]
+  F["lint\
+(call-lint.yml)"]
+  G["test\
+(call-test.yml)"]
+  H["ttsim-test\
+(call-test-ttsim.yml)"]
+  I["downstream-checks\
+(tt-forge-onnx, tt-xla)"]
+  J["check-all-green\
+(re-actors/alls-green)"]
+
+  B --> D
+  C --> D
+  B --> E
+  C --> E
+  B --> F
+  C --> F
+  A --> G
+  B --> G
+  C --> G
+  D --> G
+  B --> H
+  C --> H
+  D --> H
+  D --> I
+  E --> I
+  G --> I
+  D --> J
+  E --> J
+  G --> J
+  H --> J
+  A --> J
+  B --> J
+  C --> J
+  F --> J
+  I --> J
+
+
+Sources: [.github/workflows/on-pr.yml:28-145]()
+
+The `downstream-checks` job is specifically triggered when the PR branch is named `uplift`. It uses the GitHub CLI (`gh`) to trigger workflows in `tenstorrent/tt-forge-onnx` and `tenstorrent/tt-xla`, passing the current `tt-mlir` SHA as `mlir_override` to validate cross-repo compatibility.
+
+Sources: [.github/workflows/on-pr.yml:85-125]()

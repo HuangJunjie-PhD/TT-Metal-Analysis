@@ -1,0 +1,31 @@
+LR
+    ModelSpec["Natural Language Model Specification"]
+    Checkpoint["Model Checkpoint Files"]
+    ModelArgs["ModelArgs class<br/>models/tt_transformers/tt/model_config.py:168-200"]
+    Transformer["Transformer class<br/>models/tt_transformers/tt/model.py:23-166"]
+    Attention["Attention class<br/>models/tt_transformers/tt/attention.py:18-147"]
+    Prefetcher["Prefetcher<br/>models/tt_transformers/tt/prefetcher.py:10-110"]
+    Generator["Generator class<br/>models/tt_transformers/tt/generator.py:76-460"]
+    MeshDevice["MeshDevice object<br/>ttnn.MeshDevice (external lib)"]
+    KVCache["KV Cache Allocation<br/>tech_reports/LLMs/vLLM_integration.md:20-34"]
+    TTNNTrace["ttnn.trace system<br/>kernel command replay - tech_reports, runtime"]
+    MetricPCC["PCC Metric<br/>models/common/utility_functions.py:580-630"]
+    TokenAcc["TokenAccuracy class<br/>models/tt_transformers/demo/simple_text_demo.py:38-75"]
+
+    ModelSpec --> Checkpoint
+    Checkpoint --> ModelArgs
+    ModelArgs --> Transformer
+    Transformer --> Attention
+    Transformer --> Prefetcher
+    Transformer --> Generator
+    Generator --> MeshDevice
+    Generator --> KVCache
+    Generator --> TTNNTrace
+    Generator --> TokenAcc
+    TokenAcc --> MetricPCC
+
+
+This diagram maps the natural language concepts (model specifications and checkpoints) to core code entities and runtime constructs critical for the model bring-up workflow.
+
+Sources:  
+[models/tt_transformers/tt/model_config.py:168-200](), [models/tt_transformers/tt/model.py:23-166](), [models/tt_transformers/tt/attention.py:18-147](), [models/tt_transformers/tt/generator.py:76-460](), [models/tt_transformers/demo/simple_text_demo.py:38-75](), [models/common/utility_functions.py:580-630]()

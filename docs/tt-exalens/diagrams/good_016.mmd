@@ -1,0 +1,11 @@
+TB
+    RegDesc["RegisterDescription"] --> DebugReg["DebugRegisterDescription"]
+    RegDesc --> ConfigReg["ConfigurationRegisterDescription"]
+    RegDesc --> RiscCtrlReg["RiscControlRegisterDescription"]
+    RegDesc --> NocStatusReg["NocStatusRegisterDescription"]
+    RegDesc --> NocConfigReg["NocConfigurationRegisterDescription"]
+    RegDesc --> ArcResetReg["ArcResetRegisterDescription"]
+    
+    Store["RegisterStore"] --> ReadReg["read_register()"]
+    Store --> WriteReg["write_register()"]
+    Store --> ParseReg["parse_register_description()"]

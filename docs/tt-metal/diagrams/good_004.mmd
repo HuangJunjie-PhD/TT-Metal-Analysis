@@ -1,0 +1,22 @@
+TD
+    Start["Installation Method Selection"]
+    
+    Start --> UseCase{"What is your use case?"}
+    
+    UseCase -->|"Run AI models quickly"| PreBuilt["Pre-built Installation"]
+    UseCase -->|"Develop models"| SourceOrWheel{"Need source code access?"}
+    UseCase -->|"Develop TT-Metalium runtime"| SourceDev["Source Installation Required"]
+    
+    PreBuilt --> Platform{"Preferred platform?"}
+    Platform -->|"Python/pip"| PyPI["Option 1: PyPI<br/>(pip install ttnn)"]
+    Platform -->|"Container"| Docker["Option 2: Docker<br/>(Pre-built image)"]
+    Platform -->|"Conda"| Anaconda["Option 4: Anaconda<br/>(conda-forge)"]
+    
+    SourceOrWheel -->|"Yes, for debugging"| SourceDev
+    SourceOrWheel -->|"No, just APIs"| PyPI
+    
+    SourceDev --> Source["Option 3: Source Build<br/>(build_metal.sh)"]
+    
+    PyPI --> Quick["Quick setup<br/>Immediate access to ttnn APIs"]
+    Docker --> Isolated["Isolated environment<br/>Reproducible builds"]
+    Source --> FullAccess["Full source access<br/>Development workflow"]

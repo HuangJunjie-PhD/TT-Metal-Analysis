@@ -1,0 +1,16 @@
+TD
+    Workflow["multi-host-physical.yaml (CI Workflow)"]
+    Script["run_quad_galaxy_tests.sh (bash script)"]
+    TTRun["tt-run / ttrun.py (launcher)"]
+    Hostfile["/etc/mpirun/hostfile (MPI config)"]
+    RemoteHosts["Physical Hosts (Galaxy/T3K hardware)"]
+    
+    Workflow -->|triggers| Script
+    Script -->|invokes| TTRun
+    TTRun -->|consults| Hostfile
+    TTRun -->|executes distributed| RemoteHosts
+
+
+- The `run_quad_galaxy_tests.sh` utility launches multiple runs across hosts using `tt-run` CLI or `ttrun.py`, collecting exit codes and producing JUnit XML summaries for CI reporting [tests/scripts/multihost/run_quad_galaxy_tests.sh:10-25](), [tests/scripts/multihost/run_quad_galaxy_tests.sh:138-184]().
+
+- Physical multi-host workflows for Blackhole Loudbox and Wormhole T3K clusters are validated regularly and provide cross-host connectivity and workload distribution [.github/workflows/multi-host-physical.yaml:83-186]().

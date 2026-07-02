@@ -1,0 +1,24 @@
+TB
+    Workflow["Scheduled Workflow<br/>Completes"]
+    
+    FailNotify["fail-notify job<br/>if: always()"]
+    CheckBranch["Check if branch is main<br/>IS_MAIN output"]
+    CheckJobs["alls-green action<br/>Check job statuses"]
+    
+    SendMsg["fail-send-msg job<br/>if: always()"]
+    
+    SendFail["Send Fail Notification<br/>if: failed && is-main"]
+    SendSuccess["Send Success Notification<br/>if: !failed && is-main"]
+    
+    Slack["Slack Webhook<br/>Channel: C08GYB57C8M"]
+    
+    Workflow --> FailNotify
+    FailNotify --> CheckBranch
+    FailNotify --> CheckJobs
+    
+    FailNotify --> SendMsg
+    SendMsg --> SendFail
+    SendMsg --> SendSuccess
+    
+    SendFail --> Slack
+    SendSuccess --> Slack

@@ -1,0 +1,13 @@
+TD
+    DRAM["DRAM/L1 Device Memory"]
+    CB["Circular Buffer (L1)"]
+    DST["DST Register File (MATH)"]
+    
+    DRAM -- "ttl.copy (DM Thread)" --> CB
+    CB -- "wait() / reserve()" --> DST
+    DST -- "Arithmetic Op" --> DST
+    DST -- "store()" --> CB
+    CB -- "ttl.copy (DM Thread)" --> DRAM
+
+
+Sources: [test/python/test_elementwise_ops.py:38-69](), [test/ttlang_test_utils.py:123-163](), [examples/general_broadcast.py:43-54]()

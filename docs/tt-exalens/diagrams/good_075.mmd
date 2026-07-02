@@ -1,0 +1,12 @@
+LR
+    User["User Code"]
+    GetBlock["Device.get_block(location)"]
+    Cache["@cache decorator"]
+    Impl["Architecture-specific implementation"]
+    BlockInst["NocBlock instance"]
+    
+    User --> GetBlock
+    GetBlock --> Cache
+    Cache --> Impl
+    Impl --> BlockInst
+    BlockInst --> User

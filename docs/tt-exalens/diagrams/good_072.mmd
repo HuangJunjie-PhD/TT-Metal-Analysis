@@ -1,0 +1,16 @@
+LR
+    Block["NocBlock Instance"]
+    MemMap["noc_memory_map<br/>MemoryMap"]
+    
+    L1["L1 Memory<br/>MemoryMapBlockInfo"]
+    DebugRegs["debug_regs<br/>MemoryMapBlockInfo"]
+    PicRegs["pic_regs<br/>MemoryMapBlockInfo"]
+    Noc0Regs["noc0_regs<br/>MemoryMapBlockInfo"]
+    Noc1Regs["noc1_regs<br/>MemoryMapBlockInfo"]
+    
+    Block --> MemMap
+    MemMap --> L1
+    MemMap --> DebugRegs
+    MemMap --> PicRegs
+    MemMap --> Noc0Regs
+    MemMap --> Noc1Regs

@@ -1,0 +1,20 @@
+TD
+    Trigger["pull_request Event<br/>.github/workflows/pr-gate.yaml"]
+    
+    Docker["build-docker-images<br/>.github/workflows/build-docker-artifact.yaml"]
+    ASan["asan-build<br/>build-type: ASan<br/>toolchain: cmake/x86_64-linux-clang-20-libstdcpp-toolchain.cmake"]
+    
+    Smoke1["metalium-smoke-tests<br/>.github/workflows/smoke.yaml<br/>product: tt-metalium"]
+    Smoke2["ttnn-smoke-tests<br/>.github/workflows/smoke.yaml<br/>product: tt-nn"]
+    
+    FindChanges["find-changed-files<br/>.github/actions/find-changed-files"]
+    
+    Trigger --> FindChanges
+    Trigger --> Docker
+    Docker --> ASan
+    
+    ASan --> Smoke1
+    ASan --> Smoke2
+    
+    FindChanges --> Smoke1
+    FindChanges --> Smoke2

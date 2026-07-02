@@ -1,0 +1,29 @@
+TB
+    GetMember["get_member(member_name)"]
+    IsPointer{"type_die is<br/>pointer_type?"}
+    Dereference["dereference()"]
+    GetChild["type_die.get_child_by_name()"]
+    ChildFound{"child_die<br/>found?"}
+    ResolveUnnamed["_resolve_unnamed_struct_union_member()"]
+    UnnamedFound{"member<br/>found?"}
+    ResolveInheritance["_resolve_inheritance_member()"]
+    InheritanceFound{"member<br/>found?"}
+    Error["Raise Exception"]
+    Return["Return ElfVariable<br/>(child_die, address+offset)"]
+    
+    GetMember --> IsPointer
+    IsPointer -->|yes| Dereference
+    Dereference --> GetChild
+    IsPointer -->|no| GetChild
+    
+    GetChild --> ChildFound
+    ChildFound -->|yes| Return
+    ChildFound -->|no| ResolveUnnamed
+    
+    ResolveUnnamed --> UnnamedFound
+    UnnamedFound -->|yes| Return
+    UnnamedFound -->|no| ResolveInheritance
+    
+    ResolveInheritance --> InheritanceFound
+    InheritanceFound -->|yes| Return
+    InheritanceFound -->|no| Error

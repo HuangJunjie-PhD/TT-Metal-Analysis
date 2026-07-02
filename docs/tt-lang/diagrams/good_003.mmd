@@ -1,0 +1,11 @@
+TB
+    Op["@ttl.operation(grid=(1,1))<br/>def __foo(x, y)"]
+    Compute["@ttl.compute()<br/>def some_compute()"]
+    DM1["@ttl.datamovement()<br/>def some_dm0()"]
+    DM2["@ttl.datamovement()<br/>def some_dm1()"]
+    
+    Op --> Compute
+    Op --> DM1
+    Op --> DM2
+    
+    sub

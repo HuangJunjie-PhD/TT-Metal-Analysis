@@ -1,0 +1,16 @@
+TD
+    TensorOp["Tensor Operation<br/>ttl.add(a, b)"]
+    Fusion["ConvertTTLToCompute<br/>Fusion Pass"]
+    Compute["ttl.compute<br/>Structured Operation"]
+    TileOp["Tile Operation<br/>ttl.AddTileOp"]
+    Loop["scf.for loops<br/>Iteration over tiles"]
+    Hardware["TTKernel Operations<br/>AddBinaryTilesOp"]
+    
+    TensorOp --> Fusion
+    Fusion --> Compute
+    Compute --> TileOp
+    TileOp --> Loop
+    Loop --> Hardware
+
+
+Sources: [include/ttlang/Dialect/TTL/TTLElementwiseOps.def:71](), [examples/general_broadcast.py:56-91](), [python/sim/__init__.py:65-87]()

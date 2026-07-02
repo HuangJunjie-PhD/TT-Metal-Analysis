@@ -1,0 +1,13 @@
+TB
+    Schedule["Weekly Cron<br/>Saturday 08:00 UTC"]
+    CheckLatest["gh api repos/tenstorrent/tt-forge-models/commits/main"]
+    UpdateSubmodule["git submodule update --remote --merge"]
+    CreatePR["peter-evans/create-pull-request<br/>Branch: uplift-forge-models"]
+    ApprovePR["gh pr review --approve"]
+    AutoMerge["gh pr merge --squash --auto"]
+
+    Schedule --> CheckLatest
+    CheckLatest --> UpdateSubmodule
+    UpdateSubmodule --> CreatePR
+    CreatePR --> ApprovePR
+    ApprovePR --> AutoMerge

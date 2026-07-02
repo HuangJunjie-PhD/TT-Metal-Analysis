@@ -1,0 +1,30 @@
+TD
+    ModelOpt["ModelOptimizations"]
+    
+    TensorPrec["TensorPrecision Settings"]
+    OpFid["OpFidelity Settings"]
+    
+    TG_FF1_3["TensorGroup.FF1_FF3<br/>BFP4/BFP8/BF16"]
+    TG_FF2["TensorGroup.FF2<br/>BFP8"]
+    TG_WQKV["TensorGroup.WQKV<br/>BFP8/BF16"]
+    TG_WO["TensorGroup.WO<br/>BFP8/BF16"]
+    TG_KV["TensorGroup.KV_CACHE<br/>BFP8/BF16"]
+    
+    OP_FF["OpGroup.LI_FF1_FF3<br/>LOFI/HIFI2_FP16"]
+    OP_QKV["OpGroup.LI_QKV_DECODE<br/>HIFI2/HIFI4"]
+    OP_SDPA["OpGroup.SDPA_DECODE<br/>HIFI2/HIFI4"]
+    OP_O["OpGroup.LI_O_DECODE<br/>HIFI2/HIFI4"]
+    
+    ModelOpt --> TensorPrec
+    ModelOpt --> OpFid
+    
+    TensorPrec --> TG_FF1_3
+    TensorPrec --> TG_FF2
+    TensorPrec --> TG_WQKV
+    TensorPrec --> TG_WO
+    TensorPrec --> TG_KV
+    
+    OpFid --> OP_FF
+    OpFid --> OP_QKV
+    OpFid --> OP_SDPA
+    OpFid --> OP_O

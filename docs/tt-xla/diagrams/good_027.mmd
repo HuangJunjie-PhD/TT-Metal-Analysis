@@ -1,0 +1,45 @@
+TB
+    CollectShardy["collectInputShardingsShardy()<br/>collectOutputShardingsShardy()"]
+    
+    GetMesh["getFirstShardyMeshOp()<br/>line 1311-1349<br/>Walk module for sdy::MeshOp"]
+    
+    MeshFound{"MeshOp found?"}
+    
+    InputPath["Input Sharding Path"]
+    
+    OutputPath["Output Sharding Path"]
+    
+    ExtractInputAttrs["Extract sdy::TensorShardingAttr<br/>from function arguments<br/>func_op.getArgAttrOfType<br/>('sdy.sharding')<br/>line 484-489"]
+    
+    FindManualOps["Walk function for<br/>sdy::ManualComputationOp<br/>line 546-549"]
+    
+    ManualFound{"Manual ops count"}
+    
+    ExtractOutShardings["Extract from<br/>manual_op.getOutShardings()<br/>line 568-573"]
+    
+    GenerateDefaults["Generate default shardings<br/>for all outputs<br/>line 556-559"]
+    
+    ConvertShardy["createShardingsFromShardy()<br/>shardy_attributes + shardy_mesh<br/>→ vector&lt;MeshSharding&gt;<br/>line 709-744"]
+    
+    ReturnNull["Return std::nullopt<br/>Fall back to GSPMD"]
+    
+    ReturnShardings["Return vector&lt;MeshSharding&gt;"]
+    
+    CollectShardy --> GetMesh
+    GetMesh --> MeshFound
+    MeshFound -->|"No"| ReturnNull
+    MeshFound -->|"Yes"| InputPath
+    MeshFound -->|"Yes"| OutputPath
+    
+    InputPath --> ExtractInputAttrs
+    ExtractInputAttrs --> ConvertShardy
+    
+    OutputPath --> FindManualOps
+    FindManualOps --> ManualFound
+    ManualFound -->|"0 (replicated)"| GenerateDefaults
+    ManualFound -->|"1"| ExtractOutShardings
+    ManualFound -->|">1"| ReturnNull
+    GenerateDefaults --> ConvertShardy
+    ExtractOutShardings --> ConvertShardy
+    
+    ConvertShardy --> ReturnShardings

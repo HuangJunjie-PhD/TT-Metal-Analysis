@@ -1,0 +1,32 @@
+TB
+    CMakeBuild["cmake --build build"] --> ExternalProject["ExternalProject_Add(tt-mlir)"]
+    ExternalProject --> Patch["PATCH_COMMAND"]
+    Patch --> InstallScript["venv/install_ttmlir_requirements.sh"]
+    
+    InstallScript --> CheckEnv{"TTXLA_ENV_ACTIVATED?"}
+    CheckEnv -->|No| ActivateVenv["source venv/activate"]
+    CheckEnv -->|Yes| ReadCMake["Parse LLVM_PROJECT_COMMIT\
+from third_party/tt-mlir/\
+src/tt-mlir/env/CMakeLists.txt"]
+    ActivateVenv --> ReadCMake
+    
+    ReadCMake --> CheckCache{"venv/bin/requirements_cache/\
+LLVM_VERSION.txt exists?"}
+    CheckCache -->|No| DownloadLLVM["wget https://raw.githubusercontent.com/\
+llvm/llvm-project/$LLVM_COMMIT/\
+mlir/python/requirements.txt"]
+    CheckCache -->|Yes| UseCached["Use cached requirements"]
+    DownloadLLVM --> CacheReqs["Save to requirements_cache/"]
+    
+    CacheReqs --> InstallLLVM["$PIP install -r\
+requirements_cache/LLVM_VERSION.txt"]
+    UseCached --> InstallLLVM
+    
+    InstallLLVM --> InstallTTMLIR["$PIP install -r\
+third_party/tt-mlir/src/tt-mlir/\
+build-requirements.txt"]
+
+
+The script performs version-aware caching to avoid re-downloading LLVM requirements on every build. Requirements are cached in `venv/bin/requirements_cache/` and keyed by LLVM commit hash.
+
+Sources: [docs/src/getting_started_build_from_source.md:117-121]()

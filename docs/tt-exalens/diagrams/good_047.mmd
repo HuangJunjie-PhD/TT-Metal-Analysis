@@ -1,0 +1,13 @@
+LR
+    CLI["tt-exalens<br/>(no mode flag)"]
+    InitFunc["init_ttexalens()<br/>ttexalens/__init__.py"]
+    UmdLocal["UmdApi.local_init()<br/>ttexalens/umd_api.py"]
+    DeviceDiscovery["detect_available_devices()<br/>ttexalens/umd_api.py"]
+    Context["Context object<br/>ttexalens/context.py"]
+    MainLoop["main_loop()<br/>ttexalens/cli.py:188"]
+    
+    CLI --> InitFunc
+    InitFunc --> UmdLocal
+    UmdLocal --> DeviceDiscovery
+    DeviceDiscovery --> Context
+    Context --> MainLoop

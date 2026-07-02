@@ -1,0 +1,24 @@
+TB
+    Matrix["Matrix Entry<br/>test-mark: 'n150 and nightly and expected_passing'"]
+    --> PytestM["pytest -m 'n150 and nightly and expected_passing'"]
+    
+    PytestM --> SelectTests["Select Tests Matching<br/>All Conditions"]
+    
+    SelectTests --> Check1["Has marker: n150?"]
+    SelectTests --> Check2["Has marker: nightly?"]
+    SelectTests --> Check3["Has marker: expected_passing?"]
+    
+    Check1 --> Include["Include in Test Run"]
+    Check2 --> Include
+    Check3 --> Include
+
+
+Common marker categories:
+
+| Marker Category | Examples | Purpose |
+|-----------------|----------|---------|
+| **Hardware** | `n150`, `p150`, `n300`, `n300-llmbox` | Target specific hardware |
+| **Trigger** | `push`, `nightly`, `extended` | Control when tests run |
+| **Status** | `expected_passing`, `model_test` | Filter by test status |
+| **Size** | `large`, `notimeout` | Handle resource-intensive tests |
+| **Parallelism** | `single_device`, `dual_chip`, `tensor_parallel`, `data_parallel` | Filter by parallelism mode |

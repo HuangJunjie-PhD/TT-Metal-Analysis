@@ -1,0 +1,21 @@
+TD
+    UserCode["User Python Code\
+(e.g. ttnn.matmul, ttnn.conv2d)"]
+    PythonPkg["ttnn Python Package\
+(ttnn/ttnn/__init__.py)"]
+    NB_Ext["Nanobind Extension\
+(ttnn/_ttnn.so)"]
+    CoreTensor["tt::tt_metal::Tensor\
+(ttnn/ttnn/types.py)"]
+    DevOp["ttnn::device_operation\
+(ttnn/core/operation.cpp)"]
+    Metalium["TT-Metalium Runtime\
+(tt-metalium/tt_metal.hpp)"]
+
+    UserCode --> PythonPkg
+    PythonPkg --> NB_Ext
+    NB_Ext --> CoreTensor
+    CoreTensor --> DevOp
+    DevOp --> Metalium
+
+Sources: [ttnn/ttnn/__init__.py:17-21](), [ttnn/ttnn/types.py:49-50](), [ttnn/sources.cmake:28-28]()

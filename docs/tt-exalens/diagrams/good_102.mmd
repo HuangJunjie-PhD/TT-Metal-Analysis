@@ -1,0 +1,59 @@
+TD
+  init_cached_test_context["init_cached_test_context()"]
+  Context["Context"]
+  Device["Device"]
+
+  TestAutoContext -->|"calls"| check_context["check_context()"]
+  TestAutoContext -->|"calls"| init_ttexalens["init_ttexalens()"]
+
+  TestReadWrite -->|"setup via"| init_cached_test_context
+  TestDebugging -->|"setup via"| init_cached_test_context
+  TestTensixDebug -->|"setup via"| init_cached_test_context
+  TestDevice -->|"setup via"| init_cached_test_context
+  TestMulticore -->|"setup via"| init_cached_test_context
+
+  init_cached_test_context --> Context
+  Context --> Device
+
+  TestReadWrite -->|"calls"| read_from_device["read_from_device()"]
+  TestReadWrite -->|"calls"| write_to_device["write_to_device()"]
+  TestReadWrite -->|"calls"| read_register["read_register()"]
+  TestReadWrite -->|"calls"| write_register["write_register()"]
+  TestReadWrite -->|"calls"| read_riscv_memory["read_riscv_memory()"]
+
+  TestDebugging -->|"creates"| RiscvCoreSimulator
+  RiscvCoreSimulator -->|"holds"| BabyRiscDebug["BabyRiscDebug"]
+  BabyRiscDebug -->|"accesses"| Device
+
+  TestTensixDebug -->|"creates"| TensixDebug["TensixDebug"]
+  TensixDebug -->|"uses"| RegisterStore["RegisterStore"]
+  TensixDebug -->|"uses"| MemoryAccess["MemoryAccess"]
+
+  TestDevice -->|"calls"| get_block_locations["Device.get_block_locations()"]
+  TestDevice -->|"calls"| active_eth_block_locations["Device.active_eth_block_locations"]
+
+
+Sources: [test/ttexalens/unit_tests/test_lib.py:80-90](), [test/ttexalens/unit_tests/test_risc_debug.py:56-79](), [test/ttexalens/unit_tests/test_tensix_debug.py:33-43](), [test/ttexalens/unit_tests/test_device.py:27-33](), [test/ttexalens/unit_tests/core_simulator.py:17-51]()"])</script><script>self.__next_f.push([1,"4b:T38b8,"])</script><script>self.__next_f.push([1,"# CI/CD Pipeline
+
+<details>
+<summary>Relevant source files</summary>
+
+The following files were used as context for generating this wiki page:
+
+- [.github/Dockerfile.ci](.github/Dockerfile.ci)
+- [.gitignore](.gitignore)
+- [CMakeLists.txt](CMakeLists.txt)
+- [Makefile](Makefile)
+- [README.md](README.md)
+- [cmake/sfpi_release.cmake](cmake/sfpi_release.cmake)
+- [docs/gdb.md](docs/gdb.md)
+- [riscv-src/CMakeLists.txt](riscv-src/CMakeLists.txt)
+- [scripts/create-venv.sh](scripts/create-venv.sh)
+- [scripts/install-deps.sh](scripts/install-deps.sh)
+- [scripts/setup-dev-env.sh](scripts/setup-dev-env.sh)
+
+</details>
+
+
+
+This page documents the GitHub Actions workflows that automate building, testing, and releasing tt-exalens. It covers Docker image management, the build workflow chain, hardware test execution, and the PyPI release pipeline. For information about the build system itself (CMake, Makefile targets, SFPI), see [Build System Architecture](#8.1). For information about test structure and categories, see [Test Categories and Coverage](#8.3).

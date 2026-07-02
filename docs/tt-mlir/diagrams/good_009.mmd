@@ -1,0 +1,52 @@
+TD
+    Program["tt::target::ttnn::Program"]
+    Operation["tt::target::ttnn::Operation"]
+    OpType["tt::target::ttnn::OpType (Union)"]
+    TensorRef["tt::target::ttnn::TensorRef"]
+
+    Program -->|"contains list of"| Operation
+    Program -->|"defines IO"| TensorRef
+    Operation -->|"specializes as"| OpType
+    OpType --> Matmul["MatmulOp"]
+    OpType --> Conv["Conv2dOp"]
+    OpType --> Eltwise["EltwiseBinaryOp"]
+
+Sources: [lib/Target/TTNN/TTNNToFlatbuffer.cpp:78-168](), [include/ttmlir/Target/TTNN/program.fbs:34-171](), [lib/Conversion/TTNNToEmitC/TTNNToEmitC.cpp:52-146](), [lib/Conversion/TTNNToEmitPy/TTNNToEmitPy.cpp:30-131]()"])</script><script>self.__next_f.push([1,"1d:T370b,"])</script><script>self.__next_f.push([1,"# TTKernel and SFPI Dialects
+
+<details>
+<summary>Relevant source files</summary>
+
+The following files were used as context for generating this wiki page:
+
+- [include/ttmlir-c/TTKernelTypes.h](include/ttmlir-c/TTKernelTypes.h)
+- [include/ttmlir/Dialect/D2M/IR/D2MGenericRegionOps.td](include/ttmlir/Dialect/D2M/IR/D2MGenericRegionOps.td)
+- [include/ttmlir/Dialect/TTKernel/IR/TTKernelOps.td](include/ttmlir/Dialect/TTKernel/IR/TTKernelOps.td)
+- [include/ttmlir/Dialect/TTKernel/IR/TTKernelOpsEnums.td](include/ttmlir/Dialect/TTKernel/IR/TTKernelOpsEnums.td)
+- [include/ttmlir/Dialect/TTKernel/IR/TTKernelOpsTypes.td](include/ttmlir/Dialect/TTKernel/IR/TTKernelOpsTypes.td)
+- [include/ttmlir/Target/TTKernel/TTKernelIncludesMap.h](include/ttmlir/Target/TTKernel/TTKernelIncludesMap.h)
+- [lib/CAPI/TTKernelTypes.cpp](lib/CAPI/TTKernelTypes.cpp)
+- [lib/Conversion/D2MToTTKernel/D2MToTTKernel.cpp](lib/Conversion/D2MToTTKernel/D2MToTTKernel.cpp)
+- [lib/Conversion/TTIRToD2M/TTIRToD2M.cpp](lib/Conversion/TTIRToD2M/TTIRToD2M.cpp)
+- [lib/Conversion/TTKernelToEmitC/TTKernelToEmitC.cpp](lib/Conversion/TTKernelToEmitC/TTKernelToEmitC.cpp)
+- [lib/Dialect/D2M/IR/D2MGenericRegionOps.cpp](lib/Dialect/D2M/IR/D2MGenericRegionOps.cpp)
+- [lib/Dialect/TTKernel/IR/TTKernelOps.cpp](lib/Dialect/TTKernel/IR/TTKernelOps.cpp)
+- [lib/Target/TTKernel/TTKernelToCpp.cpp](lib/Target/TTKernel/TTKernelToCpp.cpp)
+- [python/TTKernelModule.cpp](python/TTKernelModule.cpp)
+- [test/pykernel/demo/CMakeLists.txt](test/pykernel/demo/CMakeLists.txt)
+- [test/pykernel/demo/eltwise_sfpu_demo.py](test/pykernel/demo/eltwise_sfpu_demo.py)
+- [test/pykernel/demo/matmul_multicore_demo.py](test/pykernel/demo/matmul_multicore_demo.py)
+- [test/pykernel/demo/matmul_singlecore_demo.py](test/pykernel/demo/matmul_singlecore_demo.py)
+- [test/pykernel/demo/vecadd_multicore_demo.py](test/pykernel/demo/vecadd_multicore_demo.py)
+- [test/python/golden/d2m/fabric_api_snippets/test_fabric_sem_inc.mlir](test/python/golden/d2m/fabric_api_snippets/test_fabric_sem_inc.mlir)
+- [test/ttmlir/Conversion/D2MToTTKernel/semaphores.mlir](test/ttmlir/Conversion/D2MToTTKernel/semaphores.mlir)
+- [test/ttmlir/Conversion/TTIRToD2M/named_to_generic.mlir](test/ttmlir/Conversion/TTIRToD2M/named_to_generic.mlir)
+- [test/ttmlir/Conversion/TTKernelToEmitC/ttkernel.mlir](test/ttmlir/Conversion/TTKernelToEmitC/ttkernel.mlir)
+- [test/ttmlir/Dialect/D2M/arguments/d2m_to_ttkernel_argument_lowering.mlir](test/ttmlir/Dialect/D2M/arguments/d2m_to_ttkernel_argument_lowering.mlir)
+- [test/ttmlir/Dialect/TTKernel/canonicalize_barriers.mlir](test/ttmlir/Dialect/TTKernel/canonicalize_barriers.mlir)
+- [test/ttmlir/Dialect/TTKernel/invalid.mlir](test/ttmlir/Dialect/TTKernel/invalid.mlir)
+- [test/ttmlir/Dialect/TTKernel/l1_addr_ptr_types.mlir](test/ttmlir/Dialect/TTKernel/l1_addr_ptr_types.mlir)
+- [test/ttmlir/Dialect/TTKernel/ops.mlir](test/ttmlir/Dialect/TTKernel/ops.mlir)
+- [test/ttmlir/Dialect/TTKernel/remote_sram_write_u32_invalid.mlir](test/ttmlir/Dialect/TTKernel/remote_sram_write_u32_invalid.mlir)
+- [test/ttmlir/Translate/TTKernel/ttkernel_noc.mlir](test/ttmlir/Translate/TTKernel/ttkernel_noc.mlir)
+
+</details>

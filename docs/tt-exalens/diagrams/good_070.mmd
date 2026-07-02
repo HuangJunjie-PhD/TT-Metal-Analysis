@@ -1,0 +1,16 @@
+LR
+    Context["Context"]
+    Devices["devices property<br/>dict[int, Device]"]
+    DeviceIds["device_ids property<br/>SortedSet[int]"]
+    UmdApi["UmdApi"]
+    ClusterDesc["ClusterDescriptor"]
+    
+    Context --> Devices
+    Context --> DeviceIds
+    Context --> UmdApi
+    Context --> ClusterDesc
+    
+    Devices -.-> |"Created by"| DeviceFactory["Device.create()"]
+    DeviceFactory --> UmdApi
+    
+    DeviceIds --> ClusterDesc

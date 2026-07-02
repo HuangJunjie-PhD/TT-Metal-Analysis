@@ -1,0 +1,17 @@
+TD
+    Root["Repository Root"]
+    
+    Root --> CMake["CMakeLists.txt<br/>Top-level build config"]
+    Root --> BuildScript["build_metal.sh<br/>Build automation script"]
+    Root --> README["README.md<br/>Main documentation"]
+    
+    Root --> TTMetal["tt_metal/<br/>Core runtime (TT-Metalium)"]
+    Root --> TTNN["ttnn/<br/>Neural network library"]
+    Root --> Models["models/<br/>Model implementations"]
+    Root --> Tests["tests/<br/>Test infrastructure"]
+    Root --> Tools["tools/<br/>Development tools"]
+    Root --> TTTrain["tt-train/<br/>C++ Training Framework"]
+    Root --> ThirdParty["third_party/ / t3rd_party/<br/>External dependencies"]
+    Root --> GitHub[".github/<br/>CI/CD workflows"]
+    
+    Root --> BuildDir["build/<br/>Build output (generated)"]

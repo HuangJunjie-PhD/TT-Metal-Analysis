@@ -1,0 +1,16 @@
+TD
+    START["Core Executing"]
+    MONITOR["Hardware Monitoring"]
+    WPCOND["Watchpoint<br/>Condition Met?"]
+    HALT["Set Halt State"]
+    SETSTATUS["Set watchpoint_hit<br/>in Status Register"]
+    CONTINUE["Continue Execution"]
+    
+    START --> MONITOR
+    MONITOR --> WPCOND
+    WPCOND -->|Yes| HALT
+    WPCOND -->|No| CONTINUE
+    HALT --> SETSTATUS
+    CONTINUE --> MONITOR
+    
+    sub

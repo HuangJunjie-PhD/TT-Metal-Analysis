@@ -1,0 +1,16 @@
+LR
+    Collect["pytest --collect-only"] --> CheckNotimeout["Check for notimeout Marker"]
+    CheckNotimeout -->|Has notimeout| Default["Default Timeout<br/>240 minutes"]
+    CheckNotimeout -->|No notimeout| Calculate["calculate_test_timeout.py"]
+    
+    Calculate --> Lookup["Lookup Durations<br/>.test_durations"]
+    Lookup --> Sum["Sum Test Durations"]
+    Sum --> Buffer["Add Buffer<br/>for overhead"]
+    Buffer --> SetTimeout["Set timeout-minutes"]
+    
+    Default --> SetTimeout
+
+
+From [.github/workflows/call-test.yml:303-318]():
+
+The script at `.github/scripts/calculate_test_timeout.py` looks up each test in `.test_durations` and calculates the estimated runtime with a buffer for compilation and overhead.

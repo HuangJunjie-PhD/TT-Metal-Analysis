@@ -1,0 +1,32 @@
+TD
+  root["test/"]
+  ttexalens["test/ttexalens/unit_tests/"]
+  app["test/app/"]
+  wheel["test/wheel/"]
+
+  root --> ttexalens
+  root --> app
+  root --> wheel
+
+  ttexalens --> tl["test_lib.py"]
+  ttexalens --> trd["test_risc_debug.py"]
+  ttexalens --> ttd["test_tensix_debug.py"]
+  ttexalens --> td["test_device.py"]
+  ttexalens --> tmc["test_multicore.py"]
+  ttexalens --> tb["test_base.py (helpers)"]
+  ttexalens --> cs["core_simulator.py (RiscvCoreSimulator)"]
+  ttexalens --> pw["program_writer.py (RiscvProgramWriter)"]
+
+  tl --> TestAutoContext
+  tl --> TestReadWrite
+
+  trd --> TestDebugging["TestDebugging (parameterized)"]
+
+  ttd --> TestTensixDebug["TestTensixDebug (parameterized)"]
+
+  td --> TestDevice["TestDevice (parameterized)"]
+
+  tmc --> TestMulticore
+
+
+Sources: [test/ttexalens/unit_tests/test_lib.py:1-100](), [test/ttexalens/unit_tests/test_risc_debug.py:1-80](), [test/ttexalens/unit_tests/test_tensix_debug.py:1-50](), [test/ttexalens/unit_tests/test_device.py:1-52](), [test/ttexalens/unit_tests/test_multicore.py:1-30]()

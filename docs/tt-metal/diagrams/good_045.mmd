@@ -1,0 +1,11 @@
+TD
+    Start["Post-Commit Trigger<br/>.github/workflows/blackhole-post-commit.yaml"]
+    Health["Health Check Loop<br/>test_system_health"]
+    Build["Build Artifacts<br/>.github/workflows/build-artifact.yaml"]
+    Tests["Unit Tests<br/>ttnn_unit_tests"]
+    Models["Model Tests<br/>models_unit_tests"]
+    
+    Start --> Health
+    Health --> Build
+    Build --> Tests
+    Build --> Models

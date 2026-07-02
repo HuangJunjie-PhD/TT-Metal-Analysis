@@ -1,0 +1,26 @@
+TD
+    Nat_AutoContext["Autograd Context"]
+    Nat_Module["Neural Network Module"]
+    Nat_Optimizer["Optimizer"]
+    Nat_Distributed["Distributed Context"]
+    Nat_Tensor["Tensor Abstraction"]
+
+    Code_AutoContext["ttml::autograd::AutoContext"]
+    Code_ModuleBase["ttml::modules::ModuleBase"]
+    Code_OptimizerBase["ttml::optimizers::OptimizerBase"]
+    Code_ParallelismCtx["ttml::autograd::ParallelismContext"]
+    Code_Tensor["ttml::autograd::Tensor"]
+
+    Nat_AutoContext --> Code_AutoContext
+    Nat_Module --> Code_ModuleBase
+    Nat_Optimizer --> Code_OptimizerBase
+    Nat_Distributed --> Code_ParallelismCtx
+    Nat_Tensor --> Code_Tensor
+
+    Code_AutoContext ---|manages|--- Code_Tensor
+    Code_ModuleBase ---|registers params|--- Code_Tensor
+    Code_OptimizerBase ---|updates params|--- Code_Tensor
+    Code_ParallelismCtx ---|configures distributed state|--- Code_Tensor
+
+
+Sources: All above.

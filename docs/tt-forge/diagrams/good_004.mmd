@@ -1,0 +1,9 @@
+TB
+    InitCPU["StaticCache initialization<br/>CPU device, bfloat16<br/>max_batch_size, max_cache_len"]
+    
+    TransferKeys["Transfer key_cache list<br/>to XLA device"]
+    TransferVals["Transfer value_cache list<br/>to XLA device"]
+    
+    Prefill["Prefill phase<br/>cache_position: [0...seq_len-1]"]
+    
+    sub

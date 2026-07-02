@@ -1,0 +1,11 @@
+LR
+    FDE["FDE<br/>start_address, end_address"]
+    CIE["CIE<br/>Common Information Entry"]
+    Table["Decoded Table<br/>PC -> Register Rules"]
+    
+    FDE --> CIE
+    FDE --> Table
+    
+    Table --> Rule1["PC=0x1000: CFA=r2+16<br/>r1=[CFA-4]"]
+    Table --> Rule2["PC=0x1004: CFA=r2+32<br/>r1=[CFA-4]"]
+    Table --> Rule3["..."]

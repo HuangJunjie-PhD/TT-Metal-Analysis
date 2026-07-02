@@ -1,0 +1,8 @@
+TD
+    "lit.site.cfg.py.in"["lit.site.cfg.py.in"] -->|"Configured by CMake"| "lit.site.cfg.py"["lit.site.cfg.py"]
+    "lit.site.cfg.py" -->|"Loads"| "lit.cfg.py"["lit.cfg.py"]
+    "lit.cfg.py" -->|"Queries"| "ttrt"["ttrt"]
+    "ttrt" -->|"Loads"| "SYSTEM_DESC_PATH"["SYSTEM_DESC_PATH"]
+    "lit.cfg.py" -->|"Adds Features"| "available_features"["available_features: n150/n300/tg/llmbox"]
+
+**Sources:** [test/lit.site.cfg.py.in:1-21](), [test/lit.cfg.py:68-86](), [test/lit.cfg.py:92-109]()

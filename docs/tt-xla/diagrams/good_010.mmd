@@ -1,0 +1,25 @@
+TB
+    Root["Root CMakeLists.txt<br/>(TT_PJRT project)"]
+    ThirdParty["third_party/CMakeLists.txt<br/>(External dependencies)"]
+    PJRTImpl["pjrt_implementation/src/CMakeLists.txt<br/>(TTPJRTTTDylib)"]
+    API["pjrt_implementation/src/api/CMakeLists.txt<br/>(TTPJRTApi)"]
+    Utils["pjrt_implementation/src/utils/CMakeLists.txt<br/>(TTPJRTUtils)"]
+    Docs["docs/CMakeLists.txt"]
+    Python["python_package/CMakeLists.txt"]
+    Tests["tests/pjrt/CMakeLists.txt"]
+    
+    Root -->|"add_subdirectory"| ThirdParty
+    Root -->|"add_subdirectory"| PJRTImpl
+    Root -->|"add_subdirectory"| Docs
+    Root -->|"add_subdirectory"| Python
+    Root -->|"add_subdirectory (if TTXLA_ENABLE_PJRT_TESTS)"| Tests
+    
+    PJRTImpl -->|"add_subdirectory"| API
+    PJRTImpl -->|"add_subdirectory"| Utils
+    
+    ThirdParty -.->|"ExternalProject_Add"| TTMLIR["tt-mlir<br/>(Git submodule)"]
+    ThirdParty -.->|"ExternalProject_Add"| Loguru["loguru<br/>(Git repository)"]
+    ThirdParty -->|"add_subdirectory"| PJRTC["pjrt_c_api"]
+    
+    API -.->|"links against"| TTMLIR
+    Utils -.->|"links against"| Loguru

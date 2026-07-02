@@ -1,0 +1,14 @@
+LR
+    WriteReq["write_register(reg, value)"]
+    ReadCurrent["Read current word"]
+    ClearBits["Clear masked bits<br/>word & ~mask"]
+    SetBits["Set new bits<br/>word | ((value << shift) & mask)"]
+    WriteBack["Write modified word"]
+    
+    WriteReq --> ReadCurrent
+    ReadCurrent --> ClearBits
+    ClearBits --> SetBits
+    SetBits --> WriteBack
+
+
+Sources: [test/ttexalens/unit_tests/test_lib.py:361-396](), [test/ttexalens/unit_tests/test_lib.py:467-521]()

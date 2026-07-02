@@ -1,0 +1,20 @@
+TB
+    TestsPass["Tests passed"]
+    DownloadArtifacts["Download release artifacts<br/>from build phase"]
+    GenerateDocs["docs-generator<br/>Changelog, README, install instructions"]
+    PublishPyPI["publish-tenstorrent-pypi<br/>Upload wheels to S3-backed PyPI"]
+    TagDocker["Tag Docker image as latest<br/>if make_latest=true"]
+    PushTag["push-annotated-git-tag<br/>Create GPG-signed Git tag"]
+    PublishGH["publish-github-release<br/>Create GitHub release page"]
+    PerfTest["trigger perf-benchmark.yml<br/>Post-publish validation"]
+    
+    TestsPass --> DownloadArtifacts
+    DownloadArtifacts --> GenerateDocs
+    GenerateDocs --> PublishPyPI
+    PublishPyPI --> TagDocker
+    TagDocker --> PushTag
+    PushTag --> PublishGH
+    PublishGH --> PerfTest
+
+
+[.github/workflows/release.yml:257-391]()

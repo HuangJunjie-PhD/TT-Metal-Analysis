@@ -1,0 +1,12 @@
+LR
+    L1_In["L1 Circular Buffer<br/>(Input)"]
+    SRCA["SRCA Register"]
+    SRCB["SRCB Register"]
+    DEST["DEST Register"]
+    L1_Out["L1 Circular Buffer<br/>(Output)"]
+    
+    L1_In -->|"UNPACK<br/>(TRISC0)"| SRCA
+    L1_In -->|"UNPACK<br/>(TRISC0)"| SRCB
+    SRCA -->|"MATH<br/>(TRISC1)"| DEST
+    SRCB -->|"MATH<br/>(TRISC1)"| DEST
+    DEST -->|"PACK<br/>(TRISC2)"| L1_Out

@@ -1,0 +1,15 @@
+TD
+    File["Changed File in PR"]
+    Patterns["CODEOWNERS Pattern Matching"]
+    Owners["Assigned Owners (Teams/Individuals)"]
+    Review["GitHub Review Request"]
+
+    File -->|"Match file path<br/>against patterns (last match wins)"| Patterns
+    Patterns --> Owners
+    Owners -->|"Request review from owners"| Review
+
+    Bypass["@tenstorrent/codeowner-bypass"]
+    Owners -.->|"Always included"| Bypass
+
+
+This mechanism guarantees the correct, fine-grained assignment of reviewers triggered automatically for any PR based on changed files.

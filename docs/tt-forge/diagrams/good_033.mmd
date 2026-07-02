@@ -1,0 +1,18 @@
+TB
+    Commit["New commit on release-X.Y branch"]
+    UpdateReleases["update-releases.yml<br/>Detects commit"]
+    BumpVersion["bump-version.yml<br/>Called with branch name"]
+    FindRC["Find latest RC tag<br/>e.g., X.Y.Zrc2"]
+    IncrementRC["Increment RC number<br/>rc2 → rc3"]
+    TriggerRelease["release.yml<br/>with new_version_tag=X.Y.Zrc3"]
+    CreateRelease["Build and publish X.Y.Zrc3"]
+    
+    Commit --> UpdateReleases
+    UpdateReleases --> BumpVersion
+    BumpVersion --> FindRC
+    FindRC --> IncrementRC
+    IncrementRC --> TriggerRelease
+    TriggerRelease --> CreateRelease
+
+
+The test lifecycle demonstrates this by simulating a second commit to the release branch and verifying the version bump [.github/workflows/test-rc-stable-release-lifecycle.yml:335-350]().

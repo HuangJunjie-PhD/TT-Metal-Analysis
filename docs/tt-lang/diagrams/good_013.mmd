@@ -1,0 +1,10 @@
+LR
+    A["ttl.compute<br/>(structured op)"] --> B["ttl-assign-dst"]
+    B --> C["ttl-subblock-compute-for-dst"]
+    C --> D["ttl-lower-to-loops"]
+    D --> E["scf.for loops<br/>(explicit iteration)"]
+    E --> F["ttl-schedule-operations"]
+    F --> G["ttl-annotate-cb-associations"]
+    G --> H["convert-ttl-to-ttkernel"]
+    
+    style D fill:#f9f9f9

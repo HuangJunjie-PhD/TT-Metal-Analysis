@@ -1,0 +1,21 @@
+TD
+    DP["DecodersPrecision<br/>num_decoders: n_layers"]
+    
+    L0["Layer 0<br/>ModelOptimizations"]
+    L1["Layer 1<br/>ModelOptimizations"]
+    LN["Layer N<br/>ModelOptimizations"]
+    
+    GetTensor["get_tensor_dtype(layer, tensor)<br/>Returns PrecisionSetting"]
+    GetFidelity["get_math_fidelity(layer, op)<br/>Returns compute_kernel_config"]
+    
+    DP --> L0
+    DP --> L1
+    DP --> LN
+    
+    DP --> GetTensor
+    DP --> GetFidelity
+    
+    Attn["Attention Module<br/>layer_num=i"]
+    
+    GetTensor -->|"wqkv_dtype"| Attn
+    GetFidelity -->|"li_qkv_decode_compute_kernel_cfg"| Attn

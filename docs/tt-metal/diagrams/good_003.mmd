@@ -1,0 +1,8 @@
+TD
+    Trigger["Workflow Trigger<br/>(PR / Push)"]
+    SanityTests["sanity-tests.yaml<br/>Fast Validation"]
+    ArtifactBuild["build-artifact.yaml<br/>Compiles Metalium/TTNN"]
+    
+    Trigger --> SanityTests
+    Trigger --> ArtifactBuild
+    ArtifactBuild --> TestSuites["Test Suites<br/>(unit_tests_ttnn, fabric_unit_tests)"]

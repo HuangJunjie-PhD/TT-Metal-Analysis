@@ -1,0 +1,20 @@
+TD
+    Start["init_ttexalens()"]
+    LocalInit["local_init(init_jtag, use_noc1, simulation_directory)"]
+    CreateUmdApi["Create UmdApi instance<br/>- Open TTDevice<br/>- Query cluster descriptor<br/>- Discover devices"]
+    CreateFileApi["Create FileAccessApi instance<br/>- Direct file system access"]
+    LoadContext["load_context(umd_api, file_api, use_noc1, use_4B_mode, noc_failover)"]
+    CreateContext["Create Context object<br/>- Store interfaces<br/>- Store configuration"]
+    SetGlobal["Set GLOBAL_CONTEXT = context"]
+    RegisterCleanup["Register atexit cleanup handler"]
+    Return["Return Context"]
+    
+    Start --> LocalInit
+    LocalInit --> CreateUmdApi
+    LocalInit --> CreateFileApi
+    CreateUmdApi --> LoadContext
+    CreateFileApi --> LoadContext
+    LoadContext --> CreateContext
+    CreateContext --> SetGlobal
+    SetGlobal --> RegisterCleanup
+    RegisterCleanup --> Return

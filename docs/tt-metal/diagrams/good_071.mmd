@@ -1,0 +1,32 @@
+TD
+    HostInput["Host Text Input"]
+    Tokenizer["ttml::tokenizers::CharTokenizer"]
+    Dataset["ttml::datasets::InMemoryTokenDataset"]
+    DataLoader["ttml::datasets::DataLoader"]
+    Model["Model (std::shared_ptr<ttml::models::BaseTransformer>)"]
+    TrainingLoop["NanoGPT Training Loop (main.cpp)"]
+
+    AutogradCtx["ttml::autograd::AutoContext"]
+    Optimizer["ttml::optimizers::AdamW"]
+    DistributedOps["ttml::ops::distributed::*"]
+    Device["ttml::core::MeshDevice"]
+
+    Batch["Batch (TensorPtr)"]
+    Loss["Loss (TensorPtr)"]
+    Backward["Loss->backward()"]
+    Step["Optimizer->step()"]
+
+    HostInput --> Tokenizer --> Dataset --> DataLoader
+    DataLoader --> Batch --> Model --> Loss
+    Loss --> Backward --> AutogradCtx
+    AutogradCtx --> Optimizer
+    Optimizer --> Step
+    Model --> Device
+    DistributedOps --> Device
+    TrainingLoop --> DataLoader
+    TrainingLoop --> Model
+    TrainingLoop --> Optimizer
+    TrainingLoop --> DistributedOps
+
+
+Sources: [tt-train/sources/examples/nano_gpt/main.cpp:100-180](), [tt-train/sources/ttml/autograd/auto_context.cpp:4-20]().

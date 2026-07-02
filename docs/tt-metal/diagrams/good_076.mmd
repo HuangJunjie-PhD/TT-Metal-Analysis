@@ -1,0 +1,20 @@
+LR
+    NL_Hardware["Hardware Platforms (N150, N300, Blackhole, Galaxy)"]
+    NL_Runtime["TT-Metalium Runtime & HAL"]
+    NL_NN["TT-NN Neural Network Library (Python/C++)"]
+    NL_Build["Build & Packaging System"]
+    NL_CI_CD["CI/CD Pipeline & Tests"]
+
+    NL_Hardware -->|Supported by| TTM_Device["tt_metal/hw/ + tt_metal/tt-llk/ (Device Kernels)"]
+    NL_Runtime -->|Core Runtime| TTM_Runtime["tt_metal/impl/ (Metalium_impl) + UMD"]
+    NL_NN -->|NN APIs| TTNN_Code["ttnn/ (Neural Network Operations) + Python bindings"]
+    NL_Build -->|Built by| CMake_Files["CMakeLists.txt, build_metal.sh"]
+    NL_CI_CD -->|Runs on triggers| GHA_Workflows[".github/workflows/*.yaml"]
+
+    TTM_Device -.-> TTM_Runtime
+    TTM_Runtime --> TTNN_Code
+    CMake_Files --> TTM_Runtime
+    CMake_Files --> TTNN_Code
+
+
+Sources: [INSTALLING.md:120-150](), [CMakeLists.txt:28-36](), [.github/workflows/build-artifact.yaml:1-150]()

@@ -1,0 +1,29 @@
+TB
+    TEST["Test Case Execution"]
+    
+    TEST --> INIT_CACHED["init_cached_test_context()"]
+    
+    INIT_CACHED --> CHECK{"_cached_test_context<br/>exists?"}
+    
+    CHECK -->|"Yes"| RETURN_CACHED["Return cached context"]
+    CHECK -->|"No"| INIT_DEFAULT["init_default_test_context()"]
+    
+    INIT_DEFAULT --> MODE{"Execution Mode"}
+    
+    MODE -->|"TTEXALENS_TESTS_REMOTE"| REMOTE["init_ttexalens_remote()<br/>Connect to server"]
+    MODE -->|"TTEXALENS_SIMULATOR"| SIM_CHECK{"_cached_simulator_context<br/>exists?"}
+    MODE -->|"Default"| LOCAL["init_ttexalens()<br/>Local hardware"]
+    
+    SIM_CHECK -->|"Yes"| RETURN_SIM["Return cached simulator context"]
+    SIM_CHECK -->|"No"| SIM_INIT["init_ttexalens()<br/>simulation_directory=..."]
+    
+    REMOTE --> CACHE_STORE["_cached_test_context = context"]
+    LOCAL --> CACHE_STORE
+    SIM_INIT --> SIM_CACHE["_cached_simulator_context = context"]
+    
+    CACHE_STORE --> RETURN_CACHED
+    SIM_CACHE --> RETURN_SIM
+    RETURN_SIM --> RETURN_CACHED
+
+
+Sources: [test/ttexalens/unit_tests/test_base.py:9-62]()

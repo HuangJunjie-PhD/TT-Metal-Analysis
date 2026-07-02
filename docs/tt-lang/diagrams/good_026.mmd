@@ -1,0 +1,8 @@
+LR
+    [ttl_kernel_decorator] -- "check_cache" --> [make_cache_key]
+    [make_cache_key] -- "cache_miss" --> [TTLGenericCompiler]
+    [TTLGenericCompiler] -- "returns" --> [CompiledTTNNKernel]
+    [CompiledTTNNKernel] -- "dispatch" --> [run_kernel_on_device]
+    [run_kernel_on_device] -- "post_execution" --> [run_profiling_pipeline]
+
+**Sources:** [python/ttl/ttl_api.py:133-158](), [python/ttl/ttl_api.py:90-95](), [python/ttl/ttl_api.py:166-180]()

@@ -1,0 +1,42 @@
+TB
+    InputTag["Input: new_version_tag"]
+    
+    CheckRelType{"release_type?"}
+    
+    Stable["stable:<br/>new_version_tag unchanged<br/>gh_new_version_tag=new_version_tag<br/>build_release_tag=new_version_tag"]
+    
+    RC["rc:<br/>new_version_tag unchanged<br/>gh_new_version_tag=new_version_tag<br/>build_release_tag=new_version_tag"]
+    
+    Nightly["nightly:<br/>new_version_tag=VERSION.devYYYYMMDD<br/>gh_new_version_tag=new_version_tag<br/>build_release_tag=new_version_tag"]
+    
+    CheckDraftMode{"draft=true?"}
+    
+    DraftStable["draft + stable:<br/>new_version_tag=draft.repo.X.Y.Z<br/>build_release_tag=X.Y.Z<br/>gh_new_version_tag=draft.repo.X.Y.Z<br/>git_log_fail_on_error=false"]
+    
+    DraftRC["draft + rc:<br/>new_version_tag unchanged<br/>build_release_tag=X.Y.ZrcN<br/>gh_new_version_tag=draft.repo.X.Y.ZrcN<br/>git_log_fail_on_error=false"]
+    
+    DraftNightly["draft + nightly:<br/>new_version_tag unchanged<br/>build_release_tag=new_version_tag<br/>gh_new_version_tag=draft.repo.new_version_tag"]
+    
+    NoDraft["No draft modifications"]
+    
+    Output["Output:<br/>new_version_tag<br/>gh_new_version_tag<br/>build_release_tag"]
+    
+    InputTag --> CheckRelType
+    
+    CheckRelType -->|stable| Stable
+    CheckRelType -->|rc| RC
+    CheckRelType -->|nightly| Nightly
+    
+    Stable --> CheckDraftMode
+    RC --> CheckDraftMode
+    Nightly --> CheckDraftMode
+    
+    CheckDraftMode -->|true + stable| DraftStable
+    CheckDraftMode -->|true + rc| DraftRC
+    CheckDraftMode -->|true + nightly| DraftNightly
+    CheckDraftMode -->|false| NoDraft
+    
+    DraftStable --> Output
+    DraftRC --> Output
+    DraftNightly --> Output
+    NoDraft --> Output

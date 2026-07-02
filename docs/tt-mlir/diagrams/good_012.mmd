@@ -1,0 +1,13 @@
+TB
+    TileOps["Tile Operations"]
+    FPUBinary["FPU Binary Ops<br/>d2m::TileAddOp<br/>d2m::TileSubOp<br/>d2m::TileMulOp"]
+    SFPUUnary["SFPU Unary Ops<br/>d2m::TileExpOp<br/>d2m::TileLogOp<br/>d2m::TileSqrtOp"]
+    SFPUBinary["SFPU Binary Ops<br/>d2m::TileDivOp<br/>d2m::TileMaximumOp"]
+    Matmul["Matrix Ops<br/>d2m::TileMatmulOp<br/>d2m::TileMatmulBlockOp"]
+    Reduce["Reduction Ops<br/>d2m::TileReduceMaxOp<br/>d2m::TileReduceSumOp"]
+    
+    TileOps --> FPUBinary
+    TileOps --> SFPUUnary
+    TileOps --> SFPUBinary
+    TileOps --> Matmul
+    TileOps --> Reduce

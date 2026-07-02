@@ -1,0 +1,29 @@
+TB
+    FirstCall["get_blocks('functional_workers')"]
+    GetLocs["get_block_locations('functional_workers')<br/>Returns: List of OnChipCoordinate"]
+    
+    Loop["For each location"]
+    GetBlock["get_block(location)"]
+    CheckCache{"Block cached?"}
+    CreateBlock["Instantiate block"]
+    ReturnCached["Return cached block"]
+    
+    BuildList["Build list of blocks"]
+    CacheList["Cache the list"]
+    ReturnList["Return list"]
+    
+    SecondCall["get_blocks('functional_workers')<br/>(subsequent call)"]
+    ReturnCachedList["Return cached list directly"]
+    
+    FirstCall --> GetLocs
+    GetLocs --> Loop
+    Loop --> GetBlock
+    GetBlock --> CheckCache
+    CheckCache -->|No| CreateBlock
+    CheckCache -->|Yes| ReturnCached
+    CreateBlock --> BuildList
+    ReturnCached --> BuildList
+    BuildList --> CacheList
+    CacheList --> ReturnList
+    
+    SecondCall --> ReturnCachedList

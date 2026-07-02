@@ -1,0 +1,12 @@
+LR
+    User["User"] --> MainLoop["main_loop()"]
+    MainLoop --> UIState["UIState"]
+    MainLoop --> ImportCmds["import_commands()"]
+    
+    ImportCmds --> BuiltIn["Built-in:<br/>exit, reload, eval"]
+    ImportCmds --> PluginCmds["Plugin Commands:<br/>cli_commands/*.py"]
+    
+    UIState --> PromptSession["PromptSession<br/>prompt_toolkit"]
+    UIState --> Completer["TTExaLensCompleter"]
+    
+    MainLoop --> OutputRedir["redirect_output_to_file()"]

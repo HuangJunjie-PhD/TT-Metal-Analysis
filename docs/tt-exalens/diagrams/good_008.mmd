@@ -1,0 +1,7 @@
+LR
+    GDBExternal["riscv-tt-elf-gdb<br/>(external)"] -.->|"TCP RSP"| GDBServer["GdbServer<br/>(gdb_server.py:55)"]
+    GDBInternal["get_gdb_callstack()<br/>(gdb_client.py:126)"] --> GDBBinary["riscv-tt-elf-gdb<br/>(sfpi/compiler/bin)"]
+    GDBBinary -.->|"subprocess"| GDBServer
+    
+    GDBServer --> ProcessMap["Process Mapping<br/>Core → PID"]
+    GDBServer --> Protocol["RSP Protocol<br/>(gdb_communication.py)"]

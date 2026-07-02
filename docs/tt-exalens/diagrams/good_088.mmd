@@ -1,0 +1,24 @@
+TD
+    ParsedElfFile["ParsedElfFile\
+(ttexalens/elf/parsed.py)"]
+    ElfDie["ElfDie\
+(ttexalens/elf/die.py)"]
+    ElfVariable["ElfVariable\
+(ttexalens/elf/variable.py)"]
+    MemoryAccess["MemoryAccess\
+(ttexalens/memory_access.py)"]
+    CachedReadMemoryAccess["CachedReadMemoryAccess\
+(ttexalens/memory_access.py)"]
+    RiscDebug["RiscDebug\
+(ttexalens/hardware/risc_debug.py)"]
+
+    ParsedElfFile -->|"get_global / read_global"| ElfVariable
+    ParsedElfFile -->|"get_constant / get_enum_value"| ElfDie
+    ElfVariable -->|"type_die: layout + offset info"| ElfDie
+    ElfVariable -->|"mem_access: read/write bytes"| MemoryAccess
+    CachedReadMemoryAccess -->|"implements"| MemoryAccess
+    RiscDebug -->|"MemoryAccess.create(risc_debug)"| MemoryAccess
+    ElfVariable -->|"read() returns ElfVariable with"| CachedReadMemoryAccess
+
+
+Sources: [ttexalens/elf/variable.py:1-25](), [ttexalens/elf/parsed.py:1-30](), [ttexalens/elf/__init__.py:1-21]()

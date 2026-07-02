@@ -1,0 +1,13 @@
+LR
+    YAMLDef["YAML Test Definition<br/>tests/pipeline_reorg/ttnn-tests.yaml"]
+    WorkflowRead["Workflow Reads YAML<br/>ttnn-post-commit.yaml:60"]
+    ParseStep["Parse & Filter<br/>prepare_test_matrix.py"]
+    MatrixGen["Generate Matrix<br/>load-test-matrix job"]
+    TestExec["Execute Tests<br/>ttnn job"]
+    
+    YAMLDef --> WorkflowRead
+    WorkflowRead --> ParseStep
+    ParseStep --> MatrixGen
+    MatrixGen --> TestExec
+
+**Sources:** [.github/workflows/ttnn-post-commit.yaml:55-106](), [.github/workflows/ttnn-post-commit.yaml:60](), [.github/workflows/ttnn-post-commit.yaml:87-90]()

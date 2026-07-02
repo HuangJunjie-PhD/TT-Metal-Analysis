@@ -1,0 +1,27 @@
+TB
+    User["User Code"] --> callstack["callstack()"]
+    User --> top_callstack["top_callstack()"]
+    
+    callstack --> ParseElfs["Parse ELF files"]
+    top_callstack --> ParseElfs
+    
+    ParseElfs --> RiscDebug["RiscDebug.get_callstack()"]
+    top_callstack --> RiscDebugFrame["RiscDebug.get_frame_callstack()"]
+    
+    RiscDebug --> ReadPC["read_register_value('pc')"]
+    RiscDebug --> ReadSP["read_register_value('sp')"]
+    RiscDebug --> UnwindFrames["Frame unwinding loop"]
+    
+    RiscDebugFrame --> FindFrame["_find_elf_and_frame_description()"]
+    
+    UnwindFrames --> FrameInspection["FrameInspection"]
+    FindFrame --> FrameDescription["FrameDescription (DWARF CFI)"]
+    
+    FrameInspection --> CallstackEntry["CallstackEntry objects"]
+    FrameDescription --> CallstackEntry
+
+
+| Function | Purpose | Returns |
+|----------|---------|---------|
+| `callstack()` | Full callstack with frame unwinding | `list[CallstackEntry]` |
+| `top_callstack()` | Top frame only (no stack walking) | `list[CallstackEntry]` |

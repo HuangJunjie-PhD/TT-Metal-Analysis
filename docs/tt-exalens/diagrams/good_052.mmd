@@ -1,0 +1,24 @@
+TB
+    CLI["CLI: brxy command"]
+    ConvertCoord["convert_coordinate()<br/>location string → OnChipCoordinate"]
+    ReadAPI["read_words_from_device()<br/>or read_from_device()"]
+    Coordinate["OnChipCoordinate"]
+    NocRead["coordinate.noc_read()"]
+    DeviceNocRead["device.noc_read()"]
+    SafeCheck["Safe Mode Check<br/>UnsafeAccessException if invalid"]
+    NOCOps["NOC Operations<br/>noc_read32 or DMA"]
+    Failover["NOC Failover<br/>noc0 → noc1 on timeout"]
+    HardwareRead["Hardware PCIe/TLB Read"]
+    
+    CLI --> ConvertCoord
+    ConvertCoord --> ReadAPI
+    ReadAPI --> Coordinate
+    Coordinate --> NocRead
+    NocRead --> DeviceNocRead
+    DeviceNocRead --> SafeCheck
+    SafeCheck --> NOCOps
+    NOCOps --> Failover
+    Failover --> HardwareRead
+
+
+Sources: [ttexalens/tt_exalens_lib.py:87-107](), [ttexalens/coordinate.py:327-336]()

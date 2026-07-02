@@ -1,0 +1,27 @@
+TB
+    ModuleBuilder["ModuleBuilder<br/>pjrt_implementation/inc/api/<br/>module_builder/module_builder.h:121"]
+    
+    Context["m_context<br/>std::unique_ptr&lt;mlir::MLIRContext&gt;<br/>line 350<br/>Initialized in constructor<br/>with all dialects registered"]
+    
+    Alchemist["m_tt_alchemist_handler<br/>TTAlchemistHandler<br/>line 353<br/>Dynamic library loader<br/>for code generation"]
+    
+    GraphState["m_graph_counter: int<br/>m_last_model_name: string<br/>lines 357-358<br/>Tracks g0, g1, ... numbering"]
+    
+    PublicAPI["buildModule()<br/>line 128-132<br/>Main entry point<br/>Returns tuple&lt;tt_pjrt_status,<br/>shared_ptr&lt;ExecutableImage&gt;&gt;"]
+    
+    Converters["createVHLOModule() - line 143<br/>convertFromVHLOToSHLO() - line 150<br/>convertFromSHLOToTTIR() - line 187<br/>convertFromTTIRToTTNN() - line 210"]
+    
+    Collectors["collectInputShardings() - line 170<br/>collectOutputShardings() - line 175<br/>collectNumArguments() - line 166<br/>collectMeshShape() - line 194<br/>collectNumDevicesToUtilize() - line 206"]
+    
+    Builders["buildModuleForTTNNRuntime() - line 308<br/>buildModuleForTTNNCodegen() - line 326<br/>createFlatbufferBinary() - line 217<br/>performCodegen() - line 346"]
+    
+    Helpers["getPublicFuncOps() - line 304<br/>printModule() - line 243<br/>createShardingsFromGSPMD() - line 286<br/>createShardingsFromShardy() - line 293"]
+    
+    ModuleBuilder --> Context
+    ModuleBuilder --> Alchemist
+    ModuleBuilder --> GraphState
+    ModuleBuilder --> PublicAPI
+    PublicAPI --> Converters
+    PublicAPI --> Collectors
+    PublicAPI --> Builders
+    Builders --> Helpers

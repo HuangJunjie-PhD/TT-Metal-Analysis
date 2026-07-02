@@ -1,0 +1,15 @@
+LR
+    Python["Python AST"] -- "TTLGenericCompiler" --> TTL["TTL Dialect"]
+    TTL -- "ttl-insert-intermediate-dfbs" --> IDFB["DFB Materialization"]
+    IDFB -- "ttl-auto-sync" --> SYNC["CB Sync (Push/Pop)"]
+    SYNC -- "ttl-assign-dst" --> DST["DST Allocation"]
+    DST -- "convert-ttl-to-ttkernel" --> TTK["TTKernel Dialect"]
+    TTK -- "convert-ttkernel-to-emitc" --> CPP["C++ Code"]
+
+
+| Pass Name | Role |
+|-----------|------|
+| `ttl-insert-intermediate-dfbs` | Materializes intermediate values to L1 via compiler-allocated DFBs at fusion split points [lib/Dialect/TTL/Transforms/TTLInsertIntermediateDFBs.cpp:9-13](). |
+| `ttl-insert-cb-sync` | Inserts missing `cb_push`/`cb_pop` for unmatched `cb_reserve`/`cb_wait` [include/ttlang/Dialect/TTL/Passes.td:6-12](). |
+| `ttl-coalesce-dfb-acquires` | Collapses consecutive same-DFB acquires into a single multi-tile acquire [include/ttlang/Dialect/TTL/Passes.td:28-48](). |
+| `ttl-assign-dst` | Maps mathematical operations to hardware DST registers [lib/Dialect/TTL/Pipelines/TTLPipelines.cpp:36-36](). |

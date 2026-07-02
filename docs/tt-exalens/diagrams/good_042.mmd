@@ -1,0 +1,18 @@
+LR
+    User["User Code"]
+    ArcMsg["arc_msg()"]
+    CheckContext["check_context()"]
+    ValidateDevice["validate_device_id()"]
+    ServerIfc["server_ifc.arc_msg()"]
+    UMD["UMD Library"]
+    Hardware["ARC Hardware"]
+    
+    User --> ArcMsg
+    ArcMsg --> CheckContext
+    ArcMsg --> ValidateDevice
+    ArcMsg --> ServerIfc
+    ServerIfc --> UMD
+    UMD --> Hardware
+    Hardware -.reply.-> UMD
+    UMD -.response.-> ServerIfc
+    ServerIfc -.list[int].-> User

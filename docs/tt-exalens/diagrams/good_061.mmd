@@ -1,0 +1,9 @@
+TB
+    ReadReq["Read Request<br/>size_bytes"]
+    CheckSize{"size_bytes ><br/>dma_threshold?"}
+    TLBRead["TLB Read<br/>(Small transfers)"]
+    DMARead["DMA Read<br/>(Large transfers)"]
+    
+    ReadReq --> CheckSize
+    CheckSize -->|"<= threshold"| TLBRead
+    CheckSize -->|"> threshold"| DMARead

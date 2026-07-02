@@ -1,0 +1,21 @@
+TD
+    W["pjrt-plugin-tt wheel (.whl)"]
+    W --> PKG["pjrt_plugin_tt/"]
+    W --> JAX["jax_plugin_tt/"]
+    W --> TCH["torch_plugin_tt/"]
+    W --> TRACY["tracy/"]
+    W --> TTNN["ttnn/"]
+    W --> TOOLS["ttxla_tools/"]
+
+    PKG --> SO["pjrt_plugin_tt.so (CMake install)"]
+    PKG --> METAL["tt-metal/ (runtime kernels, riscv toolchain)"]
+    PKG --> LIB["lib/ (tt-mlir, tt-metal shared libs)"]
+
+    JAX --> JAX_INIT["__init__.py (XLA plugin init)"]
+    TCH --> TCH_INIT["__init__.py (TTPlugin registration)"]
+    TRACY --> TRACY_ORIG["_original/ (wrapped tracy from tt-metal)"]
+    TTNN --> TTNN_ORIG["_original/ (wrapped ttnn from tt-metal)"]
+    TOOLS --> SFPI["install_sfpi.py (tt-forge-install entrypoint)"]
+
+
+Sources: [python_package/setup.py:22-43]()

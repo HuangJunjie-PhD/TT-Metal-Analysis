@@ -1,0 +1,16 @@
+TD
+    Trigger["Cron / Manual Dispatch<br/>(.github/workflows/package-and-release.yaml)"]
+    Precheck["release-precheck job"]
+    CreateTag["create-tag job"]
+    BuildRel["build-test-publish job<br/>(calls build-artifact.yaml)"]
+    
+    Trigger --> Precheck
+    Precheck --> CreateTag
+    CreateTag --> BuildRel
+
+Official releases generate distinct artifacts:
+1.  **Standard Build**: Production-ready binaries without instrumentation [.github/workflows/package-and-release.yaml:102-111]().
+2.  **Tracy Build**: Instrumented binaries for performance validation [.github/workflows/build-artifact.yaml:17-21]().
+3.  **Docker Release Image**: A standalone image containing the pre-installed stack [dockerfile/Dockerfile:185-194]().
+
+Sources: [.github/workflows/package-and-release.yaml:1-161](), [.github/workflows/build-artifact.yaml:1-178]()

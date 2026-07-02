@@ -1,0 +1,12 @@
+LR
+    PyTorch["PyTorch Tensor<br/>torch.Tensor<br/>CPU/GPU Memory"]
+    TTNN_DRAM["TTNN Tensor (DRAM)<br/>ttnn.Tensor<br/>ttnn.BufferType.DRAM"]
+    TTNN_L1["TTNN Tensor (L1)<br/>ttnn.Tensor<br/>ttnn.BufferType.L1"]
+    Kernel["tt-lang Kernel<br/>@ttl.operation / @ttl.kernel"]
+    
+    PyTorch -->|"ttnn.from_torch()"| TTNN_DRAM
+    PyTorch -->|"ttnn.from_torch()<br/>with L1 config"| TTNN_L1
+    TTNN_DRAM -->|"ttnn.to_memory_config()"| TTNN_L1
+    TTNN_L1 -->|"kernel execution"| Kernel
+    TTNN_DRAM -->|"kernel execution"| Kernel
+    Kernel -->|"ttnn.to_torch()"| PyTorch

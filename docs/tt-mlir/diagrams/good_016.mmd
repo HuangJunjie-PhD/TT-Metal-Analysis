@@ -1,0 +1,17 @@
+TB
+    MC["MemoryConfigAttr"]
+    MC --> TML["tensor_memory_layout:<br/>TensorMemoryLayoutAttr"]
+    MC --> BT["buffer_type:<br/>BufferTypeAttr"]
+    MC --> SS["shard_spec:<br/>optional&lt;ShardSpecAttr&gt;"]
+    
+    TML --> INT["Interleaved"]
+    TML --> HS["HeightSharded"]
+    TML --> WS["WidthSharded"]
+    TML --> BS["BlockSharded"]
+    
+    BT --> DR["DRAM"]
+    BT --> L1["L1"]
+    BT --> SM["SystemMemory"]
+
+
+Sources: [include/ttmlir/Dialect/TTNN/IR/TTNNOpsAttrs.td:269-304]()

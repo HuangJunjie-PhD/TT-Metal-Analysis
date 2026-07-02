@@ -1,0 +1,40 @@
+TB
+    RD["RegisterDescription\
+(base_address, offset, mask, shift, data_type)"]
+
+    DRD["DebugRegisterDescription\
+Direct NOC/private debug registers"]
+    RCRD["RiscControlRegisterDescription\
+RISC execution control registers"]
+    CRD["ConfigurationRegisterDescription\
+Indirect config registers\
+(+ index field)"]
+    TGPRD["TensixGeneralPurposeRegisterDescription\
+Tensix GPR access\
+(+ index + thread_id fields)"]
+    NSRD["NocStatusRegisterDescription\
+NOC status flags"]
+    NCRD["NocConfigurationRegisterDescription\
+NOC configuration"]
+    NCTRL["NocControlRegisterDescription\
+NOC control commands"]
+    ARRD["ArcResetRegisterDescription\
+ARC reset control"]
+    ACSM["ArcCsmRegisterDescription\
+ARC CSM registers"]
+    AROM["ArcRomRegisterDescription\
+ARC ROM registers"]
+
+    RD --> DRD
+    RD --> RCRD
+    RD --> CRD
+    RD --> TGPRD
+    RD --> NSRD
+    RD --> NCRD
+    RD --> NCTRL
+    RD --> ARRD
+    RD --> ACSM
+    RD --> AROM
+
+
+Sources: [ttexalens/register_store.py:63-161]()

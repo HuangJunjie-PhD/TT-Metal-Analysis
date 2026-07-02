@@ -1,0 +1,11 @@
+LR
+    Prefill["Prefill Stage<br/>prefill_forward"]
+    Decode["Decode Stage<br/>decode_forward"]
+    KVCache["KV Cache Allocation<br/>(allocate_kv_cache)"]
+    
+    Prefill --> KVCache
+    KVCache --> Decode
+
+
+Sources:  
+[tech_reports/LLMs/vLLM_integration.md:13-34](), [models/docs/MODEL_UPDATES.md:12-14]()

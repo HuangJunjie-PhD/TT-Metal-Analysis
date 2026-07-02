@@ -1,0 +1,18 @@
+TB
+    TensixDebug["TensixDebug<br/>(debug_tensix.py:57)"]
+    Location["OnChipCoordinate"]
+    NocBlock["NocBlock"]
+    RegisterStore["RegisterStore"]
+    MemoryAccess["MemoryAccess"]
+    RiscDebug["RiscDebug<br/>(trisc0)"]
+    
+    TensixDebug --> Location
+    TensixDebug --> NocBlock
+    TensixDebug --> RegisterStore
+    TensixDebug --> MemoryAccess
+    
+    Location --> NocBlock
+    NocBlock --> RegisterStore
+    MemoryAccess --> RiscDebug
+    
+    sub

@@ -1,0 +1,15 @@
+TD
+    A["Start: Fresh System"] --> B["Run TT-Installer"]
+    B --> C["System Reboot"]
+    C --> D["Enable Hugepages"]
+    D --> E["Activate Virtual Environment"]
+    E --> F["Verify with tt-smi"]
+    F --> G{"Device Detected?"}
+    G -->|Yes| H["Configuration Complete"]
+    G -->|No| I["Troubleshoot"]
+    I --> D
+    
+    B -.->|Installs| J["Device Drivers<br/>/dev/tenstorrent"]
+    B -.->|Configures| K["System Services"]
+    D -.->|Mounts| L["Hugepages 1GB<br/>/dev/hugepages-1G"]
+    E -.->|Creates| M["Python Environment<br/>~/.tenstorrent-venv"]

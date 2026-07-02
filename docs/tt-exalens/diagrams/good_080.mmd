@@ -1,0 +1,30 @@
+TB
+    Request["Memory Access Request<br/>address, num_bytes, is_write"]
+    
+    ConvertCoord["convert_coordinate()<br/>tt_exalens_lib.py:85-104"]
+    GetBlock["location.noc_block<br/>coordinate.py"]
+    GetMemMap["noc_block.noc_memory_map<br/>noc_block.py"]
+    
+    FindBlock["memory_map.find_by_noc_address(addr)<br/>memory_map.py:89-91"]
+    IntervalTree["IntervalTree.at(address)<br/>O(log n) lookup"]
+    
+    CheckFound["Block found?"]
+    CheckAccessible["block_info.is_accessible<br/>Evaluates access_check()"]
+    CheckSafe["block_info.is_safe_to_read()<br/>or is_safe_to_write()"]
+    
+    RaiseException["Raise UnsafeAccessException<br/>tt_exalens_lib.py:107-129"]
+    AllowAccess["Allow Access"]
+    
+    Request --> ConvertCoord
+    ConvertCoord --> GetBlock
+    GetBlock --> GetMemMap
+    GetMemMap --> FindBlock
+    FindBlock --> IntervalTree
+    IntervalTree --> CheckFound
+    
+    CheckFound -->|"No"| RaiseException
+    CheckFound -->|"Yes"| CheckAccessible
+    CheckAccessible -->|"False"| RaiseException
+    CheckAccessible -->|"True"| CheckSafe
+    CheckSafe -->|"False"| RaiseException
+    CheckSafe -->|"True"| AllowAccess

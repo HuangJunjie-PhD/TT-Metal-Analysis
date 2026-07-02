@@ -1,0 +1,13 @@
+TB
+    EnableSPMD["xr.use_spmd()"]
+    CreateMesh["Mesh(device_ids, mesh_shape, axis_names)"]
+    MarkSharding["xs.mark_sharding(tensor, mesh, partition_spec)"]
+    Compile["torch.compile(model, backend='tt')"]
+    Execute["compiled_model(**sharded_inputs)"]
+    
+    EnableSPMD --> CreateMesh
+    CreateMesh --> MarkSharding
+    MarkSharding --> Compile
+    Compile --> Execute
+    
+    sub

@@ -1,0 +1,17 @@
+LR
+    ParsedElf["ParsedElfFile"]
+    Variables["variables: dict"]
+    FindDie["find_die_by_name()"]
+    GetGlobal["get_global()"]
+    ReadGlobal["read_global()"]
+    ElfVar["ElfVariable<br/>(lazy)"]
+    ElfVarCached["ElfVariable<br/>(cached)"]
+    
+    ParsedElf --> Variables
+    ParsedElf --> FindDie
+    FindDie --> GetGlobal
+    FindDie --> ReadGlobal
+    GetGlobal --> ElfVar
+    ReadGlobal --> ElfVarCached
+    
+    Variables -.fallback.-> GetGlobal

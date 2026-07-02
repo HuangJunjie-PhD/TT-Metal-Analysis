@@ -1,0 +1,6 @@
+LR
+    GH_Actions_Runs[GitHub Actions Runs] --> Fetch_JS[fetch-workflow-data.js]
+    Fetch_JS -- "workflow-data.json" --> Analyze_JS[analyze-workflow-data.js]
+    Analyze_JS -- "owners.json mapping" --> Slack_Report[Slack Reporting via Bot]
+
+    sub

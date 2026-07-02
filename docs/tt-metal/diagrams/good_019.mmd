@@ -1,0 +1,16 @@
+TD
+    Start["llk_unpack_A_init"]
+    GetOperand["get_operand_id(operand)<br/>Resolve_CB_index"]
+    GetFormats["Retrieve formats:<br/>unpack_src_format, unpack_dst_format"]
+    GetDims["Retrieve tile dims:<br/>face_r_dim, num_faces"]
+    Assert["Verify config:<br/>is_unpacker_A_configured_correctly"]
+    Configure["_llk_unpack_A_init_<br/>Configure hardware"]
+    
+    Start --> GetOperand
+    GetOperand --> GetFormats
+    GetFormats --> GetDims
+    GetDims --> Assert
+    Assert --> Configure
+
+
+The hardware configuration prepares the unpacker unit for the specified source and destination data formats and tile layouts.

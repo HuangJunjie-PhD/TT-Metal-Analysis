@@ -1,0 +1,30 @@
+TB
+    User["User Code"] --> read_word["read_word_from_device()"]
+    User --> read_words["read_words_from_device()"]
+    User --> read_bytes["read_from_device()"]
+    User --> write_words["write_words_to_device()"]
+    User --> write_bytes["write_to_device()"]
+    
+    read_word --> coord["convert_coordinate()"]
+    read_words --> coord
+    read_bytes --> coord
+    write_words --> coord
+    write_bytes --> coord
+    
+    coord --> OnChipCoordinate["OnChipCoordinate.noc_read()"]
+    coord --> OnChipCoordinate_write["OnChipCoordinate.noc_write()"]
+    
+    OnChipCoordinate --> Device["Device.noc_read()"]
+    OnChipCoordinate_write --> Device_write["Device.noc_write()"]
+    
+    Device --> UmdDevice["UmdDevice.read()"]
+    Device_write --> UmdDevice_write["UmdDevice.write()"]
+
+
+| Function | Purpose | Returns |
+|----------|---------|---------|
+| `read_word_from_device()` | Read single 4-byte word | `int` |
+| `read_words_from_device()` | Read multiple 4-byte words | `list[int]` |
+| `read_from_device()` | Read arbitrary byte count | `bytes` |
+| `write_words_to_device()` | Write one or more 4-byte words | `None` |
+| `write_to_device()` | Write arbitrary bytes | `None` |

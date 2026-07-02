@@ -1,0 +1,19 @@
+TB
+    generate_seed["generate-seed<br/>────────<br/>Job: generate-seed<br/>Runner: ubuntu-latest<br/>Action: .github/actions/random"]
+    
+    build_release["build-release<br/>────────<br/>Job: build-release<br/>Runner: ubuntu-latest<br/>Steps:<br/>• set-release-facts<br/>• check_release<br/>• build-release-wheel<br/>• docker-build-push"]
+    
+    test_release["test-release<br/>────────<br/>Job: test-release<br/>Runner: ubuntu-latest<br/>Condition: release_exists == false<br/>Steps:<br/>• trigger-basic-test<br/>• trigger-demo-test<br/>• wait-workflow"]
+    
+    publish_release["publish-release<br/>────────<br/>Job: publish-release<br/>Runner: ubuntu-latest<br/>Condition: release_exists == false<br/>Steps:<br/>• download-release-artifacts<br/>• docs-generator<br/>• publish-tenstorrent-pypi<br/>• docker-build-push (tag latest)<br/>• push-annotated-git-tag<br/>• publish-github-release"]
+    
+    test_after_publish["test-release-after-publish<br/>────────<br/>Job: test-release-after-publish<br/>Runner: ubuntu-latest<br/>Condition: release_exists == false<br/>Steps:<br/>• trigger-perf-test"]
+    
+    generate_seed --> build_release
+    generate_seed --> test_release
+    generate_seed --> publish_release
+    generate_seed --> test_after_publish
+    
+    build_release --> test_release
+    test_release --> publish_release
+    publish_release --> test_after_publish

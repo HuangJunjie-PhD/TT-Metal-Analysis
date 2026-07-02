@@ -1,0 +1,13 @@
+TD
+    TestFunc["test_hoisted_logical_not (test_ttir_ops.py)"]
+    ModuleDef["def module(builder: TTIRBuilder)"]
+    FuncDec["@builder.func"]
+    OpConstruct["logical_not(in0, builder)"]
+    CompileExec["compile_and_execute_ttir()"]
+    
+    TestFunc --> ModuleDef
+    ModuleDef --> FuncDec
+    FuncDec --> OpConstruct
+    OpConstruct --> CompileExec
+    
+    sub

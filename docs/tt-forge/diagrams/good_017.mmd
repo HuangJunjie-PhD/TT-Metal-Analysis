@@ -1,0 +1,29 @@
+TB
+    Start["New commit on release branch"]
+    
+    GetTag["Get latest release tag on branch (git-facts action)"]
+    
+    CheckTag{Tag format?}
+    
+    IsRC["Tag contains 'rc' (Example: 0.1.0rc2)"]
+    IsStable["Tag is X.Y.Z (Example: 0.1.0)"]
+    
+    IncrementRC["Increment RC number: 0.1.0rc2 → 0.1.0rc3"]
+    IncrementPatch["Increment patch version: 0.1.0 → 0.1.1"]
+    
+    NewTag["Create new release with new tag"]
+    
+    Start --> GetTag
+    GetTag --> CheckTag
+    
+    CheckTag -->|"contains 'rc'"| IsRC
+    CheckTag -->|"X.Y.Z format"| IsStable
+    
+    IsRC --> IncrementRC
+    IsStable --> IncrementPatch
+    
+    IncrementRC --> NewTag
+    IncrementPatch --> NewTag
+
+
+Sources: [RELEASE.md:244-250](), [RELEASE.md:322-333]()

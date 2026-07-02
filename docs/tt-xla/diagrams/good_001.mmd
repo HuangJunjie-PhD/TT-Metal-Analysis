@@ -1,0 +1,12 @@
+LR
+    A["Create/Activate venv"] --> B["Run pip install"]
+    B --> C["Download from PyPI index"]
+    C --> D["Install pjrt_plugin_tt package"]
+    D --> E["Verify with jax.devices()"]
+    E --> F["Ready to run models"]
+    
+    B -.Optional.-> G["Add --pre flag"]
+    G -.-> C
+    B -.Alternative.-> H["Download from GitHub releases"]
+    H -.-> I["pip install local .whl"]
+    I -.-> D

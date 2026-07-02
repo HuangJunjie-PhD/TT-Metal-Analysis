@@ -1,0 +1,8 @@
+TD
+    Host["Host std::vector<T>"] --> Mapper["ttnn::distributed::shard_tensor_to_mesh_mapper"]
+    Mapper --> Mesh["ttnn::distributed::distribute_tensor"]
+    Mesh --> Device["ttnn::distributed::MeshDevice"]
+    Device -- "AllReduce" --> CCL["ttml::ttnn_fixed::distributed::all_reduce"]
+
+
+Sources: [tt-train/tests/core/n300_utils_test.cpp:95-96](), [tt-train/tests/core/n300_utils_test.cpp:141](), [tt-train/sources/examples/nano_gpt/main.cpp:41-95]().

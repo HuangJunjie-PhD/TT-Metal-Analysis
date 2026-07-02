@@ -1,0 +1,11 @@
+TD
+    A[TRISC Start] --> B["enable_cc_stack()"]
+    B --> C["TTI_SFPENCC (Enable SFPU Lanes)"]
+    C --> D{Compute Op?}
+    D -- Untilize --> E["llk_unpack_untilize_init()"]
+    D -- Tilize --> F["llk_unpack_tilize_init()"]
+    E --> G[Perform Op]
+    F --> G
+
+
+Sources: [tt_metal/hw/firmware/src/tt-2xx/trisc.cc:111-117](), [tests/tt_metal/tt_metal/llk/test_untilize_tilize.cpp:61-100]()

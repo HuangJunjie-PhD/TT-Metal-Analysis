@@ -1,0 +1,9 @@
+TD
+    AST["Python AST"] -->|TTLGenericCompiler| TTL_MLIR["TTL Dialect MLIR"]
+    TTL_MLIR -->|TTLInsertCBSync| SYNC_MLIR["Synchronized MLIR<br/>(cb_push/cb_pop)"]
+    SYNC_MLIR -->|TTLConvertTTLToCompute| COMP_MLIR["Compute Dialect MLIR"]
+    COMP_MLIR -->|TTLAssignDST| DST_MLIR["DST Allocated MLIR<br/>(tile_regs_acquire)"]
+    DST_MLIR -->|TTLConvertTTLToTTKernel| TTK_MLIR["TTKernel Dialect MLIR"]
+    TTK_MLIR -->|ConvertTTKernelToEmitC| CPP["C++ Source Code"]
+
+Sources: [lib/Dialect/TTL/Pipelines/TTLPipelines.cpp:19-76](), [test/me2e/builder/pipeline.py:18-93]()

@@ -1,0 +1,30 @@
+TD
+    User["User: bt command"]
+    CLI["CLI Parser"]
+    CS["callstack() function"]
+    ParseELF["parse_elf()"]
+    GetCoord["convert_coordinate()"]
+    GetRisc["get_risc_debug()"]
+    Halt["risc_debug.halt()"]
+    ReadPC["risc_debug.get_pc()"]
+    ReadGPR["risc_debug.read_gpr()"]
+    ReadMem["risc_debug.read_memory()"]
+    Unwind["Frame Unwinding"]
+    DWARF["DWARF CFI Parsing"]
+    Output["Format & Display"]
+    
+    User --> CLI
+    CLI --> CS
+    CS --> ParseELF
+    CS --> GetCoord
+    CS --> GetRisc
+    CS --> Halt
+    Halt --> ReadPC
+    Halt --> ReadGPR
+    Halt --> ReadMem
+    ReadPC --> Unwind
+    ReadGPR --> Unwind
+    ReadMem --> Unwind
+    ParseELF --> DWARF
+    DWARF --> Unwind
+    Unwind --> Output

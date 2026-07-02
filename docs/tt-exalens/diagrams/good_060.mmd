@@ -1,0 +1,27 @@
+TB
+    AccessReq["Memory Access Request"]
+    SafeCheck{"safe_mode<br/>enabled?"}
+    GetMemMap["Get Memory Map<br/>from NocBlock"]
+    CheckRegion{"Address in<br/>safe region?"}
+    AllowAccess["Allow Access"]
+    BlockAccess["Raise UnsafeAccessException"]
+    
+    AccessReq --> SafeCheck
+    SafeCheck -->|Yes| GetMemMap
+    SafeCheck -->|No| AllowAccess
+    GetMemMap --> CheckRegion
+    CheckRegion -->|Yes| AllowAccess
+    CheckRegion -->|No| BlockAccess
+
+
+Safe regions typically include:
+- **L1 memory**: General-purpose L1 data
+- **Private memory**: Core-specific private regions (when accessible)
+- **DRAM banks**: DRAM channel memory
+
+Unsafe regions (blocked in safe mode):
+- **Configuration registers**: Critical system configuration
+- **Debug registers**: Debug and control registers
+- **Unknown regions**: Unmapped or reserved areas
+
+Sources: [ttexalens/tt_exalens_lib.py:109-216](), [ttexalens/device.py (inferred from safe_mode usage)]()

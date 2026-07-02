@@ -1,0 +1,16 @@
+TD
+    PR["Pull Request Created"]
+    CO["CODEOWNERS Assignment"]
+    TestRun["Run Test Suite"]
+    Failure["Test Failure Detected"]
+    Notify["Send Slack Notification"]
+    Owner["Owned by @owner_id"]
+
+    PR --> CO
+    CO --> TestRun
+    TestRun --> Failure
+    Failure --> Notify
+    Notify --> Owner
+
+
+This automation shortens feedback loops for developers and improves triage efficiency.

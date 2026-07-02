@@ -1,0 +1,7 @@
+TB
+    InitLocal["init_ttexalens()"] --> Context["Context Object"]
+    InitRemote["init_ttexalens_remote()"] --> Context
+    Context --> Devices["devices: dict[int, Device]"]
+    Context --> FileAPI["file_api: FileApi"]
+    Context --> Config["Configuration<br/>use_noc1, safe_mode, etc."]
+    Context --> GlobalState["Global State<br/>GLOBAL_CONTEXT"]

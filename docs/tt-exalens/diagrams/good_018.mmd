@@ -1,0 +1,9 @@
+LR
+    SfpiGdb["SFPI GDB Source<br/>build/sfpi/compiler/bin/riscv-tt-elf-gdb"]
+    CopyTarget["install-gdb-for-wheel Target<br/>CMake custom target"]
+    StrippedGdb["Stripped GDB<br/>build/stripped/riscv-tt-elf-gdb"]
+    WheelInstall["Wheel Install<br/>sfpi/compiler/bin/riscv-tt-elf-gdb"]
+    
+    SfpiGdb --> CopyTarget
+    CopyTarget --> StrippedGdb
+    StrippedGdb --> WheelInstall

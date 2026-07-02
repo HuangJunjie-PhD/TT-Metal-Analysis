@@ -1,0 +1,68 @@
+TB
+    Start["Enter main_loop()"]
+    ImportCmds["Import commands<br/>[cli.py:196-198]"]
+    InitUI["Initialize UIState<br/>[cli.py:201]"]
+    CheckServer["Check --start-server<br/>[cli.py:206-208]"]
+    CheckGDB["Check --start-gdb<br/>[cli.py:211-213]"]
+    NonInteractive["Non-interactive commands?<br/>[cli.py:216]"]
+    
+    PrintSuggestions["print_navigation_suggestions()<br/>[cli.py:225]"]
+    
+    GetCommand{"Command source?"}
+    NonInteractiveCmd["Pop from<br/>non_interactive_commands"]
+    InteractiveCmd["prompt_session.prompt()<br/>[cli.py:259]"]
+    
+    TrimComment["Trim comments (#)<br/>[cli.py:262]"]
+    ExtractRedirect["extract_command_file_output()<br/>[cli.py:265]"]
+    RedirectOutput["redirect_command_output_to_file()<br/>[cli.py:269]"]
+    
+    CheckSpeedDial{"Is integer?<br/>[cli.py:270-275]"}
+    UseSpeedDial["Use navigation_suggestions[n]"]
+    ParseCmd["Split command<br/>[cli.py:277]"]
+    
+    FindCmd["Find command in context.commands<br/>[cli.py:283-286]"]
+    CheckBuiltin{"Built-in?"}
+    HandleExit["exit with code"]
+    HandleReload["importlib.reload()"]
+    HandleEval["eval() expression"]
+    HandleModule["found_command._module.run()<br/>[cli.py:311]"]
+    
+    UpdateSuggestions["Update navigation_suggestions<br/>[cli.py:312]"]
+    HandleException["notify_exception()<br/>[cli.py:329]"]
+    
+    Loop["Loop back"]
+    Exit["Exit main_loop()"]
+    
+    Start --> ImportCmds --> InitUI
+    InitUI --> CheckServer --> CheckGDB
+    CheckGDB --> NonInteractive
+    
+    NonInteractive --> PrintSuggestions
+    PrintSuggestions --> GetCommand
+    
+    GetCommand -->|Non-interactive| NonInteractiveCmd
+    GetCommand -->|Interactive| InteractiveCmd
+    
+    NonInteractiveCmd --> TrimComment
+    InteractiveCmd --> TrimComment
+    
+    TrimComment --> ExtractRedirect
+    ExtractRedirect --> RedirectOutput
+    RedirectOutput --> CheckSpeedDial
+    
+    CheckSpeedDial -->|Yes| UseSpeedDial
+    CheckSpeedDial -->|No| ParseCmd
+    UseSpeedDial --> ParseCmd
+    
+    ParseCmd --> FindCmd
+    FindCmd -->|Not found| HandleException
+    FindCmd -->|Found| CheckBuiltin
+    
+    CheckBuiltin -->|exit| HandleExit --> Exit
+    CheckBuiltin -->|reload| HandleReload --> Loop
+    CheckBuiltin -->|eval| HandleEval --> Loop
+    CheckBuiltin -->|module| HandleModule
+    
+    HandleModule --> UpdateSuggestions --> Loop
+    HandleException --> Loop
+    Loop --> NonInteractive

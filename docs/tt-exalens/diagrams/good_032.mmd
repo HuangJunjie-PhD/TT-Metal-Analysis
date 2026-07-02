@@ -1,0 +1,26 @@
+TB
+    User["User Code"]
+    API["read_register()<br/>write_register()"]
+    Convert["convert_coordinate()"]
+    Coord["OnChipCoordinate"]
+    GetBlock["location.noc_block"]
+    GetRegStore["noc_block.get_register_store()"]
+    RegStore["RegisterStore"]
+    ReadReg["register_store.read_register()"]
+    WriteReg["register_store.write_register()"]
+    NOCOps["noc_read32() / noc_write32()"]
+    Device["Device"]
+    Hardware["NOC Hardware"]
+    
+    User --> API
+    API --> Convert
+    Convert --> Coord
+    API --> GetBlock
+    GetBlock --> GetRegStore
+    GetRegStore --> RegStore
+    API --> ReadReg
+    API --> WriteReg
+    ReadReg --> NOCOps
+    WriteReg --> NOCOps
+    NOCOps --> Device
+    Device --> Hardware

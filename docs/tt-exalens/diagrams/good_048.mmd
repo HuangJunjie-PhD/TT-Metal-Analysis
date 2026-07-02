@@ -1,0 +1,15 @@
+LR
+    CLI["tt-exalens --remote"]
+    ParseAddr["Parse --remote-address<br/>ttexalens/cli.py:415-417"]
+    InitRemote["init_ttexalens_remote()<br/>ttexalens/__init__.py"]
+    ConnectServer["connect_to_server()<br/>ttexalens/server.py:254"]
+    Pyro5["Pyro5 proxy objects<br/>UmdApi, FileAccessApi"]
+    Context["Context with remote APIs"]
+    MainLoop["main_loop()<br/>ttexalens/cli.py:188"]
+    
+    CLI --> ParseAddr
+    ParseAddr --> InitRemote
+    InitRemote --> ConnectServer
+    ConnectServer --> Pyro5
+    Pyro5 --> Context
+    Context --> MainLoop

@@ -1,0 +1,15 @@
+TB
+    Inputs["Golden Output<br/>Device Output"]
+    Flatten["Flatten tensors<br/>to torch.float32"]
+    Center["Center by subtracting mean<br/>golden_centered<br/>device_centered"]
+    Compute["PCC = (golden_centered @ device_centered)<br/>÷ (||golden_centered|| × ||device_centered||)"]
+    Validate{"PCC >= required_pcc?"}
+    Pass["Validation Passed"]
+    Fail["AssertionError"]
+    
+    Inputs --> Flatten
+    Flatten --> Center
+    Center --> Compute
+    Compute --> Validate
+    Validate -->|Yes| Pass
+    Validate -->|No| Fail

@@ -1,0 +1,10 @@
+LR
+    CLI["Command-line Args<br/>--batch-size 32"]
+    JSON["perf-bench-matrix.json<br/>variant config"]
+    Defaults["BATCH_SIZE = 32<br/>llms.py constants"]
+    
+    CLI -->|"Override"| Final["Final Configuration"]
+    JSON -->|"Override if CLI None"| Final
+    Defaults -->|"Fallback"| Final
+    
+    style Final fill:#f9f9f9

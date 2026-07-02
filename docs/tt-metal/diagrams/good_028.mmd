@@ -1,0 +1,15 @@
+TD
+    PyAPI["Python API Layer<br/>ttnn.matmul()<br/>ttnn.linear()"]
+    RegOp["Operation Registration<br/>ttnn::operations::matmul::MatmulOperation"]
+    DevOp["Device Operation Layer<br/>ttnn::prim::MatmulDeviceOperation<br/>validate()<br/>create_program()"]
+    ProgFactory["Program Factory Selection<br/>MatmulMultiCoreReuseMcast2DProgramFactory<br/>MatmulMultiCoreReuseMultiCastDRAMShardedProgramFactory"]
+    Program["Metal Program<br/>Kernel allocation<br/>CB configuration<br/>Core grid setup"]
+    LLK["LLK Integration<br/>llk_math_matmul_init()<br/>llk_math_matmul()"]
+    Hardware["Hardware Execution<br/>Tensix cores<br/>MathFidelity settings<br/>Accumulation precision"]
+
+    PyAPI --> RegOp
+    RegOp --> DevOp
+    DevOp --> ProgFactory
+    ProgFactory --> Program
+    Program --> LLK
+    LLK --> Hardware

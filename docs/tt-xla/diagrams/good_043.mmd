@@ -1,0 +1,22 @@
+TB
+    Matrix["Test Matrix Entry<br/>parallel-groups: 3"] --> CreateJobs["Create Strategy Matrix<br/>Job Indices: 0, 1, 2"]
+    
+    CreateJobs --> Job0["Job 0<br/>group-id: 1<br/>strategy.job-index: 0"]
+    CreateJobs --> Job1["Job 1<br/>group-id: 2<br/>strategy.job-index: 1"]
+    CreateJobs --> Job2["Job 2<br/>group-id: 3<br/>strategy.job-index: 2"]
+    
+    Job0 --> Collect0["Collect Tests<br/>pytest --collect-only"]
+    Job1 --> Collect1["Collect Tests<br/>pytest --collect-only"]
+    Job2 --> Collect2["Collect Tests<br/>pytest --collect-only"]
+    
+    Collect0 --> Split0["Split Tests<br/>--splits 3 --group 1<br/>--splitting-algorithm least_duration"]
+    Collect1 --> Split1["Split Tests<br/>--splits 3 --group 2"]
+    Collect2 --> Split2["Split Tests<br/>--splits 3 --group 3"]
+    
+    Split0 --> Execute0["Execute Subset<br/>pytest -vv"]
+    Split1 --> Execute1["Execute Subset<br/>pytest -vv"]
+    Split2 --> Execute2["Execute Subset<br/>pytest -vv"]
+    
+    Execute0 --> Report0["Upload Report<br/>report_job_id.xml"]
+    Execute1 --> Report1["Upload Report<br/>report_job_id.xml"]
+    Execute2 --> Report2["Upload Report<br/>report_job_id.xml"]

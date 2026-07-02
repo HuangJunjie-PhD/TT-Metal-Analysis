@@ -1,0 +1,14 @@
+TD
+    PackageStep["cmake --build build --target package (Invokes CPack)"]
+    
+    PackageStep --> CorePkgs["Core Runtime Packages"]
+    PackageStep --> DevPkgs["Development Packages"]
+    
+    CorePkgs --> Metalium["tt-metalium_*.deb (libtt_metal.so)"]
+    CorePkgs --> MetaliumJIT["tt-metalium-jit_*.deb (JIT headers)"]
+    
+    DevPkgs --> MetaliumDev["tt-metalium-dev_*.deb (Public Headers)"]
+    DevPkgs --> MetaliumExamples["tt-metalium-examples_*.deb"]
+
+
+Sources: [.github/workflows/build-artifact.yaml:514-523]()

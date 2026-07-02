@@ -1,0 +1,23 @@
+TD
+    Entry["benchmark(config: dict)"]
+    ParseConfig["Parse Configuration<br/>batch_size, loop_count,<br/>data_format, task"]
+    LoadModel["Load Model via ModelLoader<br/>UNetLoader / SegformerLoader / ViTLoader"]
+    PrepareInputs["Prepare Input Tensors<br/>load_benchmark_dataset()<br/>or random torch.randn()"]
+    ConfigXLA["Configure torch-xla<br/>torch_xla.set_custom_compile_options()"]
+    Compile["Compile Model<br/>torch.compile(backend='tt')"]
+    Warmup["Warmup Phase<br/>torch_xla_warmup_model()"]
+    Measure["Benchmark Measurement<br/>torch_xla_measure_fps()"]
+    Validate["PCC Validation<br/>compute_pcc()"]
+    Serialize["Serialize Modules<br/>serialize_modules()"]
+    Results["Create Benchmark Result<br/>create_benchmark_result()"]
+    
+    Entry --> ParseConfig
+    ParseConfig --> LoadModel
+    LoadModel --> PrepareInputs
+    PrepareInputs --> ConfigXLA
+    ConfigXLA --> Compile
+    Compile --> Warmup
+    Warmup --> Measure
+    Measure --> Validate
+    Validate --> Serialize
+    Serialize --> Results

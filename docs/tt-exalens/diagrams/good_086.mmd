@@ -1,0 +1,28 @@
+TB
+    API["load_elf()<br/>tt_exalens_lib.py:376-443"]
+    PARSE["Parse location parameter"]
+    MULTI["Multiple locations?"]
+    LOOP["For each location"]
+    
+    GETRISC["noc_block.get_risc_debug()"]
+    CREATE["Create ElfLoader instance"]
+    LOADELF["elf_loader.load_elf()"]
+    COLLECT["Collect start addresses"]
+    
+    RETURN["Return addresses or None"]
+    
+    API --> PARSE
+    PARSE --> MULTI
+    MULTI -->|Yes| LOOP
+    MULTI -->|No| GETRISC
+    LOOP --> GETRISC
+    GETRISC --> CREATE
+    CREATE --> LOADELF
+    LOADELF --> COLLECT
+    COLLECT --> RETURN
+
+
+The API supports loading to:
+1. A single location (`str` or `OnChipCoordinate`)
+2. Multiple locations (`list[str | OnChipCoordinate]`)
+3. All cores (`location="all"`)

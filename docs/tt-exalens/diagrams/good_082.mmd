@@ -1,0 +1,34 @@
+TB
+    RSI["RegisterStoreInitialization\
+(registers_map, get_register_base_address)"]
+    LOC["OnChipCoordinate\
+(location)"]
+    NEO["neo_id: int | None"]
+
+    RS["RegisterStore\
+(ttexalens/register_store.py)"]
+
+    DEV["Device\
+(via location._device)"]
+    CTX["Context\
+(via device._context)"]
+    BLOCK["NocBlock\
+(via location.noc_block)"]
+    RISC["RiscDebug\
+(via block.get_default_risc_debug())"]
+    MMAP["MemoryMap\
+(risc_info.memory_map)"]
+
+    RSI --> RS
+    LOC --> RS
+    NEO --> RS
+
+    RS -.->|"hardware access"| DEV
+    RS -.->|"settings"| CTX
+    RS -.->|"private memory"| RISC
+    RS -.->|"config_regs bounds"| MMAP
+    BLOCK --> RISC
+    RISC --> MMAP
+
+
+Sources: [ttexalens/register_store.py:169-211]()

@@ -1,0 +1,15 @@
+TD
+    A[ttnn::reduce()] --> B{ReduceType?}
+    B -- Sum/Mean/Var/Std --> C[reduce_impl()]
+    B -- Max --> D[reduce_impl(MAX)]
+    B -- Min --> E[reduce_impl(MIN)]
+    E --> D
+    C --> F{Dim Type?}
+    D --> F
+    F -- Single Dim (W/H/HW) --> G[ttnn::prim::reduce()]
+    F -- Multiple Dims --> H[reduce_nd_loop()]
+    G --> I[ReduceDeviceOperation::select_program_factory()]
+    I -- MULTI_CORE_H --> J[ReduceMultiCoreHProgramFactory]
+    I -- MULTI_CORE_W --> K[ReduceMultiCoreWProgramFactory]
+    I -- SINGLE_CORE_HW --> L[ReduceSingleCoreHwProgramFactory]
+    H --> G

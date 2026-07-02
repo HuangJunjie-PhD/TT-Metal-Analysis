@@ -1,0 +1,27 @@
+TD
+    Start["callstack() called"]
+    Halt["Halt RISC-V core"]
+    ReadPC["Read PC register"]
+    ReadGPRs["Read GPRs (sp, fp, etc.)"]
+    ParseDWARF["Parse DWARF CFI"]
+    Frame0["Create frame 0 at PC"]
+    ReadMem["Read stack memory"]
+    CalcCFA["Calculate CFA"]
+    UnwindRegs["Restore caller registers"]
+    FrameN["Create frame N"]
+    Done["Format & return frames"]
+    
+    Start --> Halt
+    Halt --> ReadPC
+    Halt --> ReadGPRs
+    Start --> ParseDWARF
+    ReadPC --> Frame0
+    ReadGPRs --> Frame0
+    Frame0 --> ReadMem
+    ParseDWARF --> CalcCFA
+    ReadMem --> CalcCFA
+    CalcCFA --> UnwindRegs
+    UnwindRegs --> |"PC != 0"| FrameN
+    FrameN --> |"depth < max"| ReadMem
+    UnwindRegs --> |"PC == 0"| Done
+    FrameN --> |"depth >= max"| Done

@@ -1,0 +1,25 @@
+TD
+    A["ttexalens/elf/__init__.py"] --> B["parsed.py\
+ParsedElfFile, read_elf"]
+    A --> C["die.py\
+ElfDie"]
+    A --> D["variable.py\
+ElfVariable"]
+    A --> E["frame.py\
+FrameInfoProvider, FrameInspection"]
+    A --> F["cu.py\
+ElfCompileUnit"]
+    A --> G["dwarf.py\
+ElfDwarf"]
+    B --> G
+    B --> F
+    B --> C
+    B --> D
+    B --> E
+    C --> F
+    F --> G
+    G -->|"uses pyelftools"| H["elftools.elf.elffile.ELFFile"]
+    G -->|"uses pyelftools"| I["elftools.dwarf.dwarfinfo.DWARFInfo"]
+
+
+Sources: [ttexalens/elf/__init__.py:1-21](), [ttexalens/elf/parsed.py:1-30](), [ttexalens/elf/die.py:1-25]()

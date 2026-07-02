@@ -1,0 +1,16 @@
+LR
+    TTIR["TTIR Operations"]
+    
+    Elementwise["Elementwise Ops<br/>ttir.add, ttir.multiply<br/>ttir.abs, ttir.exp"]
+    MatMul["Matrix Operations<br/>ttir.matmul<br/>ttir.dot_general"]
+    Reduction["Reduction Ops<br/>ttir.sum, ttir.max<br/>ttir.prod"]
+    Layout["Layout Ops<br/>ttir.to_layout<br/>ttir.reshape"]
+    Creation["Tensor Creation<br/>ttir.empty, ttir.zeros<br/>ttir.full"]
+    
+    TTIR --> Elementwise
+    TTIR --> MatMul
+    TTIR --> Reduction
+    TTIR --> Layout
+    TTIR --> Creation
+
+Sources: [include/ttmlir/Dialect/TTIR/IR/TTIROps.td:32-200]()

@@ -1,0 +1,31 @@
+TB
+    UserAPI["User API<br/>read_word_from_device<br/>read_words_from_device<br/>read_from_device"]
+    Validate["Input Validation<br/>validate_addr()<br/>validate_device_id()"]
+    CoordConvert["Coordinate Conversion<br/>convert_coordinate()"]
+    OnChip["OnChipCoordinate<br/>noc_read() / noc_read32()"]
+    Device["Device<br/>noc_read() / noc_read32()"]
+    SafeMode{"safe_mode<br/>enabled?"}
+    MemCheck["Memory Map Check<br/>is_safe_to_access()"]
+    UnsafeEx["Raise<br/>UnsafeAccessException"]
+    NocOp["NOC Operation<br/>TLB or DMA"]
+    UmdDevice["UmdDevice<br/>read_from_device()"]
+    Timeout{"Timeout?"}
+    Failover["NOC Failover<br/>Switch noc0 ↔ noc1"]
+    
+    UserAPI --> Validate
+    Validate --> CoordConvert
+    CoordConvert --> OnChip
+    OnChip --> Device
+    Device --> SafeMode
+    SafeMode -->|Yes| MemCheck
+    SafeMode -->|No| NocOp
+    MemCheck -->|Valid| NocOp
+    MemCheck -->|Invalid| UnsafeEx
+    NocOp --> UmdDevice
+    UmdDevice --> Timeout
+    Timeout -->|Yes| Failover
+    Timeout -->|No| Return["Return data"]
+    Failover --> NocOp
+
+
+Sources: [ttexalens/tt_exalens_lib.py:109-216](), [ttexalens/coordinate.py:327-339]()

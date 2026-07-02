@@ -1,0 +1,39 @@
+TB
+    Input["torch.fx.GraphModule<br/>from torch.compile"]
+    
+    FusionCheck{"tt_enable_torch_fx_fusion_pass<br/>option enabled?"}
+    FusionPass["run_fusion_passes()<br/>Pattern-based fusion"]
+    
+    CompositeCheck{"tt_enable_composite_ops<br/>option enabled?"}
+    CompositePass["handle_composite_ops()<br/>Wrap high-level ops"]
+    
+    Export["torch.export.export()<br/>Capture graph"]
+    Decompose["run_decompositions()<br/>Custom decompositions"]
+    
+    ArgMarkers["insert_argument_type_markers()<br/>Mark inputs/params/constants"]
+    DtypePass["bypass_dtype_promotion_and_redundant_cast()<br/>Remove unwanted casts"]
+    GetitemPass["bypass_redundant_getitem()<br/>Simplify tuple access"]
+    AssertPass["bypass_assert_tensor_metadata()<br/>Remove CPU assertions"]
+    
+    Recompile["GraphModule.recompile()<br/>Finalize modifications"]
+    MetadataExtract["extract_nodes_info()<br/>For debugging"]
+    
+    Output["Transformed GraphModule<br/>+ ExportGraphSignature<br/>+ node metadata"]
+    
+    Input --> FusionCheck
+    FusionCheck -->|"True (default)"| FusionPass
+    FusionCheck -->|False| CompositeCheck
+    FusionPass --> CompositeCheck
+    
+    CompositeCheck -->|"True (default)"| CompositePass
+    CompositeCheck -->|False| Export
+    CompositePass --> Export
+    
+    Export --> Decompose
+    Decompose --> ArgMarkers
+    ArgMarkers --> DtypePass
+    DtypePass --> GetitemPass
+    GetitemPass --> AssertPass
+    AssertPass --> Recompile
+    Recompile --> MetadataExtract
+    MetadataExtract --> Output

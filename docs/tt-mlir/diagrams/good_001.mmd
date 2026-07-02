@@ -1,0 +1,28 @@
+TD
+    A["Developer machine"] --> B["Create TTMLIR_TOOLCHAIN_DIR\
+(default: /opt/ttmlir-toolchain)"]
+    B --> C["cmake -B env/build env\
+(env/CMakeLists.txt)"]
+    C --> D["ExternalProject: llvm-project\
+(LLVM + MLIR)"]
+    C --> E["ExternalProject: flatbuffers"]
+    C --> F["ExternalProject: stablehlo\
+(source only)"]
+    C --> G["ExternalProject: shardy\
+(source + patches)"]
+    C --> H["python-venv target\
+(env/init_venv.sh)"]
+    H --> I["TTMLIR_TOOLCHAIN_DIR/venv\
+(Python 3.12 venv)"]
+    D --> J["cmake --build env/build"]
+    E --> J
+    F --> J
+    G --> J
+    H --> J
+    J --> K["source env/activate\
+(or env/activate.fish)"]
+    K --> L["Environment ready:\
+PATH, PYTHONPATH, TT_METAL_RUNTIME_ROOT set"]
+
+
+Sources: [env/CMakeLists.txt:1-105](), [env/activate:1-32]()

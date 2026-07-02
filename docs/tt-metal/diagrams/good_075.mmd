@@ -1,0 +1,16 @@
+TD
+    PR_Push[Developer PR/Push] --> CodeAnalysis[Code Analysis]
+    PR_Push --> BuildArtifact[build-artifact.yaml Workflow]
+    CodeAnalysis --> ClangTidy[Clang-Tidy Jobs]
+    BuildArtifact --> DockerImageBuild[Build Docker Images]
+    DockerImageBuild --> CompileBinaries[Compile C++ Binaries]
+    CompileBinaries --> PythonWheels[Build Python Wheels]
+    PythonWheels --> HardwareTests[Hardware Test Matrix]
+
+
+- The pipeline runs static checks and Linux Docker-based builds.
+- It produces deb packages, Python wheels, and Docker images.
+- Then runs a test matrix including smoke tests on physical hardware and the TTSim simulator to verify correctness and performance.
+- Incremental and full clang-tidy runs ensure code quality.
+
+Sources: [.github/workflows/build-artifact.yaml:1-162](), [.github/workflows/code-analysis.yaml:80-200](), [.github/workflows/pr-gate.yaml:1-124]()

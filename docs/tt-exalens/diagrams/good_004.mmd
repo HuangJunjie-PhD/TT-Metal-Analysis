@@ -1,0 +1,10 @@
+TB
+    Device["Device (Abstract)"] --> WH["WormholeDevice"]
+    Device --> BH["BlackholeDevice"]
+    Device --> Q["QuasarDevice"]
+    
+    Device --> Methods["Common Methods"]
+    Methods --> BlockLoc["get_block_locations()"]
+    Methods --> GetBlock["get_block()"]
+    Methods --> CoordConv["to_noc0(), from_noc0()"]
+    Methods --> ARC["arc_msg(), arc_block"]

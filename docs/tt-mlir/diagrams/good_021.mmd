@@ -1,0 +1,16 @@
+TD
+    Start["Start Pass"] --> WalkOps["Walk TTNN Operations"]
+    WalkOps --> IsExempt{"OpModelExempt?"}
+    IsExempt -- Yes --> Skip["Skip Validation"]
+    IsExempt -- No --> Query["Query OpModel Constraints"]
+    Query --> Valid{"Valid?"}
+    Valid -- Yes --> Next["Continue"]
+    Valid -- No --> TryFallback["Try Fallback (Layout/DType)"]
+    TryFallback --> FallbackSuccess{"Success?"}
+    FallbackSuccess -- Yes --> ApplyTransform["Apply ToLayoutOp"]
+    FallbackSuccess -- No --> Error["Emit Compiler Error"]
+
+
+Operations can be marked with the `OpModelExempt` trait to bypass validation if they are known to be host-side or special-case operations [include/ttmlir/Dialect/TTNN/IR/TTNNTraits.h:58-60](). The `validateConstraints` function handles the core logic of comparing hardware query results against the effective L1 limit of the device [lib/Dialect/TTNN/Validation/OpConstraintValidation.cpp:129-144]().
+
+Sources: [lib/Dialect/TTNN/Transforms/OptimizerPasses/OperationValidationAndFallback.cpp:149-185](), [lib/Dialect/TTNN/Validation/OpConstraintValidation.cpp:107-156](), [include/ttmlir/Dialect/TTNN/IR/TTNNTraits.h:58-60]()

@@ -1,0 +1,23 @@
+TB
+    Start["Start Development"]
+    
+    Start --> Activate["source venv/activate"]
+    Activate --> HWCheck{"Hardware<br/>configured?"}
+    HWCheck -->|No| TTInstaller["Run tt-installer<br/>Configure hugepages"]
+    HWCheck -->|Yes| CodeChange["Make code changes"]
+    TTInstaller --> CodeChange
+    
+    CodeChange --> Build["cmake --build build"]
+    Build --> Test["pytest tests/"]
+    
+    Test --> TestPass{"Tests pass?"}
+    TestPass -->|No| Debug["Debug with IR dumps<br/>Tracy profiling<br/>Logs"]
+    TestPass -->|Yes| Commit["git commit"]
+    
+    Debug --> CodeChange
+    
+    Commit --> PR["Open Pull Request"]
+    PR --> CI["CI runs tests<br/>on multiple hardware"]
+    CI --> CIPass{"CI passes?"}
+    CIPass -->|No| Debug
+    CIPass -->|Yes| Merge["Merge"]

@@ -1,0 +1,13 @@
+TB
+    ModelSize["Model Parameter Count"]
+
+    ModelSize -->|"<= 8B"| SingleChip["Single Chip: wh_n150 / bh_p150"]
+    ModelSize -->|"11B - 32B"| MediumMesh["Medium Mesh: wh_n300 / bh_p300 (TP=2 or TP=4)"]
+    ModelSize -->|"> 70B"| LargeMesh["Large Mesh: Galaxy/wh_llmbox/Galaxy (TP=8 or TP=32)"]
+    
+    LargeMesh --> T3K["T3000 Cluster (1x8 mesh)<br/>MESH_DEVICE=T3K"]
+    LargeMesh --> Galaxy["Galaxy Cluster (8x4 mesh)<br/>MESH_DEVICE=TG"]
+
+
+Sources:  
+[README.md:40-64](), [models/README.md:5-23](), [models/demos/deepseek_v3/README.md:28-59]()

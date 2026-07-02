@@ -1,0 +1,23 @@
+TB
+    Frontend["Frontend Dialects<br/>StableHLO, TOSA, Shardy"]
+    TTIR["TTIR Dialect<br/>(Hardware-agnostic tensor ops)"]
+    TTNN["TTNN Dialect<br/>(Neural network ops)"]
+    D2M["D2M Dialect<br/>(Device-aware IR)"]
+    TTMetal["TTMetal Dialect<br/>(Metal-level ops)"]
+    
+    Frontend -->|"StableHLOToTTIR"| TTIR
+    TTIR -->|"TTIRToTTNN"| TTNN
+    TTIR -->|"TTIRToD2M"| D2M
+    D2M -->|"D2MToTTNN"| TTNN
+    D2M -->|"D2MToTTMetal"| TTMetal
+    
+    style TTIR stroke-width:4px
+
+Sources: [lib/Conversion/StableHLOToTTIR/StableHLOToTTIRPatterns.cpp:5-18](), [lib/Conversion/TTIRToTTNN/TTIRToTTNN.cpp:5-18](), [include/ttmlir/Dialect/TTIR/IR/TTIROps.td:1-12]()
+
+The TTIR dialect provides:
+- Hardware-agnostic operation semantics.
+- Implicit broadcast resolution via the `TTIRImplicitBroadcastFold` pass [lib/Dialect/TTNN/Pipelines/TTNNPipelines.cpp:59-61]().
+- Type inference and shape propagation via `InferTypeOpInterface` [include/ttmlir/Dialect/TTIR/IR/TTIROps.td:15-15]().
+- Operation decomposition primitives, such as decomposing `ttir.index` into `ttir.slice_static` [lib/Conversion/TTIRToTTIRDecomposition/TTIRToTTIRDecomposition.cpp:35-92]().
+- Layout transition operations via `ttir.to_layout` [include/ttmlir/Dialect/TTIR/IR/TTIROps.td:36-50]().

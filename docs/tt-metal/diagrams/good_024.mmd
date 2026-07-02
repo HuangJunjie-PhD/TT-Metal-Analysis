@@ -1,0 +1,17 @@
+TB
+    ES["Execute_Struct_in_C++<br/>(e.g._ttnn::operations::eltwise::unary::ExecuteUnary)"]
+    Reg["ttnn::register_operation<br/>(ttnn/operation.hpp)"]
+    OpObj["C++_Operation_Object<br/>__ttnn_operation__"]
+    PyAutoReg["auto_register_ttnn_cpp_operations<br/>(ttnn/__init__.py)"]
+    PyModule["Python_Module<br/>ttnn.relu"]
+    
+    ES --> Reg
+    Reg --> OpObj
+    OpObj --> PyAutoReg
+    PyAutoReg --> PyModule
+
+
+- **Execute Struct**: Implements operation logic in C++.
+- **Registration Statement**: Using `ttnn::register_operation` template binds a name to the execute struct.
+- **Operation Object**: Annotated with `__ttnn_operation__`; visible to Python.
+- **Python Auto-Registration**: Scans C++ modules and registers operations into Python namespace.

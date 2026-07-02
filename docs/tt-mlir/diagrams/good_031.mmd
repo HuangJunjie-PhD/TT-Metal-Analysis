@@ -1,0 +1,17 @@
+TD
+    root["CMakeLists.txt"]
+    include["add_subdirectory(include)"]
+    lib["add_subdirectory(lib)"]
+    python["add_subdirectory(python)"]
+    test["add_subdirectory(test)"]
+    tools["add_subdirectory(tools)"]
+    runtime["add_subdirectory(runtime)"]
+    env["add_subdirectory(env)"]
+
+    root --> include
+    root --> lib
+    root --> python
+    root --> test
+    root --> tools
+    root --> runtime
+    root --> env

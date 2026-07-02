@@ -1,0 +1,14 @@
+LR
+    CheckPythonVer["Check python_version<br/>from set-release-facts"]
+    BuildBase["docker-build-push action<br/>Step: docker-build-push-3-11"]
+    DetermineBase["determine-docker-base-image step<br/>Set DOCKER_BASE_IMAGE output"]
+    
+    CheckPythonVer -->|if python_version == 3.11| BuildBase
+    BuildBase --> DetermineBase
+
+
+The build is executed in [.github/workflows/release.yml:152-170]():
+- **Condition**: Only builds if `python_version == '3.11'` (line 153)
+- **Action**: `docker-build-push` with specific parameters
+- **Caching**: Enabled via `cache_docker_tag: true` (line 158)
+- **Latest tag**: Always set to `true` for base images (line 159)

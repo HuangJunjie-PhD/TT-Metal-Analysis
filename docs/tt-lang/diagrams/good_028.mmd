@@ -1,0 +1,18 @@
+LR
+    Baseline["1. Baseline<br/>Measurement<br/>(--perf --hw)"]
+    Identify["2. Bottleneck<br/>Identification<br/>(Analyze Logs)"]
+    Propose["3. Optimization<br/>Plan<br/>(Identify Targets)"]
+    Implement["4. Implementation<br/>(DSL or Flags)"]
+    Validate["5. Correctness<br/>Validation<br/>(--hw)"]
+    Measure["6. Impact<br/>Measurement<br/>(--perf --hw)"]
+    Decide{"Improvement?"}
+    
+    Baseline --> Identify
+    Identify --> Propose
+    Propose --> Implement
+    Implement --> Validate
+    Validate --> Measure
+    Measure --> Decide
+    Decide -->|Yes| Identify
+    Decide -->|No, Revert| Propose
+    Decide -->|Diminishing Returns| End["Done"]

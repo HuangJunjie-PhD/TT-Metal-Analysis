@@ -1,0 +1,17 @@
+TD
+    Start["init_ttexalens_remote(ip_address, port)"]
+    ConnectServer["connect_to_server(ip_address, port)"]
+    CreateProxies["Create Pyro5 proxies<br/>- UmdApi proxy<br/>- FileAccessApi proxy"]
+    SetSerializer["Set serializer = 'serpent'<br/>Configure binary transfer"]
+    LoadContext["load_context(umd_api_proxy, file_api_proxy, use_4B_mode, noc_failover)"]
+    CreateContext["Create Context object<br/>- Store proxy interfaces<br/>- Store configuration"]
+    SetGlobal["Set GLOBAL_CONTEXT = context"]
+    Return["Return Context"]
+    
+    Start --> ConnectServer
+    ConnectServer --> CreateProxies
+    CreateProxies --> SetSerializer
+    SetSerializer --> LoadContext
+    LoadContext --> CreateContext
+    CreateContext --> SetGlobal
+    SetGlobal --> Return

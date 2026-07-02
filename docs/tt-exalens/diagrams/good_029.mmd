@@ -1,0 +1,23 @@
+TB
+    LibFunc["Library Function<br/>e.g., read_from_device()"]
+    CheckParam{"context<br/>parameter<br/>provided?"}
+    UseProvided["Use provided context"]
+    CheckContext["call check_context()"]
+    CheckGlobal{"GLOBAL_CONTEXT<br/>exists?"}
+    ReturnGlobal["Return GLOBAL_CONTEXT"]
+    InitNew["init_ttexalens()"]
+    SetGlobal["Set GLOBAL_CONTEXT"]
+    ReturnNew["Return new context"]
+    UseContext["Use context for operation"]
+    
+    LibFunc --> CheckParam
+    CheckParam -->|"Yes"| UseProvided
+    CheckParam -->|"No"| CheckContext
+    CheckContext --> CheckGlobal
+    CheckGlobal -->|"Yes"| ReturnGlobal
+    CheckGlobal -->|"No"| InitNew
+    InitNew --> SetGlobal
+    SetGlobal --> ReturnNew
+    UseProvided --> UseContext
+    ReturnGlobal --> UseContext
+    ReturnNew --> UseContext

@@ -1,0 +1,23 @@
+TB
+    Handler["TTAlchemistHandler<br/>Defined at module_builder.h:48-105"]
+    
+    Init["initialize()<br/>line 119-175"]
+    
+    FindLib["findTTAlchemistLibraryPath()<br/>Check $TT_MLIR_HOME/build/lib/<br/>libtt-alchemist-lib.so"]
+    
+    DLOpen["dlopen() library<br/>Store in m_handle"]
+    
+    LoadSymbols["dlsym() function pointers:<br/>m_get_instance<br/>m_generate_python<br/>m_generate_cpp"]
+    
+    InitComplete["m_initialized = true"]
+    
+    InitFail["m_initialized = false<br/>Log warning, continue"]
+    
+    Handler --> Init
+    Init --> FindLib
+    FindLib -->|"Found"| DLOpen
+    FindLib -->|"Not found"| InitFail
+    DLOpen -->|"Success"| LoadSymbols
+    DLOpen -->|"Failure"| InitFail
+    LoadSymbols -->|"All resolved"| InitComplete
+    LoadSymbols -->|"Any failed"| InitFail

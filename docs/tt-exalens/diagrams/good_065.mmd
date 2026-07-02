@@ -1,0 +1,15 @@
+TD
+    User["User code"]
+    SetWP["set_watchpoint_on_*()"]
+    UpdateSetting["__update_watchpoint_setting()"]
+    SetAddr["Write to REG_HW_WATCHPOINT_N"]
+    ReadOld["Read REG_HW_WATCHPOINT_SETTINGS"]
+    MaskBits["Mask out 4 bits for watchpoint N"]
+    WriteNew["Write updated settings"]
+    
+    User --> SetWP
+    SetWP --> |"ensure_halted()"| UpdateSetting
+    UpdateSetting --> SetAddr
+    UpdateSetting --> ReadOld
+    ReadOld --> MaskBits
+    MaskBits --> WriteNew

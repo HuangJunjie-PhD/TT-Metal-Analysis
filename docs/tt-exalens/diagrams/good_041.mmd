@@ -1,0 +1,18 @@
+TB
+    Device["Device"]
+    GetBlocks["get_blocks('arc')"]
+    ArcBlockProp["arc_block property"]
+    ArcBlock["ArcBlock"]
+    ArcTelemetry["Telemetry Interface"]
+    ArcMessaging["Message Interface"]
+    
+    Device --> GetBlocks
+    Device --> ArcBlockProp
+    GetBlocks --> ArcBlock
+    ArcBlockProp --> ArcBlock
+    ArcBlock --> ArcTelemetry
+    ArcBlock --> ArcMessaging
+    
+    style ArcBlock fill:#f9f9f9
+    style ArcTelemetry fill:#f9f9f9
+    style ArcMessaging fill:#f9f9f9

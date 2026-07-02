@@ -1,0 +1,25 @@
+TB
+    User["User Code"] --> read_reg["read_register()"]
+    User --> write_reg["write_register()"]
+    
+    read_reg --> coord["convert_coordinate()"]
+    write_reg --> coord
+    
+    coord --> RegisterStore["NocBlock.get_register_store()"]
+    
+    RegisterStore --> read_op["RegisterStore.read_register()"]
+    RegisterStore --> write_op["RegisterStore.write_register()"]
+    
+    read_op --> ConfigReg["ConfigurationRegisterDescription"]
+    read_op --> DebugReg["DebugRegisterDescription"]
+    read_op --> NameLookup["Register name lookup"]
+    
+    write_op --> ConfigReg
+    write_op --> DebugReg
+    write_op --> NameLookup
+
+
+| Function | Purpose | Returns |
+|----------|---------|---------|
+| `read_register()` | Read configuration or debug register | `int` |
+| `write_register()` | Write configuration or debug register | `None` |

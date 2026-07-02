@@ -1,0 +1,27 @@
+TB
+    MemoryBlock["MemoryBlock<br/>(hardware/memory_block.py)"]
+    Size["size: int"]
+    Address["address: DeviceAddress"]
+    
+    DeviceAddress["DeviceAddress<br/>(hardware/device_address.py)"]
+    NocAddr["noc_address: int | None"]
+    PrivAddr["private_address: int | None"]
+    Bar0Addr["bar0_address: int | None"]
+    NocId["noc_id: int | None"]
+    
+    JustNoc["just_noc_address()"]
+    JustPriv["just_private_address()"]
+    JustBar0["just_bar0_address()"]
+    
+    MemoryBlock --> Size
+    MemoryBlock --> Address
+    Address --> DeviceAddress
+    
+    DeviceAddress --> NocAddr
+    DeviceAddress --> PrivAddr
+    DeviceAddress --> Bar0Addr
+    DeviceAddress --> NocId
+    
+    DeviceAddress --> JustNoc
+    DeviceAddress --> JustPriv
+    DeviceAddress --> JustBar0

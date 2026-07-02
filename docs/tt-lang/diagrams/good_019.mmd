@@ -1,0 +1,17 @@
+TD
+    Entry["void kernel_main()"]
+    Constants["Constant Declarations<br/>size_t bounds, page_size"]
+    RTArgs["Runtime Arguments<br/>get_common_arg_val<br/>TensorAccessorArgs"]
+    CBSetup["CB Setup<br/>CircularBuffer wrapper<br/>Pointer casting"]
+    LoopNest["Tile Iteration<br/>scf.for -> for(...)"]
+    MathOps["Math/DMA Logic<br/>tile_regs_acquire<br/>noc_async_read_tile"]
+    Sync["Synchronization<br/>tile_regs_commit<br/>noc_async_read_barrier"]
+    Return["return;"]
+    
+    Entry --> Constants
+    Constants --> RTArgs
+    RTArgs --> CBSetup
+    CBSetup --> LoopNest
+    LoopNest --> MathOps
+    MathOps --> Sync
+    Sync --> Return

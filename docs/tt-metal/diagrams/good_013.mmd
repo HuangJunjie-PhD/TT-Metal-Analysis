@@ -1,0 +1,9 @@
+LR
+    A["SubDeviceManager()"] --> B["validate_sub_devices()"]
+    B --> C["populate_sub_device_ids()"]
+    C --> D["populate_num_cores()"]
+    D --> E["populate_sub_allocators()"]
+    E --> F["populate_noc_data()"]
+    F --> G["Ready"]
+
+    sub

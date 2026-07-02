@@ -1,0 +1,17 @@
+TB
+    User["User Code"] --> TensixState["TensixState"]
+    
+    TensixState --> GetTensixDebug["TensixDebug(location)"]
+    
+    GetTensixDebug --> ReadALU["read_alu_config()"]
+    GetTensixDebug --> ReadPack["read_pack_config()"]
+    GetTensixDebug --> ReadUnpack["read_unpack_config()"]
+    GetTensixDebug --> ReadGPR["read_gpr()"]
+    GetTensixDebug --> ReadRWC["read_rwc()"]
+    GetTensixDebug --> ReadADC["read_adc()"]
+    
+    ReadGPR --> InjectInsn["inject_instruction()"]
+    ReadGPR --> ReadRegfile["read_regfile()"]
+    
+    ReadRegfile --> DirectRead["direct_dest_read() (Blackhole)"]
+    ReadRegfile --> IndirectRead["read_regfile_data() (Wormhole)"]

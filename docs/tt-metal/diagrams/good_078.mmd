@@ -1,0 +1,18 @@
+TB
+    Start[Start] --> Clone_Repo[Clone Repository]
+    Clone_Repo --> Setup_Env[Setup Development Environment]
+    Setup_Env --> Branch_Create[Create Feature Branch]
+    Branch_Create --> Implementation[Implement Features / Fixes]
+    Implementation --> Pre_Commit_Checks[Run Pre-commit Checks]
+    Pre_Commit_Checks --> Local_Testing[Run Local Tests]
+    Local_Testing --> Push_To_Origin[Push Branch to Origin]
+    Push_To_Origin --> Pull_Request[Open Pull Request]
+    Pull_Request --> PR_Gate_CI[PR Gate CI: Sanity/Smoke Tests]
+    PR_Gate_CI --> Code_Review[Code Review by Owners]
+    Code_Review --> Post_Commit_CI[Post Commit CI: Full Regression]
+    Post_Commit_CI --> Merge_To_Main[Merge to Main Branch]
+
+    Code_Review -- "Changes Requested" --> Implementation
+    Post_Commit_CI -- "Failures" --> Implementation
+
+    sub

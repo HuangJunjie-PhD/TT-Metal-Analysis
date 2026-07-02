@@ -1,0 +1,11 @@
+TD
+    Cluster["tt::Cluster"]
+    ControlPlane["tt::tt_fabric::ControlPlane"]
+    MeshGraph["tt::tt_fabric::MeshGraph"]
+    RoutingTableGenerator["tt::tt_fabric::RoutingTableGenerator"]
+    
+    Cluster -- "Provides physical device info" --> ControlPlane
+    ControlPlane -- "Initializes with" --> MeshGraph
+    ControlPlane -- "Uses" --> RoutingTableGenerator
+    
+    sub

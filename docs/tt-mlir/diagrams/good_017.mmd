@@ -1,0 +1,23 @@
+TD
+    common_types["include/ttmlir/Target/Common/types.fbs"]
+    common_debug["include/ttmlir/Target/Common/debug_info.fbs"]
+
+    ttnn_types["include/ttmlir/Target/TTNN/types.fbs"]
+    ttnn_program["include/ttmlir/Target/TTNN/program.fbs"]
+    ttnn_binary["include/ttmlir/Target/TTNN/binary.fbs"]
+
+    metal_types["include/ttmlir/Target/TTMetal/types.fbs"]
+    metal_program["include/ttmlir/Target/TTMetal/program.fbs"]
+    metal_command["include/ttmlir/Target/TTMetal/command.fbs"]
+    metal_binary["include/ttmlir/Target/TTMetal/binary.fbs"]
+
+    common_types --> ttnn_types
+    common_types --> ttnn_program
+    common_types --> metal_types
+    common_types --> metal_program
+    common_debug --> ttnn_program
+    ttnn_types --> ttnn_program
+    ttnn_program --> ttnn_binary
+    metal_types --> metal_command
+    metal_program --> metal_command
+    metal_command --> metal_binary

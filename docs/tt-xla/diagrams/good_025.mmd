@@ -1,0 +1,32 @@
+TB
+    PerformCodegen["performCodegen()<br/>line 1458"]
+    
+    CheckInit{"TTAlchemistHandler<br/>isInitialized()?"}
+    
+    ExportTTNN["Export TTNN MLIR<br/>to temporary file<br/>line 1463-1472"]
+    
+    GetSingleton["alchemist_instance =<br/>getInstanceFunc()()<br/>line 1477"]
+    
+    CheckBackend{"backend type"}
+    
+    GenPython["generatePythonFunc()(<br/>alchemist_instance,<br/>input_file,<br/>export_path,<br/>is_local=true,<br/>pipeline_options)<br/>line 1487-1492"]
+    
+    GenCpp["generateCppFunc()(<br/>alchemist_instance,<br/>input_file,<br/>export_path,<br/>is_local=true,<br/>pipeline_options)<br/>line 1506-1511"]
+    
+    CheckResult{"generation<br/>succeeded?"}
+    
+    Success["Return kSuccess<br/>Files written to<br/>export_path/solutions/"]
+    
+    Fail["Log error<br/>Return kInternal"]
+    
+    PerformCodegen --> CheckInit
+    CheckInit -->|"No"| Fail
+    CheckInit -->|"Yes"| ExportTTNN
+    ExportTTNN --> GetSingleton
+    GetSingleton --> CheckBackend
+    CheckBackend -->|"TTNNCodegenPy"| GenPython
+    CheckBackend -->|"TTNNCodegenCpp"| GenCpp
+    GenPython --> CheckResult
+    GenCpp --> CheckResult
+    CheckResult -->|"true"| Success
+    CheckResult -->|"false"| Fail

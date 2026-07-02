@@ -1,0 +1,12 @@
+TB
+    Bind["TTL_BindCBOp<br/>Declare CB slot usage<br/>(kernel scope)"]
+    Attach["TTL_AttachCBOp<br/>Associate tensor SSA → CB handle<br/>(per tensor)"]
+    Acquire["Acquisition Phase<br/>TTL_CBReserveOp (Producer)<br/>TTL_CBWaitOp (Consumer)"]
+    Use["Use Block<br/>Copy/Compute/Store operations"]
+    Release["Release Phase<br/>TTL_CBPushOp (Producer)<br/>TTL_CBPopOp (Consumer)"]
+    
+    Bind --> Attach
+    Attach --> Acquire
+    Acquire --> Use
+    Use --> Release
+    Release -.->|"Next iteration"| Acquire

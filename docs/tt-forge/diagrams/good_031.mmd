@@ -1,0 +1,13 @@
+LR
+    RC1["0.4.0rc1<br/>First RC"]
+    RC2["0.4.0rc2<br/>Second RC"]
+    RC3["0.4.0rc3<br/>Third RC"]
+    Stable["0.4.0<br/>Stable"]
+    Patch1["0.4.1<br/>Patch"]
+    Patch2["0.4.2<br/>Patch"]
+    
+    RC1 -->|"bump-version.yml"| RC2
+    RC2 -->|"bump-version.yml"| RC3
+    RC3 -->|"promote-stable.yml"| Stable
+    Stable -->|"bump-version.yml"| Patch1
+    Patch1 -->|"bump-version.yml"| Patch2

@@ -1,0 +1,19 @@
+TB
+    Exception["Exception Raised"]
+    
+    ComponentChecker{"ComponentChecker<br/>checks_xla.py:13-151"}
+    
+    METAL["METAL<br/>(libtt_metal.so)"]
+    TTNN["TTNN<br/>(_ttnncpp.so, libTTMLIRCompiler.so)"]
+    XLA["XLA<br/>(tt_torch/backend, torch_device_runner)"]
+    TORCH["TORCH<br/>(torch/utils/_pytree.py)"]
+    SWEEPS["SWEEPS<br/>(operators/utils/verify.py)"]
+    
+    Exception --> ComponentChecker
+    ComponentChecker -->|"stack trace contains<br/>libtt_metal.so"| METAL
+    ComponentChecker -->|"stack trace contains<br/>_ttnncpp.so but not libtt_metal"| TTNN
+    ComponentChecker -->|"no compiler/runtime libs<br/>in stack trace"| XLA
+    ComponentChecker -->|"torch utils in<br/>stack trace"| TORCH
+    ComponentChecker -->|"verify.py in<br/>stack trace"| SWEEPS
+    
+    style ComponentChecker fill:#f9f9f9

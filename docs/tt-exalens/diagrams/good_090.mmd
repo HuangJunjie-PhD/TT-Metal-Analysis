@@ -1,0 +1,21 @@
+TB
+    Callstack["callstack() API"]
+    
+    RiscDebug["RiscDebug<br/>halt, read_gpr"]
+    ParsedElf["ParsedElfFile<br/>frame_info, DWARF"]
+    MemAccess["MemoryAccess<br/>read L1/private"]
+    
+    FrameInfo["FrameInfoProvider<br/>FDEs"]
+    DwarfParser["ElfDwarf<br/>find_function"]
+    Variables["ElfDie<br/>read_value"]
+    
+    Callstack --> RiscDebug
+    Callstack --> ParsedElf
+    
+    ParsedElf --> FrameInfo
+    ParsedElf --> DwarfParser
+    ParsedElf --> Variables
+    
+    FrameInfo --> MemAccess
+    Variables --> MemAccess
+    RiscDebug --> MemAccess

@@ -1,0 +1,21 @@
+TB
+    UserCode["User calls<br/>var.read_value()"]
+    ReadValue["ElfVariable.read_value()"]
+    MemAccess["mem_access.read()"]
+    DeviceAccess["Device NOC/memory"]
+    
+    Timeout["TimeoutDeviceRegisterError"]
+    Halted["RiscHaltError"]
+    Restricted["RestrictedMemoryAccessError"]
+    
+    UserCode --> ReadValue
+    ReadValue --> MemAccess
+    MemAccess --> DeviceAccess
+    
+    DeviceAccess -->|NOC timeout| Timeout
+    DeviceAccess -->|Core halted| Halted
+    DeviceAccess -->|Invalid region| Restricted
+    
+    Timeout --> UserCode
+    Halted --> UserCode
+    Restricted --> UserCode

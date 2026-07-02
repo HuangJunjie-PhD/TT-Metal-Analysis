@@ -1,0 +1,35 @@
+TB
+    Start["_resolve_inheritance_member(member_name, offset)"]
+    IterChildren["Iterate children of type_die"]
+    IsInheritance{"child.tag_is<br/>(inheritance)?"}
+    GetChildType["child_type = child.resolved_type"]
+    DirectMember["child_type.get_child_by_name()"]
+    DirectFound{"member<br/>found?"}
+    RecurseInheritance["Recursively search inheritance"]
+    InheritFound{"member<br/>found?"}
+    RecurseUnnamed["Search unnamed unions"]
+    UnnamedFound{"member<br/>found?"}
+    NextChild["Next child"]
+    ReturnNone["Return (None, None)"]
+    ReturnMember["Return (offset, member)"]
+    
+    Start --> IterChildren
+    IterChildren --> IsInheritance
+    IsInheritance -->|no| NextChild
+    IsInheritance -->|yes| GetChildType
+    
+    GetChildType --> DirectMember
+    DirectMember --> DirectFound
+    DirectFound -->|yes| ReturnMember
+    DirectFound -->|no| RecurseInheritance
+    
+    RecurseInheritance --> InheritFound
+    InheritFound -->|yes| ReturnMember
+    InheritFound -->|no| RecurseUnnamed
+    
+    RecurseUnnamed --> UnnamedFound
+    UnnamedFound -->|yes| ReturnMember
+    UnnamedFound -->|no| NextChild
+    
+    NextChild --> IterChildren
+    IterChildren -->|done| ReturnNone

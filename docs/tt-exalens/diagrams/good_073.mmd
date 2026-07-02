@@ -1,0 +1,14 @@
+LR
+    Maps["register_map<br/>niu_register_map<br/>(dict of RegisterDescription)"]
+    Callable["get_register_base_address_callable(noc_id)<br/>Returns base addresses"]
+    
+    Init["RegisterStore.create_initialization()<br/>RegisterStoreInitialization"]
+    
+    Store0["RegisterStore<br/>(noc0)<br/>Instance at location"]
+    Store1["RegisterStore<br/>(noc1)<br/>Instance at location"]
+    
+    Maps --> Init
+    Callable --> Init
+    
+    Init --> Store0
+    Init --> Store1

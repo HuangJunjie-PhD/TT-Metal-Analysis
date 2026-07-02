@@ -1,0 +1,12 @@
+LR
+    MatrixFile["perf-bench-matrix.json<br/>───────────<br/>Projects array<br/>test-defaults object<br/>tests array"]
+    
+    FilterScript["filter-test-matrix.py<br/>───────────<br/>flatten_matrix()<br/>filter_matrix()<br/>update_runners()"]
+    
+    FlatMatrix["Flattened Matrix<br/>───────────<br/>Expanded runner entries<br/>Merged defaults<br/>Project metadata"]
+    
+    FilteredMatrix["Filtered Matrix<br/>───────────<br/>Project-specific<br/>Test-specific<br/>Runner-mapped"]
+    
+    MatrixFile --> FilterScript
+    FilterScript --> FlatMatrix
+    FlatMatrix --> FilteredMatrix

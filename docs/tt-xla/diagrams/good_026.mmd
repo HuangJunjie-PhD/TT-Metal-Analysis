@@ -1,0 +1,46 @@
+TB
+    CollectInput["collectInputShardings()"]
+    CollectOutput["collectOutputShardings()"]
+    
+    TryShardy["Try Shardy Collection"]
+    
+    ShardyMesh{"getFirstShardyMeshOp()"}
+    
+    ShardyInput["collectInputShardingsShardy()"]
+    ShardyOutput["collectOutputShardingsShardy()"]
+    
+    GSPMD["Fall back to GSPMD"]
+    
+    GSPMDInput["collectInputShardingsGSPMD()"]
+    GSPMDOutput["collectOutputShardingsGSPMD()"]
+    
+    ShardyAttrs["Extract sdy::TensorShardingAttr<br/>from function arguments/results"]
+    
+    GSPMDAttrs["Extract xla_sharding attributes<br/>from function arguments/results"]
+    
+    CreateShardy["createShardingsFromShardy()<br/>Convert to MeshSharding"]
+    
+    CreateGSPMD["createShardingsFromGSPMD()<br/>Convert to MeshSharding"]
+    
+    MeshSharding["vector&lt;MeshSharding&gt;<br/>Unified representation"]
+    
+    CollectInput --> TryShardy
+    CollectOutput --> TryShardy
+    
+    TryShardy --> ShardyMesh
+    ShardyMesh -->|"Found"| ShardyInput
+    ShardyMesh -->|"Found"| ShardyOutput
+    ShardyMesh -->|"Not found"| GSPMD
+    
+    ShardyInput --> ShardyAttrs
+    ShardyOutput --> ShardyAttrs
+    ShardyAttrs --> CreateShardy
+    
+    GSPMD --> GSPMDInput
+    GSPMD --> GSPMDOutput
+    GSPMDInput --> GSPMDAttrs
+    GSPMDOutput --> GSPMDAttrs
+    GSPMDAttrs --> CreateGSPMD
+    
+    CreateShardy --> MeshSharding
+    CreateGSPMD --> MeshSharding

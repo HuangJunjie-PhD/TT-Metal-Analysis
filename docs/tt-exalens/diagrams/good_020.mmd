@@ -1,0 +1,19 @@
+LR
+    Function["API Function"] --> location["location: str | OnChipCoordinate"]
+    Function --> device_id["device_id: int = 0"]
+    Function --> context["context: Context | None = None"]
+    Function --> optional["...operation-specific params"]
+    
+    context --> auto_init["Auto-initializes if None via check_context()"]
+    location --> coord_convert["Converts strings via convert_coordinate()"]
+
+
+| Parameter | Type | Purpose |
+|-----------|------|---------|
+| `location` | `str \| OnChipCoordinate` | Target chip location |
+| `device_id` | `int` | Device ID (default: 0) |
+| `context` | `Context \| None` | Session context (auto-initializes if None) |
+| `noc_id` | `int \| None` | NOC selection (0 or 1, None uses context default) |
+| `safe_mode` | `bool \| None` | Memory access validation (None uses context default) |
+
+Sources: [ttexalens/tt_exalens_lib.py:110-292]()

@@ -1,0 +1,19 @@
+TD
+    EnvVars["Environment Variables<br/>(TT_METAL_*)"]
+    Constructor["RunTimeOptions()<br/>Constructor"]
+    Parse["parse_env() calls"]
+    Validate["Validation & Resolution"]
+    MetalEnv["MetalEnv"]
+    MetalContext["MetalContext"]
+    Subsystems["Subsystems<br/>(Cluster, JIT, Watcher, etc.)"]
+    
+    EnvVars -->|Read during init| Constructor
+    Constructor -->|Parse each category| Parse
+    Parse -->|Store & validate| Validate
+    Validate -->|Embedded in| MetalEnv
+    MetalEnv -->|Referenced by| MetalContext
+    MetalContext -->|Accessed via rtoptions()| Subsystems
+    
+    style Constructor fill:#ffffff
+    style MetalContext fill:#ffffff
+    style Subsystems fill:#ffffff

@@ -1,0 +1,27 @@
+TB
+    CompileOptions["CompileOptions"]
+    
+    Optimization["optimization_level: int<br/>0 = none, 1 = basic, 2 = advanced"]
+    
+    DataType["Data Type Options:<br/>enable_bfp8_conversion: bool<br/>experimental_enable_weight_bfp8_conversion: bool"]
+    
+    ComputeKernel["Compute Kernel Config:<br/>math_fidelity: optional&lt;string&gt;<br/>fp32_dest_acc_en: optional&lt;bool&gt;"]
+    
+    Optimizations["Optimization Flags:<br/>experimental_enable_fusing_conv2d_with_multiply_pattern<br/>experimental_enable_permute_matmul_fusion<br/>enable_const_eval"]
+    
+    Backend["backend: BackendRuntime<br/>TTNNFlatbuffer | TTNNCodegenCpp | TTNNCodegenPy"]
+    
+    Performance["Performance:<br/>enable_trace: bool<br/>ttnn_perf_metrics_enabled: bool<br/>ttnn_perf_metrics_output_file: string"]
+    
+    Export["Export Options:<br/>export_path: optional&lt;string&gt;<br/>export_model_name: string<br/>export_tensors: bool<br/>codegen_try_recover_structure: bool"]
+    
+    CompileOptions --> Optimization
+    CompileOptions --> DataType
+    CompileOptions --> ComputeKernel
+    CompileOptions --> Optimizations
+    CompileOptions --> Backend
+    CompileOptions --> Performance
+    CompileOptions --> Export
+
+
+Sources: [pjrt_implementation/inc/api/compile_options.h:27-124]()

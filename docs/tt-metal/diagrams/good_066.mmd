@@ -1,0 +1,13 @@
+TD
+    Device["Physical Device"]
+    SubDeviceMgr["SubDeviceManager"]
+    CoreRanges["CoreRange allocations"]
+    L1Allocators["Per-subdevice L1BankingAllocator"]
+    StallGroups["Stall Groups for sync"]
+    SubDevice["SubDevice Instances"]
+
+    Device --> SubDeviceMgr
+    SubDeviceMgr --> CoreRanges
+    SubDeviceMgr --> L1Allocators
+    SubDeviceMgr --> StallGroups
+    SubDeviceMgr --> SubDevice

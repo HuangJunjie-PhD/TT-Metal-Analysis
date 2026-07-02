@@ -1,0 +1,19 @@
+TB
+    Input["ttl.compute_op"]
+    
+    Phase0["Phase_0_FPU_Binary_Detection<br/>detectFPUBinaryOps"]
+    Phase1["Phase_1_Copy_Insertion<br/>insertCopiesForMultiConsumerValues"]
+    Phase2["Phase_2_Build_Live_Intervals<br/>buildLiveIntervals"]
+    Phase3["Phase_3_Linear_Scan_Inputs<br/>linearScanAllocateFiltered"]
+    Phase4["Phase_4_Linear_Scan_Outputs<br/>(Optional_separate_output_region)"]
+    
+    Finalize["Finalization<br/>createCopyTileForArg<br/>Assign_dst_idx"]
+    
+    Input --> Phase0
+    Phase0 --> Phase1
+    Phase1 --> Phase2
+    Phase2 --> Phase3
+    Phase3 --> Phase4
+    Phase4 --> Finalize
+    
+    sub

@@ -1,0 +1,18 @@
+TD
+    RunTimeOptions["RunTimeOptions"]
+    JitBuildEnv["JitBuildEnv"]
+    Defines["Compilation Defines"]
+    CFlags["Compiler Flags"]
+    BuildKey["Build Key Hash"]
+    KernelCache["Kernel Cache"]
+    
+    RunTimeOptions -->|"get_cache_dir()<br/>get_jit_analytics_enabled()"| JitBuildEnv
+    JitBuildEnv -->|Generate| Defines
+    JitBuildEnv -->|Generate| CFlags
+    Defines -->|Input to| BuildKey
+    CFlags -->|Input to| BuildKey
+    BuildKey -->|Lookup| KernelCache
+    
+    style RunTimeOptions fill:#ffffff
+    style JitBuildEnv fill:#ffffff
+    style KernelCache fill:#ffffff

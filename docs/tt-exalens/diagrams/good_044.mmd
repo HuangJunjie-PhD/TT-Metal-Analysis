@@ -1,0 +1,11 @@
+LR
+    CheckFW["Check Firmware Version"]
+    Compare["version >= 18.4?"]
+    Read["Read Telemetry"]
+    Error["Raise TTException"]
+    
+    CheckFW --> Compare
+    Compare -->|Yes| Read
+    Compare -->|No| Error
+    
+    style Error fill:#ffe6e6

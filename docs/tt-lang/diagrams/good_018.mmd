@@ -1,0 +1,11 @@
+LR
+    TTKernel["TTKernel Dialect<br/>(Hardware Ops)"]
+    Optimize["Optimization Passes<br/>canonicalize, cse<br/>lower-affine"]
+    EmitC["EmitC Dialect<br/>(C++ Constructs)"]
+    Translate["ttkernel-to-cpp<br/>Translation"]
+    CPP["C++ Source<br/>kernel_main()"]
+    
+    TTKernel --> Optimize
+    Optimize --> EmitC
+    EmitC --> Translate
+    Translate --> CPP

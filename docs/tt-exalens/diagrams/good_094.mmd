@@ -1,0 +1,11 @@
+TB
+    Check["Check if direct access enabled<br/>_direct_dest_access_enabled()"]
+    GetBase["Get base address<br/>noc_block.dest.address.private_address"]
+    CalcSize["Calculate size<br/>num_tiles * TILE_SIZE * 4"]
+    ReadMem["Read via MemoryAccess<br/>mem_access.read()"]
+    ConvertWords["Convert bytes to 32-bit words"]
+    
+    Check --> GetBase
+    GetBase --> CalcSize
+    CalcSize --> ReadMem
+    ReadMem --> ConvertWords

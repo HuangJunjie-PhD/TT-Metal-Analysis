@@ -1,0 +1,21 @@
+LR
+    Input["export_model_name:<br/>my_model"]
+    
+    Check{"model_name changed?"}
+    
+    Reset["m_graph_counter = 0<br/>m_last_model_name = model_name"]
+    
+    Increment["graph_num = m_graph_counter++"]
+    
+    Append["export_model_name += '_g' + graph_num<br/>Result: my_model_g0, my_model_g1, ..."]
+    
+    Input --> Check
+    Check -->|"Yes"| Reset
+    Check -->|"No"| Increment
+    Reset --> Increment
+    Increment --> Append
+
+
+This mechanism allows tracking multiple graphs in a single execution (e.g., forward pass as `g0`, backward pass as `g1`):
+
+Sources: [pjrt_implementation/src/api/module_builder/module_builder.cc:222-229](), [pjrt_implementation/inc/api/module_builder/module_builder.h:356-358]()

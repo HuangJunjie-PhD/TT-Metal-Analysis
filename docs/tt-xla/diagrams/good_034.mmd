@@ -1,0 +1,21 @@
+TB
+    TestExec["Test Execution"]
+    CPURef["CPU Reference<br/>Run"]
+    TTDevice["TT Device<br/>Run"]
+    Compare["Comparison<br/>_compare()"]
+    CompConfig["ComparisonConfig"]
+    Results["ComparisonResult[]"]
+    Evaluate["Evaluator._assert_on_results()"]
+    Status["Test Status<br/>PASSED/INCORRECT_RESULT"]
+    
+    TestExec --> CPURef
+    TestExec --> TTDevice
+    CPURef --> Compare
+    TTDevice --> Compare
+    CompConfig --> Compare
+    Compare --> Results
+    Results --> Evaluate
+    Evaluate --> Status
+    
+    style CompConfig fill:#f9f9f9
+    style Results fill:#f9f9f9

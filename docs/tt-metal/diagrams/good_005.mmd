@@ -1,0 +1,10 @@
+TD
+    base["base (Ubuntu + uv + OMPI)"] --> ci_build["ci-build (ccache + mold + clang-20)"]
+    ci_build --> ci_test["ci-test (pytest + torch + triage tools)"]
+
+
+| Image Variant | Purpose | Key Components |
+|-------------------|---------|----------------|
+| `ci-build` | Compilation | ccache, mold, clang-20, yq [dockerfile/Dockerfile:150-157]() |
+| `ci-test` | Validation | pytest 9.0.3, torch 2.11.0, triage requirements [dockerfile/Dockerfile:160-175](), [tt_metal/python_env/requirements-dev.txt:39-49]() |
+| `release` | Deployment | Minimal runtime with pre-built wheels [INSTALLING.md:104-113]() |

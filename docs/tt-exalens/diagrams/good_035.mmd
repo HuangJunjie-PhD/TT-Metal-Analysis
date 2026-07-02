@@ -1,0 +1,16 @@
+TB
+    RiscDebug["RiscDebug<br/>(Abstract Interface)"]
+    BabyRiscDebug["BabyRiscDebug<br/>(Base Implementation)"]
+    
+    Wormhole["WormholeBabyRiscDebug"]
+    Blackhole["BlackholeBabyRiscDebug"]
+    Quasar["QuasarBabyRiscDebug"]
+    
+    RiscDebug --> BabyRiscDebug
+    BabyRiscDebug --> Wormhole
+    BabyRiscDebug --> Blackhole
+    BabyRiscDebug --> Quasar
+    
+    Wormhole -.->|"Overrides"| ContWH["cont()<br/>step()<br/>read_gpr(32)"]
+    Blackhole -.->|"Overrides"| ContBH["step()<br/>read_gpr(32)<br/>read/write_memory_bytes()"]
+    Quasar -.->|"Overrides"| ContQ["invalidate_instruction_cache()<br/>read_gpr(32)"]

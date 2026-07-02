@@ -1,0 +1,18 @@
+TD
+    Cluster["tt::Cluster<br/>tt_metal/llrt/tt_cluster.hpp"]
+    UMD["tt::umd::Cluster<br/>UMD driver<br/>Device communication"]
+    ClusterDesc["tt::umd::ClusterDescriptor<br/>Physical topology<br/>Ethernet connections"]
+    SocDesc["metal_SocDescriptor<br/>Per-chip core layout<br/>Memory maps"]
+    RunTimeOptions["llrt::RunTimeOptions<br/>Configuration<br/>Target device"]
+    HAL["tt_metal::Hal<br/>Architecture-specific<br/>queries"]
+    
+    Cluster -->|"owns driver_"| UMD
+    Cluster -->|"owns cluster_desc_"| ClusterDesc
+    Cluster -->|"owns per chip sdesc_per_chip_"| SocDesc
+    Cluster -->|"references rtoptions_"| RunTimeOptions
+    Cluster -->|"references hal_"| HAL
+    
+    UMD -->|provides| ClusterDesc
+    UMD -->|"get_soc_descriptor()"| SocDesc
+    
+    style Cluster stroke-width:2px

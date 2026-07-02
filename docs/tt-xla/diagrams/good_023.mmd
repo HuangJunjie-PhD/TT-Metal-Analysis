@@ -1,0 +1,46 @@
+TB
+    TTNNModule["mlir::OwningOpRef&lt;mlir::ModuleOp&gt;<br/>After convertFromTTIRToTTNN()<br/>line 892-1037"]
+    
+    BackendSwitch{"CompileOptions::backend<br/>line 353-370"}
+    
+    FlatbufferPath["BackendRuntime::TTNNFlatbuffer<br/>Default runtime"]
+    
+    CodegenCppPath["BackendRuntime::TTNNCodegenCpp<br/>Generate C++ code"]
+    
+    CodegenPyPath["BackendRuntime::TTNNCodegenPy<br/>Generate Python code"]
+    
+    BuildRuntime["buildModuleForTTNNRuntime()<br/>line 1062-1180"]
+    
+    BuildCodegen["buildModuleForTTNNCodegen()<br/>line 1182-1279"]
+    
+    CreateBinary["createFlatbufferBinary()<br/>mlir::tt::ttnn::ttnnToFlatbuffer()<br/>line 1351-1365"]
+    
+    VerifyBinary["verifyCreatedFlatbufferBinary()<br/>Check input/output counts<br/>line 1367-1392"]
+    
+    CodegenFunc["performCodegen()<br/>TTAlchemistHandler::generate*<br/>line 1458-1524"]
+    
+    RuntimeBinary["tt::runtime::Binary<br/>Flatbuffer format<br/>m_flatbuffer_binary"]
+    
+    CodeFiles["Generated files at<br/>export_path/solutions/<br/>*.cpp or *.py"]
+    
+    FBImage["FlatbufferExecutableImage::createInstance()<br/>line 29-89<br/>Contains Binary + metadata"]
+    
+    SOImage["SOExecutableImage::createInstance()<br/>line 91-145<br/>Contains code path + metadata"]
+    
+    TTNNModule --> BackendSwitch
+    BackendSwitch -->|"TTNNFlatbuffer"| FlatbufferPath
+    BackendSwitch -->|"TTNNCodegenCpp"| CodegenCppPath
+    BackendSwitch -->|"TTNNCodegenPy"| CodegenPyPath
+    
+    FlatbufferPath --> BuildRuntime
+    CodegenCppPath --> BuildCodegen
+    CodegenPyPath --> BuildCodegen
+    
+    BuildRuntime --> CreateBinary
+    CreateBinary --> VerifyBinary
+    VerifyBinary --> RuntimeBinary
+    RuntimeBinary --> FBImage
+    
+    BuildCodegen --> CodegenFunc
+    CodegenFunc --> CodeFiles
+    CodeFiles --> SOImage

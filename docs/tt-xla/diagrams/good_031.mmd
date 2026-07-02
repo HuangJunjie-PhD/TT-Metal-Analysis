@@ -1,0 +1,22 @@
+TB
+    Start["handle_composite_ops(gm)"]
+    
+    IterNode["For each node in graph"]
+    CheckFunc{"node.op == 'call_function'?"}
+    CheckMod{"node.op == 'call_module'?"}
+    
+    ReplaceFunc["Replace node.target<br/>with composite function"]
+    ReplaceMod["Call replacement function<br/>to transform graph"]
+    
+    Done["graph.lint()"]
+    
+    Start --> IterNode
+    IterNode --> CheckFunc
+    CheckFunc -->|Yes| ReplaceFunc
+    CheckFunc -->|No| CheckMod
+    CheckMod -->|Yes| ReplaceMod
+    CheckMod -->|No| IterNode
+    
+    ReplaceFunc --> IterNode
+    ReplaceMod --> IterNode
+    IterNode --> Done

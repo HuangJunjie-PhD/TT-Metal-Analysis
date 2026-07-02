@@ -1,0 +1,21 @@
+TB
+    User["User Code"]
+    ReadTelem["read_arc_telemetry_entry()"]
+    GetArcBlock["device.arc_block"]
+    GetTagId["arc.get_telemetry_tag_id()"]
+    HasTagId["arc.has_telemetry_tag_id()"]
+    ServerIfc["server_ifc.read_arc_telemetry_entry()"]
+    Result["int value"]
+    
+    User -->|"device_id, tag"| ReadTelem
+    ReadTelem --> GetArcBlock
+    
+    ReadTelem -->|"if str"| GetTagId
+    ReadTelem -->|"if int"| HasTagId
+    
+    ReadTelem --> ServerIfc
+    ServerIfc --> Result
+    Result --> User
+    
+    style ReadTelem fill:#f9f9f9
+    style GetArcBlock fill:#f9f9f9

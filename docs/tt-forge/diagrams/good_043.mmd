@@ -1,0 +1,29 @@
+TD
+    StartBuild["Slim image build step"]
+    CheckSkip{"skip_docker_build<br/>== false?"}
+    CheckRelease{"release_exists<br/>== false?"}
+    CheckOverwrite{"overwrite_releases<br/>== true?"}
+    
+    BuildImage["Execute docker-build-push"]
+    SkipBuild["Skip Docker build"]
+    
+    StartBuild --> CheckSkip
+    CheckSkip -->|false| CheckRelease
+    CheckSkip -->|true| SkipBuild
+    
+    CheckRelease -->|true| BuildImage
+    CheckRelease -->|false| CheckOverwrite
+    
+    CheckOverwrite -->|true| BuildImage
+    CheckOverwrite -->|false| SkipBuild
+
+
+The conditional logic appears at [.github/workflows/release.yml:173]():
+```yaml
+if: ${{ (steps.set-release-facts.outputs.skip_docker_build == 'false' && 
+         steps.check_release.outputs.release_exists == 'false') || 
+        (steps.set-release-facts.outputs.skip_docker_build == 'false' && 
+         inputs.overwrite_releases) }}
+
+
+Sources: [.github/actions/set-release-facts/action.yaml:174-175](), [.github/actions/set-release-facts/action.yaml:217-248](), [.github/workflows/release.yml:173]()

@@ -1,0 +1,32 @@
+TB
+    NocBlock["NocBlock<br/>(Abstract Base)<br/>ttexalens/hardware/noc_block.py"]
+    
+    WormholeNocBlock["WormholeNocBlock<br/>ttexalens/hardware/wormhole/noc_block.py"]
+    BlackholeNocBlock["BlackholeNocBlock<br/>ttexalens/hardware/blackhole/noc_block.py"]
+    QuasarNocBlock["QuasarNocBlock<br/>ttexalens/hardware/quasar/noc_block.py"]
+    
+    WH_FW["WormholeFunctionalWorkerBlock<br/>5 RISCs: brisc, trisc0-2, ncrisc<br/>L1: 1464 KB"]
+    WH_ETH["WormholeEthBlock<br/>1 RISC: erisc<br/>L1: 256 KB"]
+    WH_DRAM["WormholeDramBlock<br/>No RISCs<br/>Bank: 2 GB"]
+    
+    BH_FW["BlackholeFunctionalWorkerBlock<br/>5 RISCs: brisc, trisc0-2, ncrisc<br/>L1: 1536 KB"]
+    BH_ETH["BlackholeEthBlock<br/>2 RISCs: erisc0, erisc1<br/>L1: 512 KB"]
+    BH_DRAM["BlackholeDramBlock<br/>1 RISC: drisc<br/>L1: 128 KB"]
+    BH_DRAM_SIM["BlackholeDramBlockSim<br/>Simulator only<br/>No RISCs"]
+    
+    Q_FW["QuasarFunctionalWorkerBlock<br/>4 NEOs × 4 RISCs each<br/>L1: 4 MB"]
+    
+    NocBlock --> WormholeNocBlock
+    NocBlock --> BlackholeNocBlock
+    NocBlock --> QuasarNocBlock
+    
+    WormholeNocBlock --> WH_FW
+    WormholeNocBlock --> WH_ETH
+    WormholeNocBlock --> WH_DRAM
+    
+    BlackholeNocBlock --> BH_FW
+    BlackholeNocBlock --> BH_ETH
+    BlackholeNocBlock --> BH_DRAM
+    BlackholeNocBlock --> BH_DRAM_SIM
+    
+    QuasarNocBlock --> Q_FW

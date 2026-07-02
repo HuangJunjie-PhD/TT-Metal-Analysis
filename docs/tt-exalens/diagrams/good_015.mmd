@@ -1,0 +1,11 @@
+TB
+    RiscDebug["RiscDebug<br/>abstract"] --> BabyRiscDebug["BabyRiscDebug"]
+    
+    BabyRiscDebug --> WHDebug["WormholeBabyRiscDebug"]
+    BabyRiscDebug --> BHDebug["BlackholeBabyRiscDebug"]
+    BabyRiscDebug --> QSDebug["QuasarBabyRiscDebug"]
+    
+    BabyRiscDebug --> Hardware["BabyRiscDebugHardware"]
+    Hardware --> ReadStatus["read_status()"]
+    Hardware --> ReadGpr["read_gpr()<br/>write_gpr()"]
+    Hardware --> Watchpoint["set_watchpoint_on_pc_address()"]

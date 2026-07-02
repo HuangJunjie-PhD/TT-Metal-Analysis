@@ -1,0 +1,6 @@
+TB
+    Workflow["Workflow<br/>ttnn-post-commit.yaml"] --> LoadMatrix["load-test-matrix job"]
+    LoadMatrix --> PrepareMatrix["prepare_test_matrix.py<br/>(Reads tests/pipeline_reorg/*.yaml)"]
+    PrepareMatrix --> MatrixOutput["Matrix JSON Output"]
+    MatrixOutput --> ExecJob["Parallel Execution Job<br/>(ttnn job)"]
+    ExecJob --> TestCmd["Execute matrix.test-group.cmd"]

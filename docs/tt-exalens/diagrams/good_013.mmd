@@ -1,0 +1,9 @@
+TB
+    Device["Device<br/>device.py:101"] --> WH["WormholeDevice"]
+    Device --> BH["BlackholeDevice"]
+    Device --> QS["QuasarDevice"]
+    
+    Create["Device.create()"] --> MatchArch["match umd_device.arch"]
+    MatchArch -->|"WORMHOLE_B0"| WH
+    MatchArch -->|"BLACKHOLE"| BH
+    MatchArch -->|"QUASAR"| QS

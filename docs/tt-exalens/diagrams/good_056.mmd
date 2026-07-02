@@ -1,0 +1,17 @@
+TB
+    ReadReg["read_register(location, register)"]
+    WriteReg["write_register(location, register, value)"]
+    ConvertCoord["convert_coordinate()"]
+    GetRegStore["noc_block.get_register_store(noc_id, neo_id)"]
+    RegStore["RegisterStore"]
+    ReadOp["read_register()"]
+    WriteOp["write_register()"]
+    
+    ReadReg --> ConvertCoord
+    WriteReg --> ConvertCoord
+    ConvertCoord --> GetRegStore
+    GetRegStore --> RegStore
+    RegStore --> ReadOp
+    RegStore --> WriteOp
+    
+    sub

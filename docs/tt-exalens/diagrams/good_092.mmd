@@ -1,0 +1,17 @@
+LR
+    Start["Start Injection"]
+    WaitReady1["Wait for Buffer Ready<br/>Poll DBG_INSTRN_BUF_STATUS[thread_id]"]
+    TakeControl["Take Control<br/>Set DBG_INSTRN_BUF_CTRL0[thread_id]"]
+    WaitReady2["Wait for Buffer Ready<br/>Poll STATUS[thread_id]"]
+    WriteInsn["Write Instruction<br/>DBG_INSTRN_BUF_CTRL1"]
+    TriggerPush["Trigger Push<br/>Set CTRL0[4+thread_id]"]
+    WaitDrain["Wait for Drain<br/>Poll STATUS[4+thread_id]"]
+    Release["Release Control<br/>Clear DBG_INSTRN_BUF_CTRL0"]
+    
+    Start --> WaitReady1
+    WaitReady1 --> TakeControl
+    TakeControl --> WaitReady2
+    WaitReady2 --> WriteInsn
+    WriteInsn --> TriggerPush
+    TriggerPush --> WaitDrain
+    WaitDrain --> Release

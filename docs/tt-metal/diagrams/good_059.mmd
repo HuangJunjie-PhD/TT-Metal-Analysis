@@ -1,0 +1,23 @@
+TD
+    User["User Code<br/>(simple_text_demo.py)"]
+    OptMode["Optimization Mode<br/>ModelOptimizations.performance()<br/>ModelOptimizations.accuracy()"]
+    JSON["JSON Override<br/>performance_decoder_config.json<br/>accuracy_decoder_config.json"]
+    
+    ModelArgs["ModelArgs<br/>max_batch_size<br/>max_seq_len<br/>device configuration"]
+    DecPrec["DecodersPrecision<br/>Per-layer precision settings<br/>tensor_dtype_settings<br/>op_fidelity_settings"]
+    
+    Decoder["TransformerBlock<br/>layer_num"]
+    Attn["Attention<br/>wqkv_dtype<br/>wo_dtype<br/>kv_cache_dtype<br/>compute_kernel_cfg"]
+    MLP["MLP<br/>ff1_ff3_dtype<br/>ff2_dtype<br/>compute_kernel_cfg"]
+    
+    User -->|"optimizations parameter"| OptMode
+    User -->|"JSON path"| JSON
+    OptMode --> DecPrec
+    JSON -->|"parse_decoder_json()"| DecPrec
+    
+    ModelArgs -->|"contains"| DecPrec
+    DecPrec -->|"get_tensor_dtype(layer_num)"| Decoder
+    DecPrec -->|"get_math_fidelity(layer_num)"| Decoder
+    
+    Decoder --> Attn
+    Decoder --> MLP

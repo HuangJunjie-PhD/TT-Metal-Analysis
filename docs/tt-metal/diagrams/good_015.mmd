@@ -1,0 +1,16 @@
+LR
+    EnvVars["Environment Variables"]
+    WatcherSettings["WatcherSettings<br/>(atomic fields)"]
+    JITDefines["JIT Compilation Defines"]
+    WatcherServer["WatcherServer"]
+    
+    EnvVars -->|TT_METAL_WATCHER=1| WatcherSettings
+    EnvVars -->|TT_METAL_WATCHER_INTERVAL| WatcherSettings
+    EnvVars -->|TT_METAL_WATCHER_DISABLE_*| WatcherSettings
+    
+    WatcherSettings -->|enabled flag| WatcherServer
+    WatcherSettings -->|WATCHER_ENABLED define| JITDefines
+    WatcherSettings -->|Feature disable defines| JITDefines
+    
+    style WatcherSettings fill:#ffffff
+    style JITDefines fill:#ffffff

@@ -1,0 +1,27 @@
+TB
+    ADDR["Input Address"]
+    CHECKDATA["Address in<br/>data_private_memory?"]
+    CHECKCODE["Address in<br/>code_private_memory?"]
+    
+    DATALOADER["loader_data provided?"]
+    CODELOADER["loader_code provided?"]
+    
+    CALCDATA["address -<br/>data_private_memory.address +<br/>loader_data"]
+    CALCCODE["address -<br/>code_private_memory.address +<br/>loader_code"]
+    
+    RETURN["Return address<br/>(unchanged or remapped)"]
+    
+    ADDR --> CHECKDATA
+    CHECKDATA -->|Yes| DATALOADER
+    CHECKDATA -->|No| CHECKCODE
+    
+    DATALOADER -->|Yes| CALCDATA
+    DATALOADER -->|No| RETURN
+    CALCDATA --> RETURN
+    
+    CHECKCODE -->|Yes| CODELOADER
+    CHECKCODE -->|No| RETURN
+    
+    CODELOADER -->|Yes| CALCCODE
+    CODELOADER -->|No| RETURN
+    CALCCODE --> RETURN

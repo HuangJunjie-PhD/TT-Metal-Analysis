@@ -1,0 +1,16 @@
+TD
+    SFPI_VER["tt_metal/sfpi-version"]
+    INFO_SH["tt_metal/sfpi-info.sh"]
+    HW_CMAKE["tt_metal/hw/CMakeLists.txt"]
+    
+    SFPI_VER --> INFO_SH
+    INFO_SH --> HW_CMAKE
+    HW_CMAKE -->|TT_USE_SYSTEM_SFPI=OFF| FETCH["FetchContent (Download)"]
+    HW_CMAKE -->|TT_USE_SYSTEM_SFPI=ON| SYS_PATH["/opt/tenstorrent/sfpi"]
+    
+    FETCH --> GPP_BIN["riscv-tt-elf-g++"]
+    SYS_PATH --> GPP_BIN
+    GPP_BIN -->|Verify| VER_CHECK["GPP_VERSION == SFPI_version"]
+
+
+Sources: [tt_metal/sfpi-version:1-13](), [tt_metal/hw/CMakeLists.txt:41-135](), [tt_metal/sfpi-info.sh:1-10]()

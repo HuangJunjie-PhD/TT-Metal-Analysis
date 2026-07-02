@@ -1,0 +1,14 @@
+LR
+    DOCKER_BUILD["Build Docker Image<br/>call-build-docker.yml"]
+    
+    ARTIFACT_CHECK["Check Artifact Exists<br/>call-build.yml"]
+    
+    NATIVE_BUILD["Build TT-XLA<br/>setup.py bdist_wheel"]
+    
+    TEST_EXEC["Run Tests<br/>pytest in CI image"]
+    
+    DOCKER_BUILD --> ARTIFACT_CHECK
+    ARTIFACT_CHECK -.->|"Artifact missing"| NATIVE_BUILD
+    NATIVE_BUILD --> TEST_EXEC
+    
+    DOCKER_BUILD -.->|"Provides CI image"| TEST_EXEC

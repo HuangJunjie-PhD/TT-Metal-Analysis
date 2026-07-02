@@ -1,0 +1,18 @@
+TD
+    START["Workflow Job Start"]
+    ARCH_CHECK{"Check runner-label"}
+    
+    WH_B0["label: N150 / N300"]
+    BH_BH["label: P100a / P150b"]
+    
+    CIV2_WH["runs-on: tt-ubuntu-2204-{label}-viommu-stable"]
+    CIV2_BH["runs-on: tt-ubuntu-2204-P150b-stable"]
+    VM_RUN["runs-on: [in-service, cloud-virtual-machine, P100]"]
+    
+    START --> ARCH_CHECK
+    ARCH_CHECK -- "Wormhole" --> WH_B0
+    ARCH_CHECK -- "Blackhole P100a" --> BH_BH
+    
+    WH_B0 --> CIV2_WH
+    BH_BH --> VM_RUN
+    BH_BH --> CIV2_BH

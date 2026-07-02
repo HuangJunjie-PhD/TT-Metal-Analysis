@@ -1,0 +1,13 @@
+TD
+    Start["TTLConvertTTLToCompute<br/>Pass Entry"]
+    Collect["Collect elementwise ops<br/>to fuse"]
+    Trace["Trace elementwise chains<br/>findCBReserveForView()"]
+    Build["Build fused compute<br/>emitTileOpFor()"]
+    Replace["Replace fused ops<br/>with compute result"]
+    
+    Start --> Collect
+    Collect --> Trace
+    Trace --> Build
+    Build --> Replace
+    
+    sub

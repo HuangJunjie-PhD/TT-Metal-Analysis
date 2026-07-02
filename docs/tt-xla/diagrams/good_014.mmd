@@ -1,0 +1,53 @@
+TB
+    START["build-docker-images.sh<br/>args: tt_mlir_sha, --check-only"]
+    
+    CLONE["Clone tt-mlir repo<br/>to .tmp/tt-mlir"]
+    CHECKOUT["git checkout<br/>tt_mlir_sha"]
+    
+    GET_MLIR_TAG["Execute tt-mlir's<br/>get-docker-tag.sh"]
+    CHECK_MLIR["Check if tt-mlir<br/>docker images exist"]
+    
+    MLIR_OK{{"tt-mlir<br/>images exist?"}}
+    
+    CALC_XLA_TAG["Calculate XLA docker tag<br/>get-docker-tag.sh<br/>MLIR_DOCKER_TAG"]
+    
+    BUILD_LOOP["For each image:<br/>base, ci, ird"]
+    
+    CHECK_EXISTS["docker manifest inspect<br/>image:tag"]
+    
+    EXISTS{{"Image<br/>exists?"}}
+    
+    CHECK_MODE{{"--check-only<br/>mode?"}}
+    
+    SKIP["Echo 'already exists'<br/>return 0"]
+    
+    BUILD["docker build<br/>--build-arg MLIR_TAG<br/>--build-arg FROM_TAG"]
+    
+    PUSH["docker push<br/>image:tag"]
+    
+    DONE["Output final<br/>CI_IMAGE_NAME"]
+    
+    START --> CLONE
+    CLONE --> CHECKOUT
+    CHECKOUT --> GET_MLIR_TAG
+    GET_MLIR_TAG --> CHECK_MLIR
+    CHECK_MLIR --> MLIR_OK
+    
+    MLIR_OK -->|"No"| ERROR["Exit 9:<br/>tt-mlir images<br/>must be built first"]
+    MLIR_OK -->|"Yes"| CALC_XLA_TAG
+    
+    CALC_XLA_TAG --> BUILD_LOOP
+    BUILD_LOOP --> CHECK_EXISTS
+    CHECK_EXISTS --> EXISTS
+    
+    EXISTS -->|"Yes"| SKIP
+    EXISTS -->|"No"| CHECK_MODE
+    
+    CHECK_MODE -->|"Yes"| REPORT["Echo 'does not exist'<br/>return 2"]
+    CHECK_MODE -->|"No"| BUILD
+    
+    BUILD --> PUSH
+    PUSH --> BUILD_LOOP
+    SKIP --> BUILD_LOOP
+    
+    BUILD_LOOP --> DONE

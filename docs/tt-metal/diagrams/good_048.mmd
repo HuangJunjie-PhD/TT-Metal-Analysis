@@ -1,0 +1,11 @@
+LR
+    Input["Inputs<br/>tag-type (dev/rc/prod)"]
+    Analyze["Commit Analysis<br/>calculate-version action"]
+    Bump["Version Bump<br/>major/minor/patch"]
+    Format["Tag Formatting<br/>vX.Y.Z-rcN"]
+    CreateTag["Create Git Tag<br/>github-script"]
+
+    Input --> Analyze
+    Analyze --> Bump
+    Bump --> Format
+    Format --> CreateTag

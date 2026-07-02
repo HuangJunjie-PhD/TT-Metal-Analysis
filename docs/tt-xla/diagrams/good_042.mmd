@@ -1,0 +1,18 @@
+TB
+    TestConfig["tests/runner/test_config/"]
+    
+    TestConfig --> Torch["torch/"]
+    TestConfig --> JAX["jax/"]
+    TestConfig --> TorchLLM["torch_llm/"]
+    
+    Torch --> TorchInfSingle["test_config_inference_single_device.yaml"]
+    Torch --> TorchInfTensor["test_config_inference_tensor_parallel.yaml"]
+    Torch --> TorchInfData["test_config_inference_data_parallel.yaml"]
+    Torch --> TorchTraining["test_config_training_single_device.yaml"]
+    
+    JAX --> JAXInfSingle["test_config_inference_single_device.yaml"]
+    JAX --> JAXInfTensor["test_config_inference_tensor_parallel.yaml"]
+    JAX --> JAXTraining["test_config_training_single_device.yaml"]
+    
+    TorchLLM --> LLMInfSingle["test_config_inference_single_device.yaml"]
+    TorchLLM --> LLMInfTensor["test_config_inference_tensor_parallel.yaml"]

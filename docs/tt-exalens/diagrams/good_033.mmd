@@ -1,0 +1,21 @@
+TB
+    RegDesc["RegisterDescription<br/>(base class)"]
+    CfgReg["ConfigurationRegisterDescription<br/>index: int<br/>mask: int<br/>shift: int"]
+    DbgReg["DebugRegisterDescription<br/>offset: int"]
+    
+    RegDesc --> CfgReg
+    RegDesc --> DbgReg
+    
+    StrName["String Name<br/>e.g., 'ALU_FORMAT_SPEC_REG2_Dstacc'"]
+    RegStore["RegisterStore"]
+    Lookup["register_descriptions<br/>dictionary"]
+    
+    StrName --> RegStore
+    CfgReg --> RegStore
+    DbgReg --> RegStore
+    RegStore --> Lookup
+
+
+The `RegisterStore` class maintains a dictionary mapping register names to their descriptions. When a string name is provided, it is looked up to obtain the corresponding `RegisterDescription` object.
+
+Sources: [ttexalens/tt_exalens_lib.py:523-533](), [test/ttexalens/unit_tests/test_lib.py:397-437]()

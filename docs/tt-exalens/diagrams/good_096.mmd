@@ -1,0 +1,19 @@
+LR
+    DESC["Core Descriptor<br/>String"]
+    
+    DESC --> CHECK_ETH{"Starts with<br/>'ETH'?"}
+    DESC --> CHECK_FW{"Starts with<br/>'FW'?"}
+    DESC --> CHECK_DRAM{"Starts with<br/>'DRAM'?"}
+    DESC --> PARSE["OnChipCoordinate.create()"]
+    
+    CHECK_ETH -->|"Yes"| ETH_QUERY["device.idle_eth_blocks[index]"]
+    CHECK_FW -->|"Yes"| FW_QUERY["device.get_block_locations<br/>(block_type='functional_workers')"]
+    CHECK_DRAM -->|"Yes"| DRAM_QUERY["device.get_block_locations<br/>(block_type='dram')"]
+    
+    ETH_QUERY --> COORD["OnChipCoordinate"]
+    FW_QUERY --> COORD
+    DRAM_QUERY --> COORD
+    PARSE --> COORD
+
+
+Sources: [test/ttexalens/unit_tests/test_base.py:70-95]()

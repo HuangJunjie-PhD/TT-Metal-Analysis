@@ -1,0 +1,34 @@
+TD
+    A["Test Execution Flow"]
+    B{Test Passed?}
+    C{comparison_results exist?}
+    D["Check PCC values"]
+    E{All PCCs pass?}
+    F["PASSED"]
+    G["INCORRECT_RESULT"]
+    H["parse_last_bringup_stage()"]
+    I["Read ._bringup_stage.txt"]
+    J{Stage file exists?}
+    K["FAILED_FE_COMPILATION"]
+    L["FAILED_TTMLIR_COMPILATION"]
+    M["FAILED_RUNTIME"]
+    N["UNKNOWN"]
+    O["Status from config: NOT_SUPPORTED_SKIP"]
+    P{status == NOT_SUPPORTED_SKIP?}
+    
+    A --> P
+    P -->|Yes| O
+    P -->|No| B
+    B -->|Yes| C
+    C -->|Yes| D
+    D --> E
+    E -->|Yes| F
+    E -->|No| G
+    C -->|No| F
+    B -->|No| H
+    H --> I
+    I --> J
+    J -->|FE_COMPILATION_START| K
+    J -->|TTMLIR_COMPILATION_START| L
+    J -->|RUNTIME_EXECUTION_START| M
+    J -->|No| N

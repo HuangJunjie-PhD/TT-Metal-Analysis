@@ -1,0 +1,21 @@
+TB
+    Input["FX GraphModule"]
+    
+    Fusion["run_fusion_passes(gm)<br/>Detect & fuse patterns<br/>e.g., RMS norm"]
+    
+    Composite["handle_composite_ops(gm)<br/>Wrap high-level ops<br/>e.g., GELU, layer norm"]
+    
+    Export["torch.export.export(gm)<br/>Create ExportedProgram"]
+    
+    Decomp["program.run_decompositions()<br/>Apply decomposition table<br/>from populate_decompositions()"]
+    
+    Other["Other passes:<br/>- insert_argument_type_markers<br/>- bypass_dtype_promotion<br/>- bypass_redundant_getitem<br/>- bypass_assert_tensor_metadata"]
+    
+    Output["Compiled GraphModule"]
+    
+    Input --> Fusion
+    Fusion --> Composite
+    Composite --> Export
+    Export --> Decomp
+    Decomp --> Other
+    Other --> Output

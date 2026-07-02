@@ -1,0 +1,13 @@
+LR
+    TD["Passes.td"]
+    Gen["mlir-tblgen<br/>(build time)"]
+    Inc["Passes.h.inc"]
+    Impl["ConvertTTLToCompute.cpp"]
+    Lib["TTLangTTLTransforms.a"]
+    Opt["ttlang-opt"]
+    
+    TD -->|"TableGen processing"| Gen
+    Gen --> Inc
+    Inc -->|"#include"| Impl
+    Impl -->|"compiled into"| Lib
+    Lib -->|"linked into"| Opt

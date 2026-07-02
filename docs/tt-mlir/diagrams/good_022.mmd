@@ -1,0 +1,16 @@
+LR
+    Handler["OptimizerOverridesHandler"] --> MemReconfig["insertMemReconfig"]
+    Handler --> LayoutOverride["outputLayoutOverrides"]
+    Handler --> Conv2dOverride["conv2dConfigOverrides"]
+    MemReconfig --> Pass["TTNNOptimizer Pass"]
+    LayoutOverride --> Pass
+    Conv2dOverride --> Pass
+
+
+| Override | Description | Example |
+|----------|-------------|---------|
+| `override-output-layout` | Forces a specific `TTNNLayoutAttr` for an op [test/unittests/Optimizer/TestOptimizerOverrides.cpp:149-171](). | `op1=1x1:dram:interleaved:tile:f32` |
+| `insert-memreconfig` | Forces a resharding op on a specific edge [include/ttmlir/Dialect/TTNN/Utils/PassOverrides.h:132-151](). | `relu=0` (reshard operand 0) |
+| `override-conv2d-config` | Forces specific parameters for Conv2d ops [test/unittests/Optimizer/TestOptimizerOverrides.cpp:34-83](). | `op0=weights_dtype#bf16:activation#relu` |
+
+Sources: [include/ttmlir/Dialect/TTNN/Utils/PassOverrides.h:47-151](), [test/unittests/Optimizer/TestOptimizerOverrides.cpp:34-171]()

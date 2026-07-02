@@ -1,0 +1,22 @@
+TD
+    A["ExternalProject_Add(tt-metal)"] --> B["TTMETAL_BUILD_DIR\
+build_${CMAKE_BUILD_TYPE}"]
+    B --> C["TTNN_LIBRARY_PATH\
+_ttnncpp.so"]
+    B --> D["TTNN_PY_LIBRARY_PATH\
+_ttnn.so"]
+    B --> E["TTMETAL_LIBRARY_PATH\
+libtt_metal.so"]
+    B --> F["DEVICE_LIBRARY_PATH\
+libtt-umd.so"]
+    B --> G["TT_STL_LIBRARY_PATH\
+libtt_stl.so"]
+    B --> H["TRACY_LIBRARY_PATH\
+libtracy.so"]
+
+
+Sources: [third_party/CMakeLists.txt:94-117]()
+
+The build system handles CPM cache for `tt-metal` dependencies and configures it to use the same compiler launcher (e.g., `ccache`) as the main project. It also disables distributed support if the system processor is not x86-based due to MPI dependencies.
+
+Sources: [third_party/CMakeLists.txt:44-52](), [third_party/CMakeLists.txt:119-124](), [third_party/CMakeLists.txt:134-139]()

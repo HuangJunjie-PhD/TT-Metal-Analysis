@@ -1,0 +1,27 @@
+TB
+    User["User Code"] --> parse["parse_elf()"]
+    User --> load["load_elf()"]
+    User --> run["run_elf()"]
+    
+    parse --> ReadElf["read_elf()"]
+    ReadElf --> ParsedElfFile["ParsedElfFile"]
+    
+    load --> GetRiscDebug["RiscDebug instance"]
+    run --> GetRiscDebug
+    
+    GetRiscDebug --> ElfLoader["ElfLoader"]
+    
+    ElfLoader --> LoadSections["load_elf_sections()"]
+    ElfLoader --> RunElf["run_elf()"]
+    
+    LoadSections --> MemoryAccess["write_block()"]
+    LoadSections --> Verify["read_block() for verification"]
+    
+    RunElf --> SetReset["set_reset_signal()"]
+
+
+| Function | Purpose | Parameters | Returns |
+|----------|---------|------------|---------|
+| `parse_elf()` | Parse ELF file and DWARF symbols | `elf_path: str` | `ParsedElfFile` |
+| `load_elf()` | Load ELF to RISC core (core in reset) | `elf_file, location, risc_name` | `None \| int \| list[int]` |
+| `run_elf()` | Load and execute ELF (takes core out of reset) | `elf_file, location, risc_name` | `None` |

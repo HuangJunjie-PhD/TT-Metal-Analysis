@@ -1,0 +1,14 @@
+TD
+    Op["Operation_Invoke"]
+    Hash["compute_program_hash<br/>(operation_attributes, tensor_args)"]
+    Cache["Check_Program_Cache"]
+    Create["WorkloadFactory::create_at<br/>(If_Cache_Miss)"]
+    RuntimeArgs["override_runtime_arguments<br/>(If_Cache_Hit)"]
+    Enqueue["Enqueue_Program_to_CQ"]
+    
+    Op --> Hash
+    Hash --> Cache
+    Cache -->|Miss| Create
+    Cache -->|Hit| RuntimeArgs
+    Create --> Enqueue
+    RuntimeArgs --> Enqueue

@@ -1,0 +1,16 @@
+TB
+    Device["Device Instance"]
+    GetBlocks["get_blocks('arc')"]
+    BlockList["list[NocBlock]"]
+    Assert1["Assert len == 1"]
+    Assert2["Assert isinstance(ArcBlock)"]
+    Return["Return ArcBlock"]
+    
+    Device --> GetBlocks
+    GetBlocks --> BlockList
+    BlockList --> Assert1
+    Assert1 --> Assert2
+    Assert2 --> Return
+    
+    style Assert1 fill:#fff9e6
+    style Assert2 fill:#fff9e6

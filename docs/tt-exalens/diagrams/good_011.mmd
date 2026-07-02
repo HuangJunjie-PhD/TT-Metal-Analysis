@@ -1,0 +1,10 @@
+LR
+    StringInput["'1,2' or '1-2'"] --> Parse["convert_coordinate()"]
+    Parse --> Create["OnChipCoordinate.create()"]
+    
+    Create --> DetectType["Detect type:<br/>comma vs dash"]
+    DetectType --> ToNoc0["Device.to_noc0()"]
+    
+    ToNoc0 --> CacheHit["_to_noc0 dict"]
+    CacheHit --> Fallback["UMD API fallback"]
+    Fallback --> StoreCache["Cache result"]

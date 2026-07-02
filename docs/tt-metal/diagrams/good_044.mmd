@@ -1,0 +1,15 @@
+TD
+    Trigger["merge_group Event<br/>.github/workflows/merge-gate.yaml"]
+    
+    Static["static-checks<br/>.github/workflows/all-static-checks.yaml"]
+    
+    BuildTSan["build-tsan<br/>build-type: TSan<br/>platform: Ubuntu 24.04"]
+    BuildRel["build<br/>build-type: Release<br/>build-wheel: true"]
+    
+    SmokeTSan["ttnn-smoke-tests<br/>TSan Packages"]
+    
+    Trigger --> Static
+    Trigger --> BuildTSan
+    Trigger --> BuildRel
+    
+    BuildTSan --> SmokeTSan

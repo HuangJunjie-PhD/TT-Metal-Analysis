@@ -1,0 +1,6 @@
+LR
+    Client["Remote Client<br/>Library/CLI"] --> Proxy["Pyro5 Proxy<br/>RPC Client"]
+    Proxy -->|TCP/IP| Server["TTExaLensServer<br/>(server.py)"]
+    Server --> Wrapper["UmdApiWrapper<br/>Auto-serialization"]
+    Wrapper --> Local["Local UmdApi<br/>on Server"]
+    Local --> Hardware["Hardware Access<br/>PCIe/Ethernet"]

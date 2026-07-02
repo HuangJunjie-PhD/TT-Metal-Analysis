@@ -1,0 +1,7 @@
+LR
+    PROMPT["Prompt (manual-ai-install.yml)"] -- "inputs.prompt" --> CLAUDE_ACTION["claude-code-action"]
+    CLAUDE_ACTION -- "Bash/Read/Write" --> WORKSPACE["/github/workspace/"]
+    WORKSPACE -- "tt-forge-ai-report.md" --> UPLOAD["actions/upload-artifact"]
+    WORKSPACE -- "cat report" --> SUMMARY["GITHUB_STEP_SUMMARY"]
+    
+    sub

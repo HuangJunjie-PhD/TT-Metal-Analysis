@@ -1,0 +1,33 @@
+TD
+    Start["Need to install TT-XLA"] --> Question1{"Modifying TT-XLA<br/>source code?"}
+    
+    Question1 -->|Yes| BuildSource["Build from Source"]
+    Question1 -->|No| Question2{"Need environment<br/>isolation?"}
+    
+    Question2 -->|Yes| Question3{"Docker already<br/>installed?"}
+    Question2 -->|No| Question4{"Complex Python<br/>environment?"}
+    
+    Question3 -->|Yes| Docker["Docker Deployment"]
+    Question3 -->|No| Question5{"Can install<br/>Docker?"}
+    
+    Question5 -->|Yes| Docker
+    Question5 -->|No| Wheel["Wheel Installation"]
+    
+    Question4 -->|Yes| Docker
+    Question4 -->|No| Wheel
+    
+    BuildSource --> DevTools["Install dev tools:<br/>CMake, Clang 17, GCC 12"]
+    BuildSource --> TtmlirStep["Build TT-MLIR toolchain"]
+    BuildSource --> CloneBuild["Clone and build TT-XLA"]
+    
+    Docker --> DockerInstall["Install Docker"]
+    Docker --> DockerRun["docker run with device mounts"]
+    
+    Wheel --> VenvCreate["Create/activate venv"]
+    Wheel --> PipInstall["pip install pjrt-plugin-tt"]
+    
+    CloneBuild --> Verify["Verify with jax.devices()"]
+    DockerRun --> Verify
+    PipInstall --> Verify
+    
+    Verify --> Done["Ready to run models"]

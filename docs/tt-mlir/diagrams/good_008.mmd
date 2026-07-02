@@ -1,0 +1,11 @@
+LR
+    GetDevice["ttnn.get_device<br/>mesh_shape, mesh_offset"]
+    Device["Device Handle"]
+    ToDevice["ttnn.to_device<br/>tensor, device"]
+    Empty["ttnn.empty<br/>shape, device"]
+    
+    GetDevice --> Device
+    Device --> ToDevice
+    Device --> Empty
+
+Sources: [include/ttmlir/Dialect/TTNN/IR/TTNNOps.td:26-125](), [lib/Target/TTNN/TTNNToFlatbuffer.cpp:50-55]()

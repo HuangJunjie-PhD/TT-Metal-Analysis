@@ -1,0 +1,12 @@
+TB
+    LocalInit["init_ttexalens()"] --> CreateContext["Create Context"]
+    RemoteInit["init_ttexalens_remote()"] --> ConnectServer["connect_to_server()"]
+    
+    CreateContext --> LocalUmdApi["local_init()"]
+    LocalUmdApi --> UmdDiscovery["TopologyDiscovery.discover()"]
+    UmdDiscovery --> CreateDevices["Device.create()"]
+    
+    ConnectServer --> RemoteProxy["Pyro5.Proxy"]
+    RemoteProxy --> CreateDevices
+    
+    CreateDevices --> FinalContext["Context"]

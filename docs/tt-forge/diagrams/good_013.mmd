@@ -1,0 +1,10 @@
+TB
+    Input["Inputs:<br/>repo, release_type, draft,<br/>new_version_tag, branch"]
+    
+    ReadVersion["Read .version file<br/>Extract MAJOR, MINOR"]
+    
+    AllDefaults["Set All Repo Defaults<br/>workflow_allow_failed=false<br/>prerelease=true<br/>make_latest=false"]
+    
+    TypeDefaults["Apply Release Type Defaults"]
+    
+    sub

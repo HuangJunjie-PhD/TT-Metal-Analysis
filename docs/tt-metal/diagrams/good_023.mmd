@@ -1,0 +1,30 @@
+TB
+    Start["Python import: ttnn/__init__.py"]
+    CreateCONFIG["Create CONFIG from ttnn._ttnn.core.Config"]
+    EnvPath["Check ENV: TTNN_CONFIG_PATH set?"]
+    FileExists{"CONFIG_PATH file exists?"}
+    LoadFile["load_config_from_json_file(CONFIG_PATH)"]
+    SaveFile["save_config_to_json_file(CONFIG_PATH) (default)"]
+    EnvOverrides["Check ENV: TTNN_CONFIG_OVERRIDES set?"]
+    LoadOverrides["load_config_from_dictionary(overrides)"]
+    Ready["CONFIG ready"]
+
+    Start --> CreateCONFIG
+    CreateCONFIG --> EnvPath
+    EnvPath -- Set --> FileExists
+    EnvPath -- Not Set --> EnvOverrides
+    FileExists -- Yes --> LoadFile
+    FileExists -- No --> SaveFile
+    LoadFile --> EnvOverrides
+    SaveFile --> EnvOverrides
+    EnvOverrides -- Set --> LoadOverrides
+    EnvOverrides -- Not Set --> Ready
+    LoadOverrides --> Ready
+
+
+- **Initialization:** The C++ core initializes a default config object exposed as `ttnn._ttnn.core.Config` [ttnn/ttnn/__init__.py:20-21]().
+- **File Loading:** If `TTNN_CONFIG_PATH` is set and the file exists, `load_config_from_json_file` applies updates [ttnn/ttnn/__init__.py:44-52]().
+- **Overrides:** `TTNN_CONFIG_OVERRIDES` allows applying JSON-formatted overrides on top of the current configuration [ttnn/ttnn/__init__.py:75-77]().
+- **Context Management:** The `manage_config(name, value)` context manager allows temporary changes to config keys, restoring original values (or safe defaults like empty strings) on exit [ttnn/ttnn/__init__.py:82-103]().
+
+Sources: [ttnn/ttnn/__init__.py:20-103]()

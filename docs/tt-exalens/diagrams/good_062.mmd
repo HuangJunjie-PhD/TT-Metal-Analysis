@@ -1,0 +1,13 @@
+TB
+    API["Memory/Register API<br/>tt_exalens_lib.py"]
+    Coordinate["OnChipCoordinate<br/>coordinate.py"]
+    Device["Device<br/>device.py"]
+    UmdDevice["UmdDevice<br/>umd_device.py"]
+    TtUmd["tt-umd Library<br/>C++ PCIe/JTAG"]
+    
+    API --> Coordinate
+    Coordinate --> Device
+    Device --> UmdDevice
+    UmdDevice --> TtUmd
+    
+    sub

@@ -1,0 +1,35 @@
+TB
+    Start["Developer clones repo -> `git clone --recurse-submodules`"]
+    SetupEnv["Setup Environment per CONTRIBUTING.md"]
+    FeatureBranch["Create feature branch"]
+    Implementation["Implement C++ / Python code changes"]
+    PreCommit["Run pre-commit checks:\
+- clang-format\
+- black\
+- Metalium includes\
+- TTNN torch import\
+- LLK includes"]
+    LocalTests["Run local tests:\
+- Unit tests\
+- Demo tests\
+- Model tests"]
+    PushOrigin["Push branch to origin (GitHub)"]
+    PR["Open Pull Request:\
+Use PR template with notes"]
+    PRGateCI["Run PR Gate CI:\
+- Sanity\
+- Smoke tests"]
+    CodeReview["Mandatory review by CODEOWNERS:\
+- tt_metal owners\
+- tt_stl owners\
+- ttnn owners"]
+    PostCommitCI["Run Post Commit CI:\
+- Full hardware regression\
+- Device perf tests"]
+    MergeMain["Merge to main upon successful CI and review"]
+
+    Start --> SetupEnv --> FeatureBranch --> Implementation --> PreCommit --> LocalTests --> PushOrigin --> PR --> PRGateCI --> CodeReview --> PostCommitCI --> MergeMain
+    CodeReview -- "Changes requested" --> Implementation
+    PostCommitCI -- "Failures" --> Implementation
+
+    sub

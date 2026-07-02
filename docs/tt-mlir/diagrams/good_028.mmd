@@ -1,0 +1,9 @@
+TB
+    "TestFile[.mlir]" -->|"Parse RUN"| "LitRunner[lit.cfg.py]"
+    "LitRunner[lit.cfg.py]" -->|"Execute"| "ttmlir-opt"
+    "ttmlir-opt" -->|"Apply Pipeline"| "PassManager"
+    "PassManager" -->|"IR Output"| "FileCheck"
+    "TestFile[.mlir]" -->|"Patterns"| "FileCheck"
+    "FileCheck" -->|"Verify"| "Result[Pass/Fail]"
+
+**Sources:** [test/lit.cfg.py:165-168](), [test/CMakeLists.txt:48-53]()

@@ -1,0 +1,34 @@
+TB
+    PYTEST["pytest execution"]
+    
+    PYTEST --> PARAM_CLASS["@parameterized_class<br/>Creates test instances"]
+    
+    PARAM_CLASS --> SETUP_CLASS["setUpClass()<br/>init_cached_test_context()"]
+    
+    SETUP_CLASS --> CACHE_CHECK{"Context<br/>cached?"}
+    CACHE_CHECK -->|"Yes"| USE_CACHED["Use _cached_test_context"]
+    CACHE_CHECK -->|"No"| INIT_NEW["init_default_test_context()"]
+    
+    INIT_NEW --> MODE_SELECT["Select mode<br/>(local/remote/sim)"]
+    MODE_SELECT --> INIT_LIB["init_ttexalens() or<br/>init_ttexalens_remote()"]
+    INIT_LIB --> STORE_CACHE["_cached_test_context = ctx"]
+    
+    STORE_CACHE --> SETUP_METHOD
+    USE_CACHED --> SETUP_METHOD["setUp()<br/>Resolve core locations"]
+    
+    SETUP_METHOD --> GET_CORE["get_core_location()<br/>core_desc → OnChipCoordinate"]
+    GET_CORE --> GET_BLOCK["device.get_block(location)"]
+    GET_BLOCK --> GET_RISC["block.get_risc_debug(risc_name)"]
+    
+    GET_RISC --> SKIP_CHECK{"RISC<br/>available?"}
+    SKIP_CHECK -->|"No"| SKIP["self.skipTest()"]
+    SKIP_CHECK -->|"Yes"| SETUP_ELF["Get ELF with<br/>get_parsed_elf_file()"]
+    
+    SETUP_ELF --> ELF_CACHE_CHECK{"ELF<br/>cached?"}
+    ELF_CACHE_CHECK -->|"Yes"| USE_CACHED_ELF["Return cached ParsedElfFile"]
+    ELF_CACHE_CHECK -->|"No"| PARSE_ELF["Parse ELF and cache"]
+    
+    PARSE_ELF --> TEST_METHOD
+    USE_CACHED_ELF --> TEST_METHOD["Test method execution"]
+    
+    TEST_METHOD --> HW_OPS["Hardware operations<br/>(load ELF, read memory, etc.)"]

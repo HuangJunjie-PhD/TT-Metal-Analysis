@@ -1,0 +1,9 @@
+LR
+    Private["Private Address<br/>0x2000-0x4000"]
+    NOC["NOC Address<br/>0x100002000-0x100004000"]
+    
+    Private -->|"translate_to_noc_address()"| NOC
+    NOC -->|"contains_private_address()"| Private
+
+
+For memory outside L1 (e.g., TRISC private data), NOC access is not possible and the debug protocol must be used.

@@ -1,0 +1,26 @@
+TD
+    START["init_default_test_context()"]
+    
+    START --> ENV_CHECK{"Check Environment<br/>Variables"}
+    
+    ENV_CHECK --> REMOTE_CHECK{"TTEXALENS_TESTS_REMOTE<br/>set?"}
+    REMOTE_CHECK -->|"Yes"| REMOTE_INIT["init_ttexalens_remote()<br/>ip_address, port"]
+    
+    REMOTE_CHECK -->|"No"| SIM_CHECK{"TTEXALENS_SIMULATOR<br/>set?"}
+    SIM_CHECK -->|"Yes"| SIM_INIT["init_ttexalens()<br/>simulation_directory=path"]
+    
+    SIM_CHECK -->|"No"| LOCAL_INIT["init_ttexalens()<br/>Local hardware"]
+    
+    ENV_CHECK --> NOC_CHECK{"TTEXALENS_TESTS_USE_NOC1<br/>== '1'?"}
+    NOC_CHECK -->|"Yes"| NOC1["use_noc1=True"]
+    NOC_CHECK -->|"No"| NOC0["use_noc1=False"]
+    
+    NOC1 --> REMOTE_INIT
+    NOC0 --> REMOTE_INIT
+    NOC1 --> SIM_INIT
+    NOC0 --> SIM_INIT
+    NOC1 --> LOCAL_INIT
+    NOC0 --> LOCAL_INIT
+
+
+Sources: [test/ttexalens/unit_tests/test_base.py:28-51](), [test/app/test_umd_ttexalens.py:94-101]()

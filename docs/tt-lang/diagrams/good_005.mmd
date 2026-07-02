@@ -1,0 +1,8 @@
+TD
+    A["Python DSL: make_dataflow_buffer_like"] --> B["TTL Dialect: ttl.bind_cb"]
+    B --> C["TTL Pass: ttl-insert-intermediate-dfbs"]
+    C --> D["TTL Pass: ttl-insert-cb-sync"]
+    D --> E["TTL Pass: ttl-finalize-dfb-indices"]
+    E --> F["TTKernel Dialect: ttkernel.cb_reserve_back / wait_front"]
+    
+    sub

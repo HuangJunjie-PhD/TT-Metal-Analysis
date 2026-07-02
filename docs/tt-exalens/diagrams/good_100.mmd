@@ -1,0 +1,19 @@
+LR
+  TestDebugging["TestDebugging"]
+  
+  TestDebugging --> ETH0_ERISC["core_desc=ETH0, risc_name=ERISC"]
+  TestDebugging --> ETH0_ERISC0["core_desc=ETH0, risc_name=ERISC0"]
+  TestDebugging --> ETH0_ERISC1["core_desc=ETH0, risc_name=ERISC1"]
+  TestDebugging --> FW0_BRISC["core_desc=FW0, risc_name=BRISC"]
+  TestDebugging --> FW0_TRISC0["core_desc=FW0, risc_name=TRISC0"]
+  TestDebugging --> FW0_TRISC1["core_desc=FW0, risc_name=TRISC1"]
+  TestDebugging --> FW0_TRISC2["core_desc=FW0, risc_name=TRISC2"]
+  TestDebugging --> FW1_BRISC["core_desc=FW1, risc_name=BRISC"]
+  TestDebugging --> FW1_TRISC0["core_desc=FW1, risc_name=TRISC0"]
+  TestDebugging --> FW1_TRISC1["core_desc=FW1, risc_name=TRISC1"]
+  TestDebugging --> FW1_TRISC2["core_desc=FW1, risc_name=TRISC2"]
+  TestDebugging --> DRAM0_DRISC["core_desc=DRAM0, risc_name=DRISC"]
+  TestDebugging --> Quasar_NEO["core_desc=FW0, neo_id=0..3, risc_name=TRISC0..3 (Quasar only)"]
+
+
+Sources: [test/ttexalens/unit_tests/test_risc_debug.py:16-47]()

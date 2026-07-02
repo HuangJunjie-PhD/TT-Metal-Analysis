@@ -1,0 +1,30 @@
+TB
+    CLIStart["tt-exalens command"]
+    ParseArgs["Parse arguments<br/>--server, --remote, or default"]
+    
+    ServerMode{"--server<br/>flag?"}
+    ServerBG{"--background<br/>flag?"}
+    RemoteMode{"--remote<br/>flag?"}
+    
+    InitServerBG["init_ttexalens()<br/>start_server(port)<br/>Wait for exit.server file"]
+    InitServerFG["Set --start-server=port<br/>Continue to main loop"]
+    InitRemote["init_ttexalens_remote(ip, port)"]
+    InitLocal["init_ttexalens(init_jtag, use_noc1, use_4B_mode, simulation_directory)"]
+    
+    MainLoop["main_loop(args, context)"]
+    
+    CLIStart --> ParseArgs
+    ParseArgs --> ServerMode
+    
+    ServerMode -->|"Yes"| ServerBG
+    ServerMode -->|"No"| RemoteMode
+    
+    ServerBG -->|"Yes"| InitServerBG
+    ServerBG -->|"No"| InitServerFG
+    
+    RemoteMode -->|"Yes"| InitRemote
+    RemoteMode -->|"No"| InitLocal
+    
+    InitServerFG --> InitLocal
+    InitRemote --> MainLoop
+    InitLocal --> MainLoop

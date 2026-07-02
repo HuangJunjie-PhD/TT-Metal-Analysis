@@ -1,0 +1,14 @@
+TB
+    GetCommit["Get latest commit SHA<br/>from main branch"]
+    ShortSHA["Convert to short SHA:<br/>git rev-parse --short"]
+    BuildArtifactName["Construct artifact name:<br/>xla-whl-release-{short_sha}"]
+    CheckArtifact["GitHub API check:<br/>/repos/{repo}/actions/artifacts?name={artifact_name}"]
+    GetRunID["Extract workflow_run.id<br/>from artifact metadata"]
+    Download["Download artifacts<br/>by run-id"]
+    
+    GetCommit --> ShortSHA
+    ShortSHA --> BuildArtifactName
+    BuildArtifactName --> CheckArtifact
+    CheckArtifact -->|"found"| GetRunID
+    GetRunID --> Download
+    CheckArtifact -->|"not found"| Error["Exit with error"]

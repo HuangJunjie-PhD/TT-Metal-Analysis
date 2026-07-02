@@ -1,0 +1,24 @@
+TB
+    MLIR_BASE["tt-mlir-base-ubuntu-22-04<br/>(from tt-mlir repo)"]
+    MLIR_CI["tt-mlir-ci-ubuntu-22-04<br/>(from tt-mlir repo)"]
+    
+    XLA_BASE["tt-xla-base-ubuntu-22-04<br/>Dockerfile.base"]
+    XLA_CI["tt-xla-ci-ubuntu-22-04<br/>Dockerfile.ci target: ci"]
+    XLA_IRD["tt-xla-ird-ubuntu-22-04<br/>Dockerfile.ci target: ird"]
+    
+    CI_BUILD_VENV["ci-build-with-venv<br/>(intermediate stage)"]
+    CI_BUILD["ci-build<br/>(intermediate stage)"]
+    
+    MLIR_BASE --> XLA_BASE
+    MLIR_CI --> CI_BUILD_VENV
+    CI_BUILD_VENV --> CI_BUILD
+    
+    XLA_BASE --> XLA_CI
+    XLA_BASE --> XLA_IRD
+    
+    CI_BUILD --> XLA_CI
+    CI_BUILD_VENV --> XLA_IRD
+    
+    XLA_BASE -.->|"copies requirements.txt"| REQ_TXT["python_package/requirements.txt<br/>venv/requirements-dev.txt"]
+    CI_BUILD -.->|"copies toolchain<br/>(no venv)"| TOOLCHAIN["/opt/ttmlir-toolchain"]
+    CI_BUILD_VENV -.->|"copies toolchain<br/>(with venv)"| TOOLCHAIN

@@ -1,0 +1,13 @@
+TB
+    Generic["d2m::GenericOp"]
+    Attrs["Attributes:<br/>grid, threads, block_factors,<br/>indexing_maps, iterator_types"]
+    InputOps["Input Operands<br/>(memrefs/tensors)"]
+    OutputOps["Output Operands<br/>(DPS style)"]
+    ComputeRegion["Compute Region<br/>(linalg.generic or affine loops)"]
+    DatamovementRegion["Datamovement Region<br/>(DMA operations)"]
+    
+    Generic --> Attrs
+    Generic --> InputOps
+    Generic --> OutputOps
+    Generic --> ComputeRegion
+    Generic --> DatamovementRegion

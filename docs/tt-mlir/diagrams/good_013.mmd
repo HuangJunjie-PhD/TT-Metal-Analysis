@@ -1,0 +1,12 @@
+LR
+    ToLayout["d2m::ToLayoutOp<br/>(General Transition)"]
+    ToDevice["d2m::ToDeviceOp<br/>(Host -> Device)"]
+    ToHost["d2m::ToHostOp<br/>(Device -> Host)"]
+    ViewLayout["d2m::ViewLayoutOp<br/>(Logical Rearrangement)"]
+    
+    RemoteLoad["d2m::RemoteLoadOp<br/>(NOC Read)"]
+    RemoteStore["d2m::RemoteStoreOp<br/>(NOC Write)"]
+    
+    ToLayout --> ToDevice
+    ToLayout --> ToHost
+    ToLayout --> ViewLayout

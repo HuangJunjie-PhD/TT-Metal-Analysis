@@ -1,0 +1,15 @@
+TB
+    UserCode["User Python Script"]
+    SetDevice["xr.set_device_type('TT')"]
+    LoadModel["AutoModelForCausalLM.from_pretrained()"]
+    ToDevice["model.to(device)"]
+    Compile["torch.compile(model, backend='tt')"]
+    Execute["compiled_model(**inputs)"]
+    
+    UserCode --> SetDevice
+    SetDevice --> LoadModel
+    LoadModel --> ToDevice
+    ToDevice --> Compile
+    Compile --> Execute
+    
+    sub

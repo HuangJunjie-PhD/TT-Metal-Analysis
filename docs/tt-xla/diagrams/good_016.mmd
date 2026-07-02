@@ -1,0 +1,53 @@
+TB
+    TRIGGER["Workflow Call<br/>inputs: mlir_override,<br/>xla_sha_override"]
+    
+    JOB1["Job: check-if-docker-exist"]
+    JOB2["Job: build-image"]
+    JOB3["Job: set-latest-tag"]
+    
+    CHECKOUT1["Checkout<br/>ref: xla_sha_override"]
+    
+    GET_SHA["Extract tt_mlir_sha<br/>from CMakeLists.txt<br/>or use mlir_override"]
+    
+    RUN_CHECK["Run build-docker-images.sh<br/>--check-only"]
+    
+    EXISTS{{"Images<br/>exist?"}}
+    
+    OUTPUT1["Output:<br/>docker-image,<br/>docker-image-base"]
+    
+    SKIP_BUILD["Skip build-image job"]
+    
+    NEED_BUILD{{"docker-image<br/>output empty?"}}
+    
+    RUN_BUILD["Run build-docker-images.sh<br/>(full build)"]
+    
+    OUTPUT2["Output:<br/>docker-image,<br/>docker-image-base"]
+    
+    MAIN_PUSH{{"Push to main<br/>branch?"}}
+    
+    TAG_LATEST["Tag images as 'latest'<br/>using skopeo copy"]
+    
+    TRIGGER --> JOB1
+    JOB1 --> CHECKOUT1
+    CHECKOUT1 --> GET_SHA
+    GET_SHA --> RUN_CHECK
+    RUN_CHECK --> EXISTS
+    
+    EXISTS -->|"Yes"| OUTPUT1
+    EXISTS -->|"No"| OUTPUT1
+    
+    OUTPUT1 --> NEED_BUILD
+    
+    NEED_BUILD -->|"Yes"| JOB2
+    NEED_BUILD -->|"No"| SKIP_BUILD
+    
+    JOB2 --> RUN_BUILD
+    RUN_BUILD --> OUTPUT2
+    
+    OUTPUT1 --> JOB3
+    OUTPUT2 --> JOB3
+    
+    JOB3 --> MAIN_PUSH
+    MAIN_PUSH -->|"Yes"| TAG_LATEST
+    MAIN_PUSH -->|"No"| END["End"]
+    TAG_LATEST --> END

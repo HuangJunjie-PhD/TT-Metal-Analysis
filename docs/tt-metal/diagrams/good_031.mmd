@@ -1,0 +1,14 @@
+TD
+    TarStep["'Tar files' step in build-artifact.yaml"]
+    
+    TarStep --> TTNN["ttnn/ttnn/*.so<br/>_ttnnpybind11.cpython-*.so<br/>_ttnncpp.so"]
+    TarStep --> BuildLib["build/lib/<br/>libtt_metal.so<br/>libtt_stl.so<br/>libttnn.so"]
+    TarStep --> Examples["build/programming_examples/<br/>Compiled examples"]
+    TarStep --> Tests["build/test/<br/>unit_tests_*<br/>C++ test binaries"]
+    TarStep --> Tools["build/tools/<br/>profiler, debugger"]
+    TarStep --> Runtime["runtime/<br/>Runtime configuration"]
+    TarStep --> Precompiled["tt_metal/pre-compiled/<br/>Kernel cache"]
+    TarStep --> Optional["build/tt-train/<br/>(if skip-tt-train=false)"]
+
+
+Sources: [.github/workflows/build-artifact.yaml:544-551]()

@@ -1,0 +1,27 @@
+TB
+    UpdateReleases["update-releases.yml<br/>Detects new commits on release branch"]
+    GetBranches["get-release-branches<br/>Finds release-X.Y branches with updates"]
+    Release["release.yml<br/>type=rc"]
+    SetFacts["set-release-facts<br/>prerelease=true<br/>make_latest=false"]
+    CheckRelease["Check if release exists<br/>check_release.sh"]
+    BuildWheel["build-release-wheel<br/>Create Python packages"]
+    BasicTests["basic-tests.yml<br/>Quick validation"]
+    DemoTests["demo-tests.yml<br/>Comprehensive tests"]
+    PyPI["publish-tenstorrent-pypi<br/>Upload to PyPI"]
+    GitTag["push-annotated-git-tag<br/>Tag with X.Y.ZrcN"]
+    GHRelease["publish-github-release<br/>Create GitHub pre-release"]
+    
+    UpdateReleases --> GetBranches
+    GetBranches --> Release
+    Release --> SetFacts
+    SetFacts --> CheckRelease
+    CheckRelease -->|"not exists"| BuildWheel
+    BuildWheel --> BasicTests
+    BuildWheel --> DemoTests
+    BasicTests --> PyPI
+    DemoTests --> PyPI
+    PyPI --> GitTag
+    GitTag --> GHRelease
+
+
+The workflow checks for existing releases to prevent duplicate builds. This is controlled by the `overwrite_releases` parameter in the `release.yml` workflow [.github/workflows/release.yml:115-135]().

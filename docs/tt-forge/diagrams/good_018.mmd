@@ -1,0 +1,27 @@
+TB
+    WorkflowInput["release.yml inputs: release_type, new_version_tag, branch"]
+    
+    SetFacts["set-release-facts action<br/>Outputs: new_version_tag, gh_new_version_tag, build_release_tag"]
+    
+    BuildWheel["build-release-wheel action<br/>Uses: build_release_tag to find source artifacts"]
+    
+    UpdateVersion["wheel-version-updater.sh<br/>Uses: new_version_tag to reversion wheel files"]
+    
+    DockerTag["Docker image tag<br/>Uses: gh_new_version_tag (Example: 0.1.0rc1 or latest)"]
+    
+    PyPIPublish["publish-tenstorrent-pypi<br/>Uses: new_version_tag to upload wheel"]
+    
+    GitHubRelease["publish-github-release<br/>Uses: gh_new_version_tag to create release page"]
+    
+    GitTag["push-annotated-git-tag<br/>Uses: gh_new_version_tag to tag commit"]
+    
+    WorkflowInput --> SetFacts
+    SetFacts --> BuildWheel
+    SetFacts --> UpdateVersion
+    SetFacts --> DockerTag
+    SetFacts --> PyPIPublish
+    SetFacts --> GitHubRelease
+    SetFacts --> GitTag
+
+
+Sources: [.github/workflows/release.yml:95-102](), [.github/workflows/release.yml:140-150](), [.github/workflows/release.yml:178-183](), [.github/workflows/release.yml:303-315](), [.github/workflows/release.yml:329-338](), [.github/workflows/release.yml:340-353]()

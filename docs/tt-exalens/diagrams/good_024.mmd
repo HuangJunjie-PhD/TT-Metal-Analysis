@@ -1,0 +1,20 @@
+TB
+    User["User Code"] --> read_risc["read_riscv_memory()"]
+    User --> write_risc["write_riscv_memory()"]
+    
+    read_risc --> GetRiscDebug["NocBlock.get_risc_debug()"]
+    write_risc --> GetRiscDebug
+    
+    GetRiscDebug --> EnsureHalt["ensure_private_memory_access()"]
+    
+    EnsureHalt --> ReadMem["RiscDebug.read_memory_bytes()"]
+    EnsureHalt --> WriteMem["RiscDebug.write_memory_bytes()"]
+    
+    ReadMem --> DebugInterface["Debug register interface"]
+    WriteMem --> DebugInterface
+
+
+| Function | Purpose | Returns |
+|----------|---------|---------|
+| `read_riscv_memory()` | Read from RISC-V private memory via debug interface | `int` |
+| `write_riscv_memory()` | Write to RISC-V private memory via debug interface | `None` |

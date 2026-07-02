@@ -1,0 +1,26 @@
+TB
+    StableRelease["Stable release X.Y.0<br/>Published"]
+    Commit1["New commit on release-X.Y"]
+    UpdateReleases1["update-releases.yml<br/>Detects commit"]
+    BumpVersion1["bump-version.yml<br/>X.Y.0 → X.Y.1"]
+    Release1["release.yml<br/>type=stable<br/>new_version_tag=X.Y.1"]
+    Publish1["Publish X.Y.1<br/>make_latest=true"]
+    
+    Commit2["Another commit"]
+    BumpVersion2["bump-version.yml<br/>X.Y.1 → X.Y.2"]
+    Release2["release.yml<br/>new_version_tag=X.Y.2"]
+    Publish2["Publish X.Y.2<br/>make_latest=true"]
+    
+    StableRelease --> Commit1
+    Commit1 --> UpdateReleases1
+    UpdateReleases1 --> BumpVersion1
+    BumpVersion1 --> Release1
+    Release1 --> Publish1
+    
+    Publish1 --> Commit2
+    Commit2 --> BumpVersion2
+    BumpVersion2 --> Release2
+    Release2 --> Publish2
+
+
+The test lifecycle validates that a second commit after stable release bumps the version from `X.Y.0` to `X.Y.1` [.github/workflows/test-rc-stable-release-lifecycle.yml:455-470]().

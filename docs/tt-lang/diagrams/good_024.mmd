@@ -1,0 +1,18 @@
+LR
+    UserCode["Python Kernel Code"]
+    ASTValidation["AST-Level Validation<br/>TTLGenericCompiler"]
+    MLIRValidation["MLIR Type Validation<br/>TTL Dialect Operations"]
+    PassValidation["Pass-Level Validation<br/>convert-ttl-to-ttkernel"]
+    RuntimeValidation["Runtime Validation<br/>Descriptor Building"]
+    
+    UserCode --> ASTValidation
+    ASTValidation --> MLIRValidation
+    MLIRValidation --> PassValidation
+    PassValidation --> RuntimeValidation
+    
+    ASTValidation -.rejects.-> Err1["Grid dimension errors<br/>Tensor shape errors<br/>Thread parameter errors"]
+    MLIRValidation -.rejects.-> Err2["Type conversion errors<br/>Invalid CB operations<br/>Missing wait() on copy"]
+    PassValidation -.rejects.-> Err3["Incompatible tile operations<br/>Invalid data flow"]
+    RuntimeValidation -.rejects.-> Err4["Device configuration errors<br/>Resource allocation failures"]
+
+    sub

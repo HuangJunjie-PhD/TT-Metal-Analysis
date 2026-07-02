@@ -1,0 +1,24 @@
+TB
+    Trigger["Push/PR to release code<br/>or workflow_dispatch"]
+    
+    TestWorkflow["test-nightly-releaser.yml<br/>────────────<br/>Single job:<br/>test-daily-nightly-releaser"]
+    
+    DailyReleaser["Calls daily-releaser.yml<br/>────────────<br/>with:<br/>  draft: true<br/>  overwrite_releases: false<br/>  repo: optional filter"]
+    
+    GetRepos["daily-releaser:<br/>get-repos job<br/>────────────<br/>Lists all repos or filtered repo"]
+    
+    NightlyPath["For each repo:<br/>Calls release.yml<br/>────────────<br/>type: nightly<br/>draft: true"]
+    
+    RCStablePath["For each repo:<br/>Calls update-releases.yml<br/>────────────<br/>draft: true"]
+    
+    DraftArtifacts["Creates draft artifacts:<br/>────────────<br/>Draft nightly releases<br/>Draft RC/stable updates<br/>Draft branches"]
+    
+    Trigger --> TestWorkflow
+    TestWorkflow --> DailyReleaser
+    DailyReleaser --> GetRepos
+    
+    GetRepos --> NightlyPath
+    GetRepos --> RCStablePath
+    
+    NightlyPath --> DraftArtifacts
+    RCStablePath --> DraftArtifacts

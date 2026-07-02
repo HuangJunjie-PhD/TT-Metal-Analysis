@@ -1,0 +1,11 @@
+LR
+    MLIR_CI["tt-mlir-ci-ubuntu-22-04<br/>FROM upstream"]
+    
+    CI_VENV["ci-build-with-venv<br/>stage"]
+    CI_CLEAN["ci-build<br/>stage"]
+    
+    MLIR_CI --> CI_VENV
+    CI_VENV --> CI_CLEAN
+    
+    CI_CLEAN -.->|"rm -rf venv"| VENV_REMOVED["Toolchain without venv<br/>/opt/ttmlir-toolchain"]
+    CI_VENV -.->|"keeps venv"| VENV_KEPT["Toolchain with venv<br/>/opt/ttmlir-toolchain"]

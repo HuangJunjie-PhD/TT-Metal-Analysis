@@ -1,0 +1,40 @@
+TB
+    Start["source venv/activate"] --> CheckTTMLIR{"TTMLIR_TOOLCHAIN_DIR\
+set?"}
+    CheckTTMLIR -->|No| SetDefault["TTMLIR_TOOLCHAIN_DIR=\
+/opt/ttmlir-toolchain"]
+    CheckTTMLIR -->|Yes| AddLibPath["LD_LIBRARY_PATH+=\
+$TTMLIR_TOOLCHAIN_DIR/lib"]
+    SetDefault --> AddLibPath
+    
+    AddLibPath --> SetPaths["TT_MLIR_HOME=\
+third_party/tt-mlir/src/tt-mlir/\
+PYTHONPATH+=repo_root:tests:integrations"]
+    
+    SetPaths --> CheckVenv{"venv/\
+exists?"}
+    CheckVenv -->|No| CreateVenv["python3.12 -m venv venv"]
+    CheckVenv -->|Yes| ActivateVenv["source venv/bin/activate"]
+    
+    CreateVenv --> InstallPip["$PIP install --upgrade pip"]
+    InstallPip --> InstallReqs["$PIP install -r\
+python_package/requirements.txt"]
+    InstallReqs --> InstallDevReqs["$PIP install -r\
+venv/requirements-dev.txt"]
+    InstallDevReqs --> SetEnvVars
+    
+    ActivateVenv --> SetEnvVars["TTXLA_ENV_ACTIVATED=1\
+VLLM_TARGET_DEVICE=empty\
+TT_METAL_LOGGER_LEVEL=ERROR\
+ARCH_NAME=wormhole_b0"]
+    
+    SetEnvVars --> UpdatePath["PATH=\
+$TTMLIR_TOOLCHAIN_DIR/bin:\
+$TT_MLIR_HOME/build/bin:\
+$PATH"]
+    UpdatePath --> SetAlias["alias pytest=\
+'python -m pytest'"]
+    SetAlias --> Complete["Ready for development"]
+
+
+Sources: [docs/src/getting_started_build_from_source.md:123-149]()

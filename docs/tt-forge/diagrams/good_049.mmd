@@ -1,0 +1,34 @@
+TD
+    Item["Matrix Item<br/>───────────<br/>project: ?<br/>name: ?"]
+    
+    ProjectCheck{"project_filter<br/>== 'tt-forge'?"}
+    
+    XLACheck{"item.project<br/>in ['tt-xla']?"}
+    
+    Exclude1["Exclude<br/>───────────<br/>tt-forge filter only<br/>includes tt-xla tests"]
+    
+    ProjectMatch{"item.project<br/>== project_filter?"}
+    
+    NameCheck{"name_filter<br/>provided?"}
+    
+    NameMatch{"filter in<br/>item.name?"}
+    
+    Include["Include in<br/>Filtered Matrix"]
+    
+    Exclude2["Exclude from<br/>Filtered Matrix"]
+    
+    Item --> ProjectCheck
+    ProjectCheck -->|Yes| XLACheck
+    ProjectCheck -->|No| ProjectMatch
+    
+    XLACheck -->|No| Exclude1
+    XLACheck -->|Yes| NameCheck
+    
+    ProjectMatch -->|No| Exclude2
+    ProjectMatch -->|Yes| NameCheck
+    
+    NameCheck -->|Yes| NameMatch
+    NameCheck -->|No| Include
+    
+    NameMatch -->|Yes| Include
+    NameMatch -->|No| Exclude2

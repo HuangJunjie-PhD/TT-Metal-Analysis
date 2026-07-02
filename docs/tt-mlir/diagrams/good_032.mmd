@@ -1,0 +1,22 @@
+TD
+    lib_cmake["lib/CMakeLists.txt"]
+    opmodel["add_subdirectory(OpModel)"]
+    capi["add_subdirectory(CAPI)"]
+    conversion["add_subdirectory(Conversion)"]
+    dialect["add_subdirectory(Dialect)"]
+    target["add_subdirectory(Target)"]
+    scheduler["add_subdirectory(Scheduler)"]
+    support["add_subdirectory(Support)"]
+    transforms["add_subdirectory(Transforms)"]
+
+    lib_cmake --> opmodel
+    lib_cmake --> capi
+    lib_cmake --> conversion
+    lib_cmake --> dialect
+    lib_cmake --> target
+    lib_cmake --> scheduler
+    lib_cmake --> support
+    lib_cmake --> transforms
+
+
+Sources: [CMakeLists.txt:3-10](), [lib/CMakeLists.txt:9-16](), [env/CMakeLists.txt:1-2](), [tools/ttnn-standalone/CMakeLists.txt:1-2]()

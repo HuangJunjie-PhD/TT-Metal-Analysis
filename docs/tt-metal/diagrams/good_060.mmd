@@ -1,0 +1,11 @@
+LR
+    Init["ModelArgs.__init__()"]
+    Env["Read HF_MODEL env<br/>Determine device_name"]
+    LoadHF["_set_hf_params()<br/>Load HuggingFace config"]
+    CreateOpt["Create Optimizations<br/>DecodersPrecision instance"]
+    GridConfig["Configure Core Grids<br/>dram_weight_grid"]
+    
+    Init --> Env
+    Env --> LoadHF
+    LoadHF --> CreateOpt
+    CreateOpt --> GridConfig

@@ -1,0 +1,13 @@
+TD
+  A["StableHLO Input"] --> B["TTIR Dialect"]
+  B --> C1["TTIRFusing\
+(TTIRFusing.cpp)"]
+  C1 --> D1["TTIRToTTIRDecomposition"]
+  D1 --> C2["TTIRFusing (Repeat)"]
+  
+  C2 --> F["TTIRToTTNN Conversion"]
+  F --> G["TTNN Dialect"]
+  G --> H["TTNNFusing\
+(TTNNFusing.cpp)"]
+  H --> I["TTNNWorkarounds\
+(Workarounds/TTNNWorkaroundsPatterns.cpp)"]

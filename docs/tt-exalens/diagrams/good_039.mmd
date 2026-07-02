@@ -1,0 +1,10 @@
+LR
+    PointerVar["ElfVariable<br/>(pointer_type)"]
+    ReadAddr["Read pointer value<br/>from memory"]
+    DereferencedType["type_die.dereference_type"]
+    NewVar["ElfVariable<br/>(dereference_type, address)"]
+    
+    PointerVar --> ReadAddr
+    PointerVar --> DereferencedType
+    ReadAddr --> NewVar
+    DereferencedType --> NewVar

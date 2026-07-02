@@ -1,0 +1,11 @@
+LR
+    Input["FX Graph<br/>(torch ops)"]
+    Fusion["Fusion Pass<br/>detect & fuse patterns"]
+    Composite["Composite Ops Pass<br/>wrap high-level ops"]
+    Decomp["Decomposition Pass<br/>break down ops"]
+    Output["Transformed Graph<br/>(tt-mlir compatible)"]
+    
+    Input --> Fusion
+    Fusion --> Composite
+    Composite --> Decomp
+    Decomp --> Output

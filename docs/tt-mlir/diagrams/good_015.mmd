@@ -1,0 +1,10 @@
+TB
+    AllocatePass["D2MAllocate Pass"]
+    Planner["allocation::Planner"]
+    
+    MemrefCtx["MemrefValueContext<br/>(Liveness, size, space)"]
+    OperandCtx["OperandContext<br/>(Def-chain, buffer type)"]
+    
+    AllocatePass --> Planner
+    AllocatePass --> MemrefCtx
+    AllocatePass --> OperandCtx

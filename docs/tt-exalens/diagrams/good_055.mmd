@@ -1,0 +1,12 @@
+LR
+    UnalignedWrite["Unaligned Write<br/>addr=0x102, data=[A,B]"]
+    ReadWord["Read word at 0x100"]
+    Modify["Modify bytes<br/>Replace positions 2-3"]
+    WriteBack["Write word back<br/>to 0x100"]
+    
+    UnalignedWrite --> ReadWord
+    ReadWord --> Modify
+    Modify --> WriteBack
+
+
+Sources: [test/ttexalens/unit_tests/test_lib.py:284-360]()

@@ -1,0 +1,20 @@
+TB
+    CreateBranch["create-version-branches.yml<br/>Create draft-release-X.Y"]
+    FirstRC["First RC commit<br/>Creates X.Y.Zrc1"]
+    SecondRC["Second RC commit<br/>Triggers bump-version.yml<br/>Creates X.Y.Zrc2"]
+    ThirdRC["Implicit third iteration<br/>Creates X.Y.Zrc3"]
+    PromoteStable["promote-stable.yml<br/>Creates X.Y.0"]
+    FirstPatch["First patch commit<br/>Triggers bump-version.yml<br/>Creates X.Y.1"]
+    SecondPatch["Second patch commit<br/>Triggers bump-version.yml<br/>Creates X.Y.2"]
+    Validate["Validate all artifacts<br/>Tags, branches, releases"]
+    
+    CreateBranch --> FirstRC
+    FirstRC --> SecondRC
+    SecondRC --> ThirdRC
+    ThirdRC --> PromoteStable
+    PromoteStable --> FirstPatch
+    FirstPatch --> SecondPatch
+    SecondPatch --> Validate
+
+
+The test validates the existence of tags like `draft.tt-mlir.X.Y.0rc1` and `draft.tt-mlir.X.Y.0` [.github/workflows/test-rc-stable-release-lifecycle.yml:154-161]() and ensures non-expected versions do not exist [.github/workflows/test-rc-stable-release-lifecycle.yml:163-166]().

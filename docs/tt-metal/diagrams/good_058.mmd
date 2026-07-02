@@ -1,0 +1,20 @@
+TD
+    tokens["Input Tokens (uint32)"]
+    embd["Embedding / ScaledEmbedding (tt/embedding.py)"]
+    rope["RotarySetup (tt/rope.py)"]
+    blocks["TransformerBlock (tt/decoder.py)"]
+    norm["DistributedNorm (tt/distributed_norm.py)"]
+    lmhead["LMHead (tt/lm_head.py)"]
+    logits["Output Logits"]
+    sampling["SamplingGenerator (models/common/sampling/generator.py)"]
+
+    tokens --> embd
+    embd --> blocks
+    rope --> blocks
+    blocks --> norm
+    norm --> lmhead
+    lmhead --> logits
+    logits --> sampling
+
+
+Sources: [models/tt_transformers/tt/model.py:23-153](), [models/tt_transformers/tt/attention.py:18-33]()

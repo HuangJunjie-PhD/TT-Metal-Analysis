@@ -1,0 +1,14 @@
+TB
+    Start["Test Trigger<br/>Push or PR to release code"]
+    
+    GetRepos["get-repos job<br/>────────────<br/>Identifies tt-mlir for testing"]
+    
+    ExpectedArtifacts["expected-artifacts job<br/>────────────<br/>Defines expected tags:<br/>- draft.tt-mlir.X.Y.0rc1/rc2/rc3<br/>- draft.tt-mlir.X.Y.0/1/2<br/>- draft.tt-mlir.first-commit-*<br/>- draft.tt-mlir.second-commit-*"]
+    
+    MockWorkflow1["mock-successful-workflow-pre-release-branch<br/>────────────<br/>Trigger Mock Successful workflow<br/>Get run_head_sha"]
+    
+    CreateBranch["create-version-branch job<br/>────────────<br/>Calls create-version-branches.yml<br/>draft: true<br/>Creates draft-tt-mlir-release-X.Y"]
+    
+    GetBranches["get-release-branches job<br/>────────────<br/>Finds draft release branches<br/>ignore_update_check: true"]
+    
+    sub

@@ -1,0 +1,20 @@
+TD
+  PythonAPI["Python API\
+(ttnn.all_gather / ttnn.reduce_scatter)"] --> DevOp["Device Operation\
+(AllGatherAsync / ReduceScatterMinimalAsync)"]
+  DevOp --> ProgFactory["Program Factory\
+(ring or line factory)"]
+  ProgFactory --> WorkerKernel["Worker Kernels on Tensix\
+(minimal_default_writer.cpp / reader kernel)"]
+  ProgFactory --> FabricBuilder["CclWorkerBuilder\
+ttnn/cpp/ttnn/operations/ccl/common/host/ccl_worker_builder.cpp"]
+  WorkerKernel --> FabricConn["FabricConnectionManager\
+tt_metal/fabric/hw/inc/edm_fabric/fabric_connection_manager.hpp"]
+  FabricConn --> EthLink["Ethernet Link (ERISC core)\
+linear/api.h"]
+  EthLink --> RemoteEDM["Remote EDM Receiver Channel"]
+  RemoteEDM --> DestMem["Destination L1 / DRAM\
+(NOC write)"]
+
+
+Sources: [ttnn/cpp/ttnn/operations/experimental/ccl/all_gather_async/device/kernels/minimal_default_writer.cpp:5-15](), [ttnn/cpp/ttnn/operations/ccl/common/host/ccl_worker_builder.cpp:1-10](), [ttnn/cpp/ttnn/operations/experimental/ccl/reduce_scatter_minimal_async/device/reduce_scatter_minimal_async_program.cpp:28-34]()

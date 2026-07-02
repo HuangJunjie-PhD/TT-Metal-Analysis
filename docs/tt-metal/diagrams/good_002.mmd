@@ -1,0 +1,23 @@
+TD
+    TTMetal["tt_metal/"]
+    
+    TTMetal --> API["api/tt-metalium/<br/>Public API headers"]
+    TTMetal --> HW["hw/<br/>Hardware abstraction"]
+    TTMetal --> LLRT["llrt/<br/>Low-level runtime"]
+    TTMetal --> Impl["impl/<br/>Implementation"]
+    TTMetal --> Common["common/<br/>Common utilities"]
+    TTMetal --> JitBuild["jit_build/<br/>JIT compilation"]
+    TTMetal --> Fabric["fabric/<br/>Multi-device fabric"]
+    TTMetal --> Distributed["distributed/<br/>Distributed compute"]
+    TTMetal --> HostDevCommon["hostdevcommon/<br/>Host-device shared"]
+    TTMetal --> ToolsMetal["tools/<br/>Metal-specific tools"]
+    
+    HW --> Firmware["hw/firmware/<br/>Device firmware"]
+    HW --> Toolchain["hw/toolchain/<br/>Linker scripts"]
+    HW --> Inc["hw/inc/<br/>Hardware headers"]
+    
+    LLRT --> HAL["llrt/hal/<br/>Hardware abstraction layer"]
+    
+    Impl --> Flatbuffer["impl/flatbuffer/<br/>Serialization schemas"]
+    Impl --> Debug["impl/debug/<br/>Debug & profiling"]
+    Impl --> Device["impl/device/<br/>Device abstraction"]

@@ -1,0 +1,17 @@
+LR
+    Original["Original SHLO Module<br/>with TT attributes"]
+    
+    Original --> Clone["Clone module"]
+    Clone --> Strip["Strip ttcore/ttir attributes<br/>from function args/results"]
+    Strip --> RemoveLoc["Remove debug locations<br/>mlir::createStripDebugInfoPass"]
+    RemoveLoc --> RemoveMesh["Remove sdy.mesh operations"]
+    
+    RemoveMesh --> CheckManual{"Has sdy.manual_computation?"}
+    CheckManual -->|Yes| ExtractShardy["Extract output shardings<br/>Convert to HloShardingV2"]
+    CheckManual -->|No| Done["Sanitized Module"]
+    
+    ExtractShardy --> InjectAttr["Inject mhlo.spmd_output_sharding<br/>module attribute"]
+    InjectAttr --> Simplify["Simplify main function<br/>Replace body with dummy outputs"]
+    Simplify --> Done
+    
+    Done --> XLA["Return to XLA<br/>via OptimizedProgram"]

@@ -1,0 +1,12 @@
+TB
+    NocBlock["NocBlock"] --> Worker["FunctionalWorkerBlock"]
+    NocBlock --> DRAM["DramBlock"]
+    NocBlock --> ETH["EthBlock"]
+    NocBlock --> ARC["ArcBlock"]
+    NocBlock --> Security["SecurityBlock"]
+    NocBlock --> L2CPU["L2CpuBlock"]
+    
+    Worker --> MemMap["noc_memory_map"]
+    Worker --> RegStore["RegisterStore"]
+    Worker --> RiscDebug["get_risc_debug()"]
+    Worker --> TensixDebug["TensixDebug"]

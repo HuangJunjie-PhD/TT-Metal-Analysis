@@ -1,0 +1,8 @@
+TB
+    ElfFile["ELF File<br/>.elf binary"] --> ParsedElf["ParsedElfFile<br/>(parsed.py)"]
+    ParsedElf --> ElfLoader["ElfLoader<br/>(elf_loader.py)"]
+    ElfLoader --> Sections["Section Loading<br/>.text, .init, .data"]
+    Sections --> Verify["Write Verification<br/>read-back check"]
+    Verify --> PC["Set PC to<br/>.init address"]
+    PC --> Reset["Reset Control<br/>RiscDebug"]
+    Reset --> Execute["Execution"]

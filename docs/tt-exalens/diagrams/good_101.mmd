@@ -1,0 +1,12 @@
+TD
+  TestDebugging -->|"creates"| RiscvCoreSimulator
+  TestDebugging -->|"creates"| RiscvProgramWriter
+
+  RiscvCoreSimulator -->|"wraps"| BabyRiscDebug
+  RiscvCoreSimulator -->|"uses"| ElfLoader
+  RiscvCoreSimulator -->|"uses"| DebugBusSignalStore
+
+  RiscvProgramWriter -->|"writes machine code via"| RiscvCoreSimulator
+
+
+Sources: [test/ttexalens/unit_tests/core_simulator.py:17-216](), [test/ttexalens/unit_tests/test_risc_debug.py:48-80]()

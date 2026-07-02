@@ -1,0 +1,49 @@
+TB
+    Input["string_view mlir_code<br/>VHLO/StableHLO from<br/>JAX/PyTorch/vLLM"]
+    
+    BuildModule["ModuleBuilder::buildModule()<br/>Main orchestration entry point<br/>line 208-374"]
+    
+    Parse["createVHLOModule()<br/>mlir::parseSourceString()<br/>line 377-393"]
+    
+    VHLO2SHLO["convertFromVHLOToSHLO()<br/>mlir::stablehlo::createStablehloDeserializePipeline()<br/>line 395-413"]
+    
+    FrontendPipeline["runFrontendSHLOPipeline()<br/>frontend_passes::annotateArgumentAttributes()<br/>line 415-426"]
+    
+    CollectShardings["collectInputShardings()<br/>collectOutputShardings() - GSPMD<br/>line 255-277"]
+    
+    CompilerPipeline["runCompilerStableHLOPipeline()<br/>mlir::tt::stablehlo::createStableHLOPipeline()<br/>line 746-772"]
+    
+    ShardyCheck{"isUsingShardyManualComputation()?<br/>line 289-318"}
+    
+    CleanXLA["cleanForXlaIngestion()<br/>Strip Shardy attributes<br/>line 309-318"]
+    
+    SHLO2TTIR["convertFromSHLOToTTIR()<br/>mlir::tt::ttir::createStableHLOToTTIRPipeline()<br/>line 774-800"]
+    
+    TTIR2TTNN["convertFromTTIRToTTNN()<br/>mlir::tt::ttnn::createTTIRToTTNNBackendPipeline()<br/>line 892-1037"]
+    
+    BackendChoice{"CompileOptions::backend<br/>line 353-370"}
+    
+    Flatbuffer["buildModuleForTTNNRuntime()<br/>createFlatbufferBinary()<br/>mlir::tt::ttnn::ttnnToFlatbuffer<br/>line 1062-1180"]
+    
+    Codegen["buildModuleForTTNNCodegen()<br/>performCodegen()<br/>TTAlchemistHandler::generate*<br/>line 1182-1279"]
+    
+    FBImage["FlatbufferExecutableImage<br/>with tt::runtime::Binary"]
+    
+    SOImage["SOExecutableImage<br/>with generated code path"]
+    
+    Input --> BuildModule
+    BuildModule --> Parse
+    Parse --> VHLO2SHLO
+    VHLO2SHLO --> FrontendPipeline
+    FrontendPipeline --> CollectShardings
+    CollectShardings --> CompilerPipeline
+    CompilerPipeline --> ShardyCheck
+    ShardyCheck -->|"Yes"| CleanXLA
+    ShardyCheck -->|"No"| SHLO2TTIR
+    CleanXLA --> SHLO2TTIR
+    SHLO2TTIR --> TTIR2TTNN
+    TTIR2TTNN --> BackendChoice
+    BackendChoice -->|"BackendRuntime::TTNNFlatbuffer"| Flatbuffer
+    BackendChoice -->|"BackendRuntime::TTNNCodegen*"| Codegen
+    Flatbuffer --> FBImage
+    Codegen --> SOImage

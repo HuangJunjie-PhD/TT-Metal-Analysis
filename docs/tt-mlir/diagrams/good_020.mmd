@@ -1,0 +1,6 @@
+TD
+    ToLayoutCall["to_layout call"] -->|Runtime Dispatch| ConvLogic["Layout Conversion Logic"]
+    ConvLogic -->|Host -> Device| ToDevice["ttnn::to_device"]
+    ConvLogic -->|Device -> Host| FromDevice["ttnn::from_device"]
+    ConvLogic -->|Layout Change| Typecast["ttnn::to_layout (ROW_MAJOR/TILE)"]
+    ConvLogic -->|Memory Change| ToMemCfg["ttnn::to_memory_config"]

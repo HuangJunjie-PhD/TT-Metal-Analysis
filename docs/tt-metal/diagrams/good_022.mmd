@@ -1,0 +1,17 @@
+TD
+    DC["DispatchContext\
+(tt_metal/distributed/dispatch_context.cpp)"]
+    FD_Init["initialize_fast_dispatch\
+(tt_metal/distributed/dispatch_context.cpp)"]
+    SD_Stash["StashedQueues\
+(tt_metal/distributed/dispatch_context.cpp)"]
+    FD_Queue["FDMeshCommandQueue\
+(tt_metal/distributed/dispatch_context.cpp)"]
+
+    DC --> FD_Init
+    FD_Init --> SD_Stash
+    SD_Stash --> FD_Queue
+
+Sources: [tt_metal/distributed/dispatch_context.cpp:25-47](), [tt_metal/distributed/dispatch_context.cpp:88-107]()
+
+The `DispatchContext` allows for manual initialization and termination of Fast Dispatch on supported architectures like Galaxy and Blackhole. It manages the lifecycle of command queues, including stashing Slow Dispatch queues during FD sessions. [tt_metal/distributed/dispatch_context.cpp:47-110]()

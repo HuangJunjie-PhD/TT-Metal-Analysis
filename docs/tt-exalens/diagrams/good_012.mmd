@@ -1,0 +1,20 @@
+TB
+    Access["Memory Access"] --> GetBlock["location.noc_block"]
+    GetBlock --> GetMemMap["noc_memory_map"]
+    
+    GetMemMap --> LoopStart["bytes_checked = 0"]
+    LoopStart --> CheckAddr["find_by_noc_address()"]
+    
+    CheckAddr --> NotFound{"Block found?"}
+    NotFound -->|"No"| Raise1["UnsafeAccessException"]
+    NotFound -->|"Yes"| CheckAccess{"is_accessible?"}
+    
+    CheckAccess -->|"No"| Raise2["UnsafeAccessException"]
+    CheckAccess -->|"Yes"| CheckSafe{"is_safe_to_read/write?"}
+    
+    CheckSafe -->|"No"| Raise3["UnsafeAccessException"]
+    CheckSafe -->|"Yes"| IncrBytes["bytes_checked += size"]
+    
+    IncrBytes --> Done{"Done?"}
+    Done -->|"No"| CheckAddr
+    Done -->|"Yes"| Success["OK"]

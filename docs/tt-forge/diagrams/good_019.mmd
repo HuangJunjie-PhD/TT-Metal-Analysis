@@ -1,0 +1,18 @@
+LR
+    GetReposJob["get-repos Job<br/>ubuntu-latest"]
+    GetReposAction["get-repos Action<br/>.github/actions/get-repos"]
+    SetReleaseFacts["set-release-facts Action<br/>Reads .version file"]
+    OutputMatrix["JSON Output:<br/>json_results"]
+    
+    NightlyConsumer["release-nightly Job<br/>matrix: include"]
+    UpdateConsumer["update-releases Workflow<br/>matrix: include"]
+    
+    GetReposJob --> GetReposAction
+    GetReposAction --> SetReleaseFacts
+    SetReleaseFacts --> OutputMatrix
+    
+    OutputMatrix --> NightlyConsumer
+    OutputMatrix --> UpdateConsumer
+
+
+The action reads the repository list from `set-release-facts` and produces a JSON matrix.

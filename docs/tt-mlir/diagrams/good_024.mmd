@@ -1,0 +1,7 @@
+LR
+    [TTIRToTTNN_Lowering] --> [TTNN_Fusing]
+    [TTNN_Fusing] --> [TTNNWorkarounds_Pass]
+    [TTNNWorkarounds_Pass] --> [TTNNOptimizer]
+
+
+Sources: [lib/Dialect/TTNN/Pipelines/TTNNPipelines.cpp:113-132]()

@@ -1,0 +1,11 @@
+TB
+    JaxCode["JAX User Code"]
+    JitDecorator["@jax.jit decorator"]
+    DeviceSpec["with jax.default_device(device)"]
+    Execute["jitted_fn(*args)"]
+    
+    JaxCode --> JitDecorator
+    JitDecorator --> DeviceSpec
+    DeviceSpec --> Execute
+    
+    sub

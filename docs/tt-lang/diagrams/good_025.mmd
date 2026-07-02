@@ -1,0 +1,13 @@
+TD
+    MLIRErr["MLIR Diagnostic Stream"]
+    Extract["_extract_diagnostic_groups"]
+    Render["_render_diagnostic_block"]
+    SrcDiag["SourceDiagnostic.format_error"]
+    FinalErr["Formatted Error String"]
+
+    MLIRErr --> Extract
+    Extract --> Render
+    Render --> SrcDiag
+    SrcDiag --> FinalErr
+
+    sub

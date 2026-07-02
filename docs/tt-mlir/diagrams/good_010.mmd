@@ -1,0 +1,11 @@
+LR
+    TTIR["TTIR<br/>(High-level tensors)"]
+    D2M["D2M<br/>(Device-aware IR)"]
+    TTNN["TTNN<br/>(Neural network ops)"]
+    TTMetal["TTMetal<br/>(Metal operations)"]
+    TTKernel["TTKernel<br/>(Kernel primitives)"]
+    
+    TTIR -->|"TTIRToD2M"| D2M
+    D2M -->|"D2MToTTNN"| TTNN
+    D2M -->|"D2MToTTMetal"| TTMetal
+    D2M -->|"D2MToTTKernel"| TTKernel

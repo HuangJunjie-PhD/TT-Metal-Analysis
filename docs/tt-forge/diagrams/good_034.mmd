@@ -1,0 +1,20 @@
+TB
+    Manual["Manual trigger or<br/>automated decision"]
+    PromoteStable["promote-stable.yml<br/>Input: release_branch"]
+    FindLatestRC["Find latest RC on branch<br/>e.g., X.Y.Zrc3"]
+    ExtractBase["Extract base version<br/>X.Y.Z from X.Y.Zrc3"]
+    TriggerRelease["release.yml<br/>type=stable<br/>new_version_tag=X.Y.Z"]
+    SetFacts["set-release-facts<br/>prerelease=false<br/>make_latest=true"]
+    BuildPublish["Build, test, and publish<br/>as stable release"]
+    TagLatest["Docker: Tag as latest<br/>GitHub: Mark as latest release"]
+    
+    Manual --> PromoteStable
+    PromoteStable --> FindLatestRC
+    FindLatestRC --> ExtractBase
+    ExtractBase --> TriggerRelease
+    TriggerRelease --> SetFacts
+    SetFacts --> BuildPublish
+    BuildPublish --> TagLatest
+
+
+When `release_type == "stable"`, the `set-release-facts` action sets `prerelease="false"` and `make_latest="true"` [.github/actions/set-release-facts/action.yaml:202-204](). The test lifecycle validates this promotion [.github/workflows/test-rc-stable-release-lifecycle.yml:352-368]().

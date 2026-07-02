@@ -1,0 +1,23 @@
+TB
+    GetPC["get_pc()"]
+    CheckDebugBus{"Debug Bus<br/>Available?"}
+    ReadDebugBus["Read PC from<br/>debug_bus_pc_signal"]
+    NCRISCCheck{"NCRISC or<br/>ERISC?"}
+    FixBit["Set bit 31<br/>(0x80000000)"]
+    ReturnDB["Return PC"]
+    
+    Halt["ensure_halted()"]
+    ReadGPR["read_gpr(32)"]
+    ReturnGPR["Return PC"]
+    
+    GetPC --> CheckDebugBus
+    CheckDebugBus -->|"Yes"| ReadDebugBus
+    CheckDebugBus -->|"No"| Halt
+    
+    ReadDebugBus --> NCRISCCheck
+    NCRISCCheck -->|"Yes"| FixBit
+    NCRISCCheck -->|"No"| ReturnDB
+    FixBit --> ReturnDB
+    
+    Halt --> ReadGPR
+    ReadGPR --> ReturnGPR

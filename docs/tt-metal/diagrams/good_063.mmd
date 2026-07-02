@@ -1,0 +1,24 @@
+TD
+    Demo["simple_text_demo.py<br/>optimizations parameter"]
+    
+    CreateModel["create_tt_model()"]
+    ModelArgs["ModelArgs<br/>optimizations → decoders_optimizations"]
+    
+    Transformer["Transformer.__init__()"]
+    Layer["TransformerBlock<br/>layer_num"]
+    
+    Attn["Attention.__init__()"]
+    GetDtype["decoders_optimizations.get_tensor_dtype()<br/>layer_num, TensorGroup.WQKV"]
+    
+    LoadWeight["Load wqkv weights<br/>with wqkv_dtype"]
+    Forward["forward() execution<br/>ttnn.linear with compute_kernel_config"]
+    
+    Demo -->|"optimizations=..."| CreateModel
+    CreateModel --> ModelArgs
+    ModelArgs --> Transformer
+    Transformer --> Layer
+    Layer --> Attn
+    
+    Attn --> GetDtype
+    GetDtype --> LoadWeight
+    LoadWeight --> Forward

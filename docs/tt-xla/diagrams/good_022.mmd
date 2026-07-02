@@ -1,0 +1,24 @@
+TB
+    Protobuf["Protobuf Data<br/>from PJRT_Client_Compile"]
+    
+    Parse["CompileOptionsParser::parseCompileOptions()"]
+    
+    Unknown["google::protobuf::UnknownFieldSet<br/>All protobuf fields"]
+    
+    Custom["extractCustomProtobufFields()<br/>Field #7: env_option_overrides"]
+    
+    Devices["extractReplicaDeviceIds()<br/>Field #3 → #9: device_assignment"]
+    
+    MapEntry["Map Entries<br/>Key (field #1): string<br/>Value (field #2): OptionOverrideProto"]
+    
+    ValueTypes["Value Types:<br/>field #1: string_field<br/>field #2: bool_field<br/>field #3: int_field<br/>field #4: double_field"]
+    
+    Output["std::unordered_map&lt;string, string&gt;<br/>compile_options"]
+    
+    Protobuf --> Parse
+    Parse --> Unknown
+    Unknown --> Custom
+    Unknown --> Devices
+    Custom --> MapEntry
+    MapEntry --> ValueTypes
+    ValueTypes --> Output

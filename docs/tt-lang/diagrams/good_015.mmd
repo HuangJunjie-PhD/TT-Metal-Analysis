@@ -1,0 +1,12 @@
+TD
+    A["Compute iteration domain"] --> B["Extract bounds/steps"]
+    B --> C["scf::LoopNest generation"]
+    D["generateTileProcessing() callback"]
+    E["tensor.extract inputs[ivs]"]
+    F["Clone compute body ops<br/>with IRMapping"]
+    G["Resolve IterIndexOp to IVs"]
+
+    C --> D
+    D --> E
+    E --> F
+    F --> G

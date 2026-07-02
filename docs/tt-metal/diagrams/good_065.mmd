@@ -1,0 +1,9 @@
+LR
+    HostTensor["Host Tensor"]
+    TensorToMesh["TensorToMesh"]
+    MeshMapperConfig["MeshMapperConfig (Shard / Replicate)"]
+    DistributedTensor["Distributed Tensor (Shards on Mesh)"]
+
+    HostTensor --> TensorToMesh
+    TensorToMesh -->|Uses| MeshMapperConfig
+    TensorToMesh --> DistributedTensor

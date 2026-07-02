@@ -1,0 +1,15 @@
+TB
+    BuildComplete["Build phase complete<br/>Artifacts available"]
+    TriggerBasic["Trigger basic-tests.yml<br/>Quick validation"]
+    TriggerDemo["Trigger demo-tests.yml<br/>Comprehensive model tests"]
+    WaitBasic["wait-workflow<br/>Wait for basic tests"]
+    DemoAsync["Demo tests run async<br/>unless test_demo_wait=true"]
+    
+    BuildComplete --> TriggerBasic
+    BuildComplete --> TriggerDemo
+    TriggerBasic --> WaitBasic
+    TriggerDemo --> DemoAsync
+    WaitBasic --> ProceedToPublish["Proceed to publish phase"]
+
+
+[.github/workflows/release.yml:185-256]()

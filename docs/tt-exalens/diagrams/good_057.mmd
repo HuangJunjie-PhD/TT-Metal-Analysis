@@ -1,0 +1,15 @@
+LR
+    Input["ConfigurationRegisterDescription<br/>index=1, mask=0x1E000000, shift=25"]
+    CalcAddr["Calculate Address<br/>base_addr + (index * 4)"]
+    Read["Read 32-bit Word"]
+    ExtractBits["Extract Bits<br/>(value & mask) >> shift"]
+    Result["Return Value"]
+    
+    Input --> CalcAddr
+    CalcAddr --> Read
+    Read --> ExtractBits
+    ExtractBits --> Result
+
+
+For writes, the process includes read-modify-write:
+```mermaid

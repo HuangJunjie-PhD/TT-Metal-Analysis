@@ -1,0 +1,18 @@
+TB
+    SocDesc["UmdDevice.soc_descriptor<br/>(tt-umd SOC descriptor)"]
+    BlockTypes["Device.block_types<br/>(block type registry)"]
+    
+    Init["_block_locations property"]
+    
+    GetCores["soc_descriptor.get_cores()<br/>or get_harvested_cores()"]
+    
+    BlockLocs["_block_locations: dict[str, list[OnChipCoordinate]]"]
+    
+    NocBlockTypeMap["_noc0_to_block_type: dict[tuple[int,int], str]"]
+    
+    SocDesc --> Init
+    BlockTypes --> Init
+    Init --> GetCores
+    GetCores --> BlockLocs
+    
+    BlockLocs --> NocBlockTypeMap

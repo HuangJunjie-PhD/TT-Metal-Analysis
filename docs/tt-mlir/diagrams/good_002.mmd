@@ -1,0 +1,26 @@
+LR
+    A["env/activate sourced"] --> B{"TTMLIR_TOOLCHAIN_DIR set?"}
+    B -- "No" --> C["TTMLIR_TOOLCHAIN_DIR=/opt/ttmlir-toolchain"]
+    B -- "Yes" --> D["Use existing value"]
+    C --> E{"TTMLIR_VENV_DIR set?"}
+    D --> E
+    E -- "No" --> F["TTMLIR_VENV_DIR=TTMLIR_TOOLCHAIN_DIR/venv"]
+    E -- "Yes" --> G["Use existing value"]
+    F --> H["source TTMLIR_VENV_DIR/bin/activate"]
+    G --> H
+    H --> I["Extend PATH:\
+build/bin\
+TTMLIR_TOOLCHAIN_DIR/bin\
+venv/bin"]
+    I --> J["Set TT_METAL_RUNTIME_ROOT\
+TT_METAL_HOME\
+TT_METAL_BUILD_HOME\
+TT_MLIR_HOME"]
+    J --> K["Set PYTHONPATH:\
+build/python_packages\
+build/runtime/python\
+mlir_core\
+Metal paths"]
+
+
+Sources: [env/activate:1-32]()

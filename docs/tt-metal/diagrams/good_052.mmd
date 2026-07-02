@@ -1,0 +1,16 @@
+TD
+    PR["Pull Request"]
+    CODEOWNERS{CODEOWNERS File}
+    Owners["Reviewers Assigned"]
+    Tests["CI/CD Test Pipelines"]
+    Failure["Test Failure Detected"]
+    SlackNotify["Send Slack Notification"]
+    OwnerNotify["Owners Notified via owner_id"]
+
+    PR --> CODEOWNERS
+    CODEOWNERS --> Owners
+    PR --> Tests
+    Tests -->|Pass| Merge["PR Merged"]
+    Tests -->|Fail| Failure
+    Failure --> SlackNotify
+    SlackNotify --> OwnerNotify

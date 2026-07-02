@@ -1,0 +1,26 @@
+TB
+    runOnFunc["D2MGridSelection::runOnOperation"]
+    analyzeOps["analyzeOperandsAndComputeGrids"]
+    normalizeGrids["normalizeOperandGridsForGeneric"]
+    updateToLayout["updateToLayoutOps"]
+    computeOptimalGrid["computeOptimalGrid"]
+    shouldVirtual["shouldImplementAsVirtualGrid"]
+    computeVirtual["computeOptimalVirtualGrid"]
+    computeBlock["computeOptimalBlockShardedGrid"]
+    optimizeLayout["optimizeToLayoutGrid"]
+    findLegal["utils::findLegalPhysicalGridForVolume"]
+
+    runOnFunc --> analyzeOps
+    analyzeOps --> computeOptimalGrid
+    analyzeOps --> normalizeGrids
+    runOnFunc --> updateToLayout
+    updateToLayout --> optimizeLayout
+    optimizeLayout --> computeOptimalGrid
+    computeOptimalGrid --> shouldVirtual
+    shouldVirtual -->|"ND Rank > 2"| computeVirtual
+    shouldVirtual -->|"Standard 2D"| computeBlock
+    computeVirtual --> findLegal
+    computeBlock --> findLegal
+
+
+Sources: [lib/Dialect/D2M/Transforms/GridSelection.cpp:37-140](), [lib/Dialect/D2M/Utils/GridSelectionUtils.cpp:1-20]()

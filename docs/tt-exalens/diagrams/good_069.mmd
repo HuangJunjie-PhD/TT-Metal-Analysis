@@ -1,0 +1,27 @@
+TB
+    RegisterAccess["Register Access Request"]
+    
+    Bar0Check{"BAR0 address<br/>available?"}
+    NocCheck{"NOC address<br/>available?"}
+    CfgCheck{"Configuration<br/>register?"}
+    PrivateCheck{"Private address<br/>available?"}
+    
+    Bar0Read["device.bar0_read32()"]
+    NocRead["location.noc_read32()"]
+    CfgRead["Write index to control register<br/>Read from data register"]
+    PrivateRead["risc_debug.read_memory()"]
+    
+    Error["Error: No access method"]
+    
+    RegisterAccess --> Bar0Check
+    Bar0Check -->|Yes| Bar0Read
+    Bar0Check -->|No| NocCheck
+    
+    NocCheck -->|Yes| NocRead
+    NocCheck -->|No| CfgCheck
+    
+    CfgCheck -->|Yes| CfgRead
+    CfgCheck -->|No| PrivateCheck
+    
+    PrivateCheck -->|Yes| PrivateRead
+    PrivateCheck -->|No| Error

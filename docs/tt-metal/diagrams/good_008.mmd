@@ -1,0 +1,9 @@
+TD
+    CP["tt::tt_fabric::ControlPlane"] --> PSD["PhysicalSystemDescriptor"]
+    PSD --> Discovery["tt::tt_fabric::discover_physical_system"]
+    Discovery --> CD["tt::umd::ClusterDescriptor"]
+    
+    CP --> MG["MeshGraph"]
+    MG --> RTG["RoutingTableGenerator"]
+
+Sources: `[tt_metal/fabric/control_plane.cpp:33-63]()`, `[tt_metal/llrt/tt_cluster.cpp:111-117]()`

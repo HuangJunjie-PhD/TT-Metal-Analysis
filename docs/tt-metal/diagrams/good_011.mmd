@@ -1,0 +1,12 @@
+TD
+    ClusterDesc["tt::umd::ClusterDescriptor<br/>from UMD"]
+    Analyze["get_cluster_type_from_cluster_desc()"]
+    
+    ClusterDesc --> Analyze
+    
+    Analyze --> N150["ClusterType::N150<br/>Single Wormhole chip"]
+    Analyze --> N300["ClusterType::N300<br/>Dual Wormhole chips"]
+    Analyze --> T3K["ClusterType::T3K<br/>8 N300 boards<br/>3-3-2 connection pattern"]
+    Analyze --> TG["ClusterType::TG (Galaxy)<br/>32+ chips<br/>UBB boards"]
+    Analyze --> P150["ClusterType::P150<br/>Single Blackhole chip"]
+    Analyze --> BHG["ClusterType::BLACKHOLE_GALAXY<br/>UBB Blackhole boards"]

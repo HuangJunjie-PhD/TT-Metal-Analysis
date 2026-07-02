@@ -1,0 +1,10 @@
+LR
+    Daily["schedule-nightly.yml<br/>Cron: '0 0 * * *'<br/>Midnight UTC"]
+    Experimental["schedule-nightly-experimental.yml<br/>Cron: '0 4 * * *'<br/>4 AM UTC"]
+    Weekly["schedule-weekly.yml<br/>Cron: '0 8 * * 6'<br/>Saturday 8 AM"]
+    Training["schedule-weekly-training.yml<br/>Cron: '0 8 * * 6'<br/>Saturday 8 AM"]
+    
+    Daily --> FullTests["model-test-full.json<br/>model-test-passing.json<br/>model-test-xfail.json"]
+    Experimental --> ExpTests["model-test-experimental.json<br/>Unknown status models"]
+    Weekly --> WeeklyTests["model-test-passing-weekly.json<br/>model-test-xfail-weekly.json"]
+    Training --> TrainingTests["model-test-training-xfail-weekly.json"]

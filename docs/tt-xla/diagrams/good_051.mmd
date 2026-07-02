@@ -1,0 +1,40 @@
+TB
+    Clone["git clone tt-xla"] --> Submodules["git submodule update\
+--init --recursive"]
+    Submodules --> Activate["source venv/activate"]
+    
+    Activate --> CheckVenv{"venv/\
+exists?"}
+    CheckVenv -->|No| CreateVenv["python3.12 -m venv venv"]
+    CheckVenv -->|Yes| UseVenv["source venv/bin/activate"]
+    
+    CreateVenv --> UpgradePip["$PIP install --upgrade pip"]
+    UpgradePip --> InstallRuntime["$PIP install -r\
+python_package/requirements.txt"]
+    InstallRuntime --> InstallDev["$PIP install -r\
+venv/requirements-dev.txt"]
+    
+    UseVenv --> ConfigureCMake["cmake -G Ninja -B build"]
+    InstallDev --> ConfigureCMake
+    
+    ConfigureCMake --> BuildTargets["cmake --build build"]
+    BuildTargets --> TTMLIRDownload["ExternalProject downloads\
+tt-mlir source"]
+    TTMLIRDownload --> TTMLIRPatch["PATCH_COMMAND:\
+venv/install_ttmlir_requirements.sh"]
+    
+    TTMLIRPatch --> LLVMReqs["Install LLVM Python\
+bindings"]
+    LLVMReqs --> TTMLIRBuildReqs["Install tt-mlir\
+build-requirements.txt"]
+    TTMLIRBuildReqs --> CompileTTMLIR["Build tt-mlir\
+(libTTMLIRCompiler.so)"]
+    
+    CompileTTMLIR --> CompilePJRT["Build pjrt_plugin_tt.so"]
+    CompilePJRT --> InstallPlugin["Install to venv/\
+lib/python3.12/site-packages"]
+    
+    InstallPlugin --> Ready["Development environment ready"]
+
+
+Sources: [docs/src/getting_started_build_from_source.md:114-172]()

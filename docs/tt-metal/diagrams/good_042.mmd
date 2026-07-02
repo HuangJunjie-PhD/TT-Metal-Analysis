@@ -1,0 +1,15 @@
+LR
+    PR["PR Gate<br/>(Fast: &lt;5 min)<br/>ASan build<br/>Smoke tests"]
+    MG["Merge Gate<br/>(Comprehensive: &lt;15 min)<br/>TSan build<br/>Full test suite"]
+    PC["Post-Commit<br/>(Extended: variable)<br/>Multiple configs<br/>All hardware"]
+    
+    PR -->|"Pass"| MG
+    MG -->|"Pass"| PC
+    
+    PR -.->|"Fail"| F1["Fast feedback<br/>to developer"]
+    MG -.->|"Fail"| F2["Block merge"]
+    PC -.->|"Fail"| F3["Alert team<br/>Consider revert"]
+    
+    style PR stroke-width:2px
+    style MG stroke-width:2px
+    style PC stroke-width:2px

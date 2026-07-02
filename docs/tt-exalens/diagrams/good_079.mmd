@@ -1,0 +1,12 @@
+LR
+    SafetyFlag["safe_to_read / safe_to_write"]
+    
+    StaticTrue["Static: True<br/>Always safe"]
+    StaticFalse["Static: False<br/>Never safe"]
+    Function["Function: Callable[[int, int], bool]<br/>Address-dependent validation"]
+    NoneVal["None<br/>Use default"]
+    
+    SafetyFlag --> StaticTrue
+    SafetyFlag --> StaticFalse
+    SafetyFlag --> Function
+    SafetyFlag --> NoneVal

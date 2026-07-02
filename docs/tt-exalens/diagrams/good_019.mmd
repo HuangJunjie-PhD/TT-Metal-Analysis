@@ -1,0 +1,24 @@
+TB
+    Init["init_ttexalens()"]
+    Parse["parse_elf()"]
+    Reset1["set_reset_signal<br/>(in_reset=True)"]
+    Load["load_elf()"]
+    Reset2["set_reset_signal<br/>(in_reset=False)"]
+    Run["Core Executes"]
+    Halt["halt()"]
+    ReadPC["read_gpr(reg_num=32)"]
+    Callstack["callstack()"]
+    ReadMem["read_from_device()"]
+    Continue["cont() or step()"]
+    
+    Init --> Parse
+    Parse --> Reset1
+    Reset1 --> Load
+    Load --> Reset2
+    Reset2 --> Run
+    Run --> Halt
+    Halt --> ReadPC
+    ReadPC --> Callstack
+    Callstack --> ReadMem
+    ReadMem --> Continue
+    Continue --> Run

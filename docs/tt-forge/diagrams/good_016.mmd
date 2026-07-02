@@ -1,0 +1,39 @@
+TB
+    Input["Inputs: repo, release_type, new_version_tag, branch"]
+    
+    ReadVersion["Read .version file (MAJOR, MINOR)"]
+    
+    SetDefaults["Set default values: prerelease=true, make_latest=false, workflow_allow_failed=false"]
+    
+    CheckType{release_type?}
+    
+    Nightly["release_type=nightly<br/>new_version_tag=VERSION.devYYYYMMDD<br/>workflow_allow_failed=true<br/>build_release_find_workflow_branch=main"]
+    
+    RC["release_type=rc<br/>new_version_tag=X.Y.ZrcN (from input)<br/>prerelease=true<br/>make_latest=false"]
+    
+    Stable["release_type=stable<br/>new_version_tag=X.Y.Z (from input)<br/>prerelease=false<br/>make_latest=true"]
+    
+    DraftCheck{draft mode?}
+    
+    DraftTransform["Transform version tags:<br/>gh_new_version_tag=draft.repo_short.build_release_tag<br/>build_release_latest_branch_commit=null<br/>test_demo_filter=bge_m3<br/>test_perf_filter=resnet"]
+    
+    SetOutputs["Set outputs: new_version_tag, gh_new_version_tag, build_release_tag, prerelease, make_latest, major_version, minor_version"]
+    
+    Input --> ReadVersion
+    ReadVersion --> SetDefaults
+    SetDefaults --> CheckType
+    
+    CheckType -->|nightly| Nightly
+    CheckType -->|rc| RC
+    CheckType -->|stable| Stable
+    
+    Nightly --> DraftCheck
+    RC --> DraftCheck
+    Stable --> DraftCheck
+    
+    DraftCheck -->|true| DraftTransform
+    DraftCheck -->|false| SetOutputs
+    DraftTransform --> SetOutputs
+
+
+Sources: [.github/actions/set-release-facts/action.yaml:134-371]()

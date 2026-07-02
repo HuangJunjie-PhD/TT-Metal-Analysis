@@ -1,0 +1,14 @@
+TB
+    CODEOWNERS[".github/CODEOWNERS File"]
+    tt_metal[tt_metal/]
+    tt_stl[tt_stl/]
+    ttnn[ttnn/]
+    scaleout[tools/scaleout/]
+
+    CODEOWNERS -->|owns| tt_metal
+    CODEOWNERS -->|owns| tt_stl
+    CODEOWNERS -->|owns| ttnn
+    CODEOWNERS -->|owns| scaleout
+
+
+Additionally, a GitHub Action `.github/workflows/pr-description-inject-branch-name.yaml` automates filling PR descriptions with branch names and status badges, streamlining reviewer context.

@@ -1,0 +1,17 @@
+TD
+    Start["conv2d_L1() Entry"] --> CheckMM{"use_matmul_for_1x1_conv()?"}
+    CheckMM -->|Yes| MM["Execute via ttnn::matmul"]
+    CheckMM -->|No| AutoShard{"Auto-shard needed?"}
+    
+    AutoShard -->|Yes| DetConfig["determine_conv_config_for_auto_shard()"]
+    AutoShard -->|No| ShardReq["shard_or_reshard_tensor_if_required()"]
+    DetConfig --> ShardReq
+    
+    ShardReq --> PrepWeights["prepare_conv_weights()"]
+    PrepWeights --> PrimConv["ttnn::prim::conv2d"]
+    PrimConv --> Factory{"Select Factory"}
+    
+    Factory -->|Width Sharded| WSFactory["Conv2dWidthShardedProgramFactory"]
+    Factory -->|Height/Block Sharded| SFactory["Conv2dShardedProgramFactory"]
+
+Sources: [ttnn/cpp/ttnn/operations/conv/conv2d/conv2d.cpp:62-150](), [ttnn/cpp/ttnn/operations/conv/conv2d/conv2d_utils.cpp:49-55]()

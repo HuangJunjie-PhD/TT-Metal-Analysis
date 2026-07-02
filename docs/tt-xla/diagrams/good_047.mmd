@@ -1,0 +1,18 @@
+TB
+    Issue["Compilation Error<br/>or Wrong Output"]
+    
+    Issue --> EnableExport["Set export_path + export_model_name"]
+    EnableExport --> RunModel["Run model to trigger compilation"]
+    RunModel --> ExamineVHLO["Examine vhlo_*.mlir<br/>Input from framework"]
+    
+    ExamineVHLO --> CheckSHLO{"SHLO stage<br/>looks correct?"}
+    CheckSHLO -->|No| FrameworkIssue["Framework serialization issue<br/>Check JAX/PyTorch version"]
+    CheckSHLO -->|Yes| CheckTTIR{"TTIR stage<br/>looks correct?"}
+    
+    CheckTTIR -->|No| SHLOIssue["SHLO→TTIR lowering issue<br/>Check tt-mlir pipeline"]
+    CheckTTIR -->|Yes| CheckTTNN{"TTNN stage<br/>looks correct?"}
+    
+    CheckTTNN -->|No| TTNNIssue["TTIR→TTNN lowering issue<br/>Check optimization passes"]
+    CheckTTNN -->|Yes| RuntimeIssue["Runtime execution issue<br/>Check device logs"]
+    
+    style Issue fill:#fee

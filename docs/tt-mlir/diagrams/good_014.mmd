@@ -1,0 +1,11 @@
+TB
+    GridSelection["GridSelection.cpp"]
+    VirtualGrid["VirtualGrid.h"]
+    
+    FindLegal["findLegalPhysicalGridForVolume<br/>(Find 2D rect for volume)"]
+    CreateMaps["createCoreVirtMaps<br/>(Virt <-> Phys affine maps)"]
+    Optimize["optimizeToLayoutGrid<br/>(Update ToLayout/Empty grids)"]
+    
+    GridSelection --> FindLegal
+    GridSelection --> CreateMaps
+    GridSelection --> Optimize

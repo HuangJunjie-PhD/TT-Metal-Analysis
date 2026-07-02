@@ -1,0 +1,8 @@
+LR
+    JSON["models-matrix.json"] --> Filter["filter-test-matrix.py"]
+    ProjIn["project-filter"] --> Filter
+    TestIn["test-filter"] --> Filter
+    Filter --> Out["GitHub Actions Matrix"]
+
+
+For details, see [Test Matrix Configuration](#3.2).

@@ -1,0 +1,11 @@
+LR
+    CLI["tt-exalens --commands='cmd1; cmd2; cmd3'"]
+    Split["Split by semicolon<br/>ttexalens/cli.py:214"]
+    Queue["non_interactive_commands list<br/>ttexalens/cli.py:214"]
+    Execute["Execute sequentially<br/>ttexalens/cli.py:225-229"]
+    Exit["Exit when queue empty"]
+    
+    CLI --> Split
+    Split --> Queue
+    Queue --> Execute
+    Execute --> Exit

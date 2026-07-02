@@ -1,0 +1,21 @@
+TD
+    Root["pjrt-plugin-tt wheel"] --> PjrtPkg["pjrt_plugin_tt/"]
+    Root --> JaxPkg["jax_plugin_tt/"]
+    Root --> TorchPkg["torch_plugin_tt/"]
+    
+    PjrtPkg --> Init1["__init__.py"]
+    PjrtPkg --> So["pjrt_plugin_tt.so"]
+    PjrtPkg --> Metal["tt-metal/"]
+    PjrtPkg --> Lib["lib/"]
+    
+    Metal --> Kernels["Device kernels"]
+    Metal --> Riscv["RISC-V compiler/linker"]
+    
+    Lib --> TtmlirLib["tt-mlir libraries"]
+    Lib --> MetalLib["tt-metal libraries"]
+    
+    JaxPkg --> Init2["__init__.py"]
+    Init2 --> Setup1["Import and setup PJRT plugin for JAX"]
+    
+    TorchPkg --> Init3["__init__.py"]
+    Init3 --> Setup2["Import and setup PJRT plugin for PyTorch/XLA"]

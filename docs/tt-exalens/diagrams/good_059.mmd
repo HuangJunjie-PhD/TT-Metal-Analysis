@@ -1,0 +1,12 @@
+LR
+    Input["DebugRegisterDescription<br/>offset=0x54"]
+    CalcAddr["Calculate Address<br/>base_addr + offset"]
+    Direct["Direct Read/Write<br/>32-bit operation"]
+    Result["Return/Write Value"]
+    
+    Input --> CalcAddr
+    CalcAddr --> Direct
+    Direct --> Result
+
+
+Sources: [test/ttexalens/unit_tests/test_lib.py:397-438]()

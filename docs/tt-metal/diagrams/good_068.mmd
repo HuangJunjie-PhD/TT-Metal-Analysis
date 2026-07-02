@@ -1,0 +1,8 @@
+LR
+    Input["ttml::autograd::Tensor (Input)"] --> Op["ttml::ops::* (Forward)"]
+    Op --> Output["ttml::autograd::Tensor (Output)"]
+    Output -- "backward()" --> GradOp["ttml::ops::* (Backward)"]
+    GradOp --> InputGrad["Input->set_grad()"]
+
+
+Sources: [tt-train/sources/ttml/autograd/tensor.cpp:7-9](), [tt-train/tests/ops/rmsnorm_op_test.cpp:58-91]().

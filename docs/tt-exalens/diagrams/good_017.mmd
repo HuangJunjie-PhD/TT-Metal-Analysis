@@ -1,0 +1,7 @@
+TB
+    UmdDevice["UmdDevice"] --> Timeout["TimeoutDeviceRegisterError"]
+    UmdDevice --> DMA["DMA threshold:<br/>dma_read/write()"]
+    UmdDevice --> Failover["get_remote_transfer_eth_core()"]
+    UmdDevice --> NOCOps["noc_read()<br/>noc_write()"]
+    
+    Timeout --> NOCFailover["Device._with_noc_failover()"]

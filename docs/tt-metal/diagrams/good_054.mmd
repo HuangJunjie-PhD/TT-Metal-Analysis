@@ -1,0 +1,34 @@
+TB
+    Select["1. Model Selection"]
+    Setup["2. Environment Setup"]
+    ComponentVal["3. Component Validation"]
+    Integration["4. Stage Integration"]
+    AccuracyVal["5. Accuracy Validation"]
+    PerfOpt["6. Performance Optimization"]
+    
+    Select --> Setup
+    Setup --> ComponentVal
+    ComponentVal --> Integration
+    Integration --> AccuracyVal
+    AccuracyVal --> PerfOpt
+    AccuracyVal -->|"Accuracy failures re-iterate"| ComponentVal
+    Integration -->|"Stage failures re-iterate"| ComponentVal
+    
+    ComponentVal --> RMS["DistributedNorm<br/>models/tt_transformers/tt/distributed_norm.py"]
+    ComponentVal --> Attn["Attention<br/>models/tt_transformers/tt/attention.py"]
+    ComponentVal --> MLP["TransformerBlock<br/>models/tt_transformers/tt/decoder.py"]
+    
+    Integration --> Decode["Decode Stage<br/>decode_forward function"]
+    Integration --> Prefill["Prefill Stage<br/>prefill_forward function"]
+    
+    AccuracyVal --> PCC["comp_pcc metric<br/>models/common/utility_functions.py"]
+    AccuracyVal --> TokenAccuracy["TokenAccuracy class<br/>models/tt_transformers/demo/simple_text_demo.py"]
+    
+    PerfOpt --> Trace["ttnn.trace<br/>Hardware Trace system"]
+    PerfOpt --> Prefetch["Prefetcher<br/>models/tt_transformers/tt/prefetcher.py"]
+
+
+This flow enforces thorough validation before advancing stages, ensuring correctness, memory layout compatibility, arithmetic fidelity, and runtime performance [models/docs/model_bring_up.md:1-50](), [tech_reports/LLMs/vLLM_integration.md:27-34]().
+
+Sources:  
+[README.md:24-65](), [models/docs/model_bring_up.md:1-50](), [tech_reports/LLMs/vLLM_integration.md:27-34]()

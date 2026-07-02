@@ -1,0 +1,20 @@
+LR
+    Trigger["Workflow Trigger<br/>PR/Push/Schedule"] --> Generate["generate-matrix-test Job<br/>call-generate-matrix.yml"]
+    
+    Generate --> LoadPreset["Load Preset JSON<br/>test_suite input"]
+    LoadPreset --> ParseMatrix["Parse Matrix Entries<br/>fromJson()"]
+    ParseMatrix --> OutputMatrix["Output Matrix<br/>test_matrix output"]
+    
+    OutputMatrix --> RunTests["run-tests Job<br/>strategy.matrix"]
+    
+    RunTests --> Job1["Job Instance 1<br/>runs-on: n150"]
+    RunTests --> Job2["Job Instance 2<br/>runs-on: p150"]
+    RunTests --> JobN["Job Instance N<br/>runs-on: n300-llmbox"]
+
+
+The `generate-matrix-test` job at [.github/workflows/call-test.yml:48-53]() calls `call-generate-matrix.yml` with the `test_suite` input parameter. This workflow:
+
+1. Loads the specified JSON preset file
+2. Parses the matrix entries
+3. Outputs the matrix as `test_matrix` for downstream jobs
+4. Generates a hash `test_matrix_hash` for artifact naming

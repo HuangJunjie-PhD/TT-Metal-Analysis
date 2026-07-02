@@ -1,0 +1,11 @@
+TD
+    "OperandValue[Value]" --> IsBArg{"Is BlockArgument?"}
+    IsBArg -- "Yes" --> "Read cb_index attr from ComputeOp[ComputeOp]"
+    "Read cb_index attr from ComputeOp[ComputeOp]" --> "Find BindCBOp[BindCBOp] in Function"
+    IsBArg -- "No" --> IsExtract{"Is tensor.extract?"}
+    IsExtract -- "Yes" --> "Trace through extract_slice/casts"
+    "Trace through extract_slice/casts" --> "getAttachedCB[getAttachedCB] Utility"
+    "getAttachedCB[getAttachedCB] Utility" --> "Return ttkernel::CBType[CBType]"
+
+
+The `getAttachedCB` utility traces through `ViewLikeOpInterface` and `attach_cb` operations to find the underlying buffer [[include/ttlang/Dialect/TTL/IR/TTLOpsUtils.h:116-133]](). The conversion also maps function arguments to runtime addresses using `getBufferAddressFromRuntimeArg` for data movement threads [[lib/Dialect/TTL/Transforms/ConvertTTLToTTKernel.cpp:146-153]]().

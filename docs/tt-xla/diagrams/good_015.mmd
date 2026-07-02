@@ -1,0 +1,21 @@
+TB
+    DOCKERFILE_BASE[".github/Dockerfile.base"]
+    DOCKERFILE_CI[".github/Dockerfile.ci"]
+    MLIR_TAG["MLIR_DOCKER_TAG\
+(parameter from tt-mlir's get-docker-tag.sh)"]
+
+    CAT["cat Dockerfile.base Dockerfile.ci | sha256sum"]
+    SHA1["DOCKERFILE_HASH"]
+
+    COMBINE["echo DOCKERFILE_HASH MLIR_DOCKER_TAG | sha256sum"]
+    SHA2["COMBINED_HASH"]
+
+    TAG["Final tag: dt-{COMBINED_HASH}"]
+
+    DOCKERFILE_BASE --> CAT
+    DOCKERFILE_CI --> CAT
+    CAT --> SHA1
+    SHA1 --> COMBINE
+    MLIR_TAG --> COMBINE
+    COMBINE --> SHA2
+    SHA2 --> TAG

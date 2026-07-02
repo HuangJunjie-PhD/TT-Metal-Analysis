@@ -1,0 +1,14 @@
+LR
+    GHRun["GitHub Workflow Run"]
+    DAAction["Download Artifact Action<br/>.github/actions/download-artifact"]
+    RetryLogic["Retry Loop<br/>(lines 101-111)"]
+    Extraction["Extraction Logic<br/>(lines 81-94)"]
+    Workspace["Local Workspace"]
+
+    GHRun --> DAAction
+    DAAction --> RetryLogic
+    RetryLogic --> Extraction
+    Extraction --> Workspace
+
+
+For details, see [Artifact Management](#5.4.2).

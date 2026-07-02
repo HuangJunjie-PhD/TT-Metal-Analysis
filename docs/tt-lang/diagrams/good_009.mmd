@@ -1,0 +1,17 @@
+TD
+    A["Create ttl.compute op<br/>with indexing_maps,<br/>iterator_types"]
+    B["Create body block<br/>with tile-typed arguments"]
+    C["Map tensor values<br/>to tile block args"]
+    E["For each fused op:"]
+    G["Call emitTileOpFor()<br/>to create tile op"]
+    H["Update tensor→tile map"]
+    I["Emit tile_store ops via<br/>emitTileStores()"]
+    J["Create ttl.yield terminator"]
+    
+    A --> B
+    B --> C
+    C --> E
+    E --> G
+    G --> H
+    H --> I
+    I --> J
