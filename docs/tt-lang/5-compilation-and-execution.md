@@ -129,3 +129,183 @@ Dismiss
 Refresh this wiki
 
 Enter email to refresh
+
+## Additional Diagrams
+
+
+### Integration with Conversion Pipeline
+
+
+```mermaid
+graph LR
+    C["ConvertTTLToCompute"] --> A["TTLAssignDST"]
+    A --> S["TTLSubblockComputeForDST"]
+    S --> L["ConvertTTLComputeToSCF"]
+    L --> K["ConvertTTLToTTKernel"]
+    
+    subgraph "Code_Entities"
+        TTLAssignDST_Pass["TTLAssignDST.cpp"]
+        Subblock_Pass["TTLSubblockComputeForDST.cpp"]
+        ToTTKernel_Pass["ConvertTTLToTTKernel.cpp"]
+    end
+    
+    A --- TTLAssignDST_Pass
+```
+
+
+#### Broadcast Dimensions
+
+
+```mermaid
+graph LR
+    UserDim["Python: dims=[0]"] --> RowBcast["ttl.block.broadcast<br/>(Row Expansion)"]
+    UserDim1["Python: dims=[-1]"] --> ColBcast["ttl.block.broadcast<br/>(Col Expansion)"]
+    UserDim2["Python: dims=[0, 1]"] --> ScalBcast["ttl.block.broadcast<br/>(Scalar Expansion)"]
+    
+    subgraph "Implementation"
+        RowBcast --> BlockNS["python/sim/__init__.py: _TTLBlockNamespace"]
+        ColBcast --> BlockNS
+        ScalBcast --> BlockNS
+        BlockNS --> Impl["python/sim/block.py: broadcast()"]
+    end
+```
+
+
+### Hardware Profiling Execution Flow
+
+
+```mermaid
+graph TD
+    subgraph "DSL_Space"
+        UserKernel["@ttl.operation<br/>Python DSL"]
+        AutoProfEnv["TTLANG_AUTO_PROFILE=1"]
+    end
+    
+    subgraph "Compilation_Host"
+        Compiler["TTLGenericCompiler<br/>(AST to MLIR)"]
+        EmitC["EmitC<br/>(Generate C++ Kernels)"]
+    end
+    
+    subgraph "Execution_Device"
+        MetalDevice["TT-Metal Device"]
+        DProfiler["Device Profiler<br/>(Cycle Counters)"]
+        NOCProfiler["NOC Event Profiler<br/>(BW/Transfers)"]
+    end
+    
+    subgraph "Analysis_Host"
+        LogFile["/tmp/ttlang_test_output.log"]
+        PerfSum["PERF SUMMARY<br/>(NOC/BW Metrics)"]
+        LineProf["THREAD SUMMARY<br/>(Line Cycle Counts)"]
+    end
+
+    UserKernel --> Compiler
+    AutoProfEnv --> Compiler
+    Compiler --> EmitC
+    EmitC --> MetalDevice
+    MetalDevice --> DProfiler
+    MetalDevice --> NOCProfiler
+    DProfiler --> LineProf
+    NOCProfiler --> PerfSum
+    LineProf --> LogFile
+    PerfSum --> LogFile
+```
+
+
+#### ME2E Execution Flow
+
+
+```mermaid
+graph TD
+    subgraph "ME2E Runner"
+        build["build_e2e_module()<br/>Generate MLIR"]
+        compile["compile_ttl_to_ttkernel()<br/>Run Pass Pipeline"]
+        translate["translate_module_to_kernels()<br/>Emit C++"]
+        run["run_compute_test()<br/>Execute on Device"]
+        validate["validate_against_golden()<br/>PCC/ULP Check"]
+    end
+
+    build --> compile
+    compile --> translate
+    translate --> run
+    run --> validate
+```
+
+Sources: [test/me2e/runner.py:78-198](), [test/me2e/base.py:8-14](), [test/me2e/base.py:47-205]()
+
+---
+```
+
+
+#### Dialect Relationship Diagram
+
+
+```mermaid
+graph TB
+    subgraph "Python DSL Layer"
+        Python["Python @ttl.kernel<br/>Functions"]
+    end
+    
+    subgraph "TTL Dialect [include/ttlang/Dialect/TTL/IR/TTLOps.td]"
+        HighLevel["High-Level Ops<br/>TTL_AddOp, TTL_ExpOp"]
+        Structured["Structured Compute<br/>TTL_ComputeOp"]
+        TileOps["Tile Operations<br/>TTL_TileAddOp, TTL_TileMulOp"]
+        CBOps["Circular Buffer Ops<br/>TTL_BindCBOp, TTL_CBWaitOp<br/>TTL_CBReserveOp, TTL_CBPushOp"]
+        DMAOps["Data Movement<br/>TTL_CopyOp, TTL_WaitOp<br/>TTL_TensorSliceOp"]
+    end
+    
+    subgraph "TTKernel Dialect [ttmlir/Dialect/TTKernel/IR/TTKernelOps.td]"
+        NOC["NOC Operations<br/>NocAsyncReadTileOp<br/>NocAsyncWriteTileOp"]
+        DST["DST Register Ops<br/>AddTilesOp<br/>MulTilesOp"]
+        CBLow["CB Hardware Ops<br/>CbWaitFrontOp<br/>CbReserveBackOp"]
+        Sync["Synchronization<br/>TileRegsAcquireOp<br/>NocAsyncReadBarrierOp"]
+    end
+    
+    subgraph "Code Generation [lib/Dialect/TTL/Transforms/]"
+        EmitC["LowerDPrintToEmitC<br/>LowerSignpostToEmitC"]
+        CPP["C++ Kernel Code"]
+    end
+    
+    Python --> HighLevel
+    HighLevel --> Structured
+    Structured --> TileOps
+    TileOps --> DST
+    CBOps --> CBLow
+    DMAOps --> NOC
+    TileOps --> Sync
+    DST --> EmitC
+    CBLow --> EmitC
+    NOC --> EmitC
+    Sync --> EmitC
+    EmitC --> CPP
+```
+
+
+#### Layout and Sharding Mapping
+
+
+```mermaid
+graph TB
+    subgraph "Sharding_Strategies"
+        H_SHARD["HEIGHT_SHARDED"]
+        W_SHARD["WIDTH_SHARDED"]
+        B_SHARD["BLOCK_SHARDED"]
+        ND_SHARD["ND_SHARDED"]
+    end
+
+    subgraph "Code_Entities"
+        TSIM["sim/ttnnsim.py"]
+        TML["TensorMemoryLayout"]
+        SSPEC["ShardSpec"]
+        TSIM --- TML
+        TSIM --- SSPEC
+    end
+
+    TML --> H_SHARD
+    TML --> W_SHARD
+    TML --> B_SHARD
+    TML --> ND_SHARD
+```
+
+Sources: [python/sim/ttnnsim.py:112-125](), [python/sim/ttnnsim.py:59-67]()
+```
+

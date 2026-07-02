@@ -315,3 +315,107 @@ Dismiss
 Refresh this wiki
 
 Enter email to refresh
+
+## Additional Diagrams
+
+
+#### Techniques for Maximizing Throughput and Reducing Latency
+
+
+```mermaid
+graph LR
+    subgraph "Hardware Execution Pipeline"
+        Prefetch["Prefetcher<br/>Overlap Weight Load"]
+        Compute["Compute Operations<br/>TTNN Kernels"]
+        Trace["Trace system<br/>ttnn.trace"]
+        Sampling["On-Device Sampling<br/>Token Selection"]
+    end
+    
+    Prefetch --> Compute
+    Compute --> Trace
+    Trace --> Sampling
+```
+
+Performance gains from these optimizations result in reduced time-to-first-token (TTFT) and increased tokens-per-second throughput on supported hardware [README.md:24-64](), [models/README.md:5-23]().
+
+Sources:  
+[tech_reports/LLMs/vLLM_integration.md:31-34](), [models/docs/MODEL_UPDATES.md:12-14](), [models/tt_transformers/tt/prefetcher.py](), [README.md:24-64]()
+
+---
+```
+
+
+#### End-to-End Configuration Flow
+
+
+```mermaid
+graph TD
+    Demo["simple_text_demo.py<br/>optimizations parameter"]
+    
+    CreateModel["create_tt_model()"]
+    ModelArgs["ModelArgs<br/>optimizations → decoders_optimizations"]
+    
+    Transformer["Transformer.__init__()"]
+    Layer["TransformerBlock<br/>layer_num"]
+    
+    Attn["Attention.__init__()"]
+    GetDtype["decoders_optimizations.get_tensor_dtype()<br/>layer_num, TensorGroup.WQKV"]
+    
+    LoadWeight["Load wqkv weights<br/>with wqkv_dtype"]
+    Forward["forward() execution<br/>ttnn.linear with compute_kernel_config"]
+    
+    Demo -->|"optimizations=..."| CreateModel
+    CreateModel --> ModelArgs
+    ModelArgs --> Transformer
+    Transformer --> Layer
+    Layer --> Attn
+    
+    Attn --> GetDtype
+    GetDtype --> LoadWeight
+    LoadWeight --> Forward
+```
+
+
+## Summary Diagram: NanoGPT Example Training Flow to Code Entities
+
+
+```mermaid
+graph TD
+    HostInput["Host Text Input"]
+    Tokenizer["ttml::tokenizers::CharTokenizer"]
+    Dataset["ttml::datasets::InMemoryTokenDataset"]
+    DataLoader["ttml::datasets::DataLoader"]
+    Model["Model (std::shared_ptr<ttml::models::BaseTransformer>)"]
+    TrainingLoop["NanoGPT Training Loop (main.cpp)"]
+
+    AutogradCtx["ttml::autograd::AutoContext"]
+    Optimizer["ttml::optimizers::AdamW"]
+    DistributedOps["ttml::ops::distributed::*"]
+    Device["ttml::core::MeshDevice"]
+
+    Batch["Batch (TensorPtr)"]
+    Loss["Loss (TensorPtr)"]
+    Backward["Loss->backward()"]
+    Step["Optimizer->step()"]
+
+    HostInput --> Tokenizer --> Dataset --> DataLoader
+    DataLoader --> Batch --> Model --> Loss
+    Loss --> Backward --> AutogradCtx
+    AutogradCtx --> Optimizer
+    Optimizer --> Step
+    Model --> Device
+    DistributedOps --> Device
+    TrainingLoop --> DataLoader
+    TrainingLoop --> Model
+    TrainingLoop --> Optimizer
+    TrainingLoop --> DistributedOps
+```
+
+Sources: [tt-train/sources/examples/nano_gpt/main.cpp:100-180](), [tt-train/sources/ttml/autograd/auto_context.cpp:4-20]().
+
+---
+
+This page documents TT-Train’s architecture, autograd system, model support, distributed training, and integration with TTNN, providing a foundation for developing and training neural networks efficiently on Tenstorrent hardware.
+57:T4d4b,
+```
+

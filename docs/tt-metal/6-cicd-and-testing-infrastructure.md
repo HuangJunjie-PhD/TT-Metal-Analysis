@@ -369,6 +369,23 @@ For details, see [Result Collection and Reporting](https://deepwiki.com/tenstorr
 * * *
 
 ## CODEOWNERS and Review Process
+```mermaid
+graph TB
+    CODEOWNERS[".github/CODEOWNERS File"]
+    tt_metal[tt_metal/]
+    tt_stl[tt_stl/]
+    ttnn[ttnn/]
+    scaleout[tools/scaleout/]
+
+    CODEOWNERS -->|owns| tt_metal
+    CODEOWNERS -->|owns| tt_stl
+    CODEOWNERS -->|owns| ttnn
+    CODEOWNERS -->|owns| scaleout
+```
+
+Additionally, a GitHub Action `.github/workflows/pr-description-inject-branch-name.yaml` automates filling PR descriptions with branch names and status badges, streamlining reviewer context.
+```
+
 
 The `CODEOWNERS` file defines the review hierarchy for the repository.
 
@@ -384,3 +401,78 @@ Dismiss
 Refresh this wiki
 
 Enter email to refresh
+
+## Additional Diagrams
+
+
+### Quality Gate Tiers
+
+
+```mermaid
+graph LR
+    PR["PR Gate<br/>(Fast: &lt;5 min)<br/>ASan build<br/>Smoke tests"]
+    MG["Merge Gate<br/>(Comprehensive: &lt;15 min)<br/>TSan build<br/>Full test suite"]
+    PC["Post-Commit<br/>(Extended: variable)<br/>Multiple configs<br/>All hardware"]
+    
+    PR -->|"Pass"| MG
+    MG -->|"Pass"| PC
+    
+    PR -.->|"Fail"| F1["Fast feedback<br/>to developer"]
+    MG -.->|"Fail"| F2["Block merge"]
+    PC -.->|"Fail"| F3["Alert team<br/>Consider revert"]
+    
+    style PR stroke-width:2px
+    style MG stroke-width:2px
+    style PC stroke-width:2px
+```
+
+
+#### Validation Strategies in Post-Commit
+
+
+```mermaid
+graph TD
+    Start["Post-Commit Trigger<br/>.github/workflows/blackhole-post-commit.yaml"]
+    Health["Health Check Loop<br/>test_system_health"]
+    Build["Build Artifacts<br/>.github/workflows/build-artifact.yaml"]
+    Tests["Unit Tests<br/>ttnn_unit_tests"]
+    Models["Model Tests<br/>models_unit_tests"]
+    
+    Start --> Health
+    Health --> Build
+    Build --> Tests
+    Build --> Models
+```
+
+
+#### Team Hierarchy and Relationships
+
+
+```mermaid
+graph TB
+    subgraph "Infrastructure Teams"
+        Infra["metalium-developers-infra<br/>Build, CI/CD, Testing"]
+        API["metalium-api-owners<br/>Core API"]
+        Runtime["metalium-runtime<br/>Dispatch & Runtime"]
+    end
+    
+    subgraph "TTNN Operations Teams"
+        OpsLeads["metalium-developers-ops-leads<br/>Operation Leadership"]
+        Conv["metalium-developers-convolutions<br/>Conv/Pool Ops"]
+        MM["metalium-developers-mmfusedreduce<br/>Matmul/Reduce Ops"]
+    end
+    
+    subgraph "Core TTNN"
+        TTNNCore["metalium-developers-ttnn-core<br/>TTNN Core & Tensor"]
+    end
+    
+    subgraph "Specialized Teams"
+        Dist["metalium-developers-metal-distributed<br/>Multi-device"]
+        Triage["metalium-developers-triage<br/>Debug Tools"]
+    end
+    
+    OpsLeads -.->|"Oversees"| Conv
+    OpsLeads -.->|"Oversees"| MM
+    TTNNCore -.->|"Provides base for"| OpsLeads
+```
+

@@ -176,3 +176,349 @@ Dismiss
 Refresh this wiki
 
 Enter email to refresh
+
+## Additional Diagrams
+
+
+### Multi-Chip Execution Pattern
+
+
+```mermaid
+graph TB
+    EnableSPMD["xr.use_spmd()"]
+    CreateMesh["Mesh(device_ids, mesh_shape, axis_names)"]
+    MarkSharding["xs.mark_sharding(tensor, mesh, partition_spec)"]
+    Compile["torch.compile(model, backend='tt')"]
+    Execute["compiled_model(**sharded_inputs)"]
+    
+    EnableSPMD --> CreateMesh
+    CreateMesh --> MarkSharding
+    MarkSharding --> Compile
+    Compile --> Execute
+    
+    subgraph "SPMD Configuration"
+        NumDevices["xr.global_runtime_device_count()"]
+        MeshShape["(1, num_devices) for tensor parallel"]
+        AxisNames["('batch', 'model')"]
+    end
+    
+    CreateMesh --> MeshShape
+    CreateMesh --> AxisNames
+    EnableSPMD --> NumDevices
+```
+
+SPMD requires explicit initialization via `xr.use_spmd()` and tensor sharding annotation using `xs.mark_sharding()`.
+```
+
+
+#### Shardy Sharding Collection
+
+
+```mermaid
+graph TB
+    CollectShardy["collectInputShardingsShardy()<br/>collectOutputShardingsShardy()"]
+    
+    GetMesh["getFirstShardyMeshOp()<br/>line 1311-1349<br/>Walk module for sdy::MeshOp"]
+    
+    MeshFound{"MeshOp found?"}
+    
+    InputPath["Input Sharding Path"]
+    
+    OutputPath["Output Sharding Path"]
+    
+    ExtractInputAttrs["Extract sdy::TensorShardingAttr<br/>from function arguments<br/>func_op.getArgAttrOfType<br/>('sdy.sharding')<br/>line 484-489"]
+    
+    FindManualOps["Walk function for<br/>sdy::ManualComputationOp<br/>line 546-549"]
+    
+    ManualFound{"Manual ops count"}
+    
+    ExtractOutShardings["Extract from<br/>manual_op.getOutShardings()<br/>line 568-573"]
+    
+    GenerateDefaults["Generate default shardings<br/>for all outputs<br/>line 556-559"]
+    
+    ConvertShardy["createShardingsFromShardy()<br/>shardy_attributes + shardy_mesh<br/>→ vector&lt;MeshSharding&gt;<br/>line 709-744"]
+    
+    ReturnNull["Return std::nullopt<br/>Fall back to GSPMD"]
+    
+    ReturnShardings["Return vector&lt;MeshSharding&gt;"]
+    
+    CollectShardy --> GetMesh
+    GetMesh --> MeshFound
+    MeshFound -->|"No"| ReturnNull
+    MeshFound -->|"Yes"| InputPath
+    MeshFound -->|"Yes"| OutputPath
+    
+    InputPath --> ExtractInputAttrs
+    ExtractInputAttrs --> ConvertShardy
+    
+    OutputPath --> FindManualOps
+    FindManualOps --> ManualFound
+    ManualFound -->|"0 (replicated)"| GenerateDefaults
+    ManualFound -->|"1"| ExtractOutShardings
+    ManualFound -->|">1"| ReturnNull
+    GenerateDefaults --> ConvertShardy
+    ExtractOutShardings --> ConvertShardy
+    
+    ConvertShardy --> ReturnShardings
+```
+
+**Key Functions:**
+
+1. **getFirstShardyMeshOp()** at [pjrt_implementation/src/api/module_builder/module_builder.cc:1311-1349]():
+   ```cpp
+   module.walk([&](mlir::sdy::MeshOp op) {
+       if (!mesh_op) mesh_op = op;
+   });
+   ```
+   Returns the first `sdy::MeshOp` found, or `std::nullopt` if none exists.
+
+2. **Input Sharding Collection** at [pjrt_implementation/src/api/module_builder/module_builder.cc:470-500]():
+   - Extracts `sdy::TensorShardingAttr` from function argument attributes
+   - Uses attribute name `mlir::sdy::kShardingAttr` (which is `"sdy.sharding"`)
+   - If attribute is null, default unsharded configuration is used
+
+3. **Output Sharding Collection** at [pjrt_implementation/src/api/module_builder/module_builder.cc:533-584]():
+   - Searches for `sdy::ManualComputationOp` within the function body
+   - **Zero manual ops**: Execution is fully replicated, generate default shardings for all results
+   - **One manual op**: Extract `out_shardings` attribute containing per-output sharding specs
+   - **Multiple manual ops**: Unexpected state, return error
+
+4. **Sharding Conversion** at [pjrt_implementation/src/api/module_builder/module_builder.cc:709-744]():
+   ```cpp
+   mlir::LogicalResult createShardingsFromShardy(
+       std::vector<mlir::sdy::TensorShardingAttr> &shardy_attributes,
+       const mlir::sdy::MeshAttr &shardy_mesh,
+       std::vector<mlir::tt::sharding_utils::MeshSharding> &shardings)
+   ```
+   Converts Shardy-specific sharding attributes to TT-MLIR's unified `MeshSharding` representation using `mlir::tt::shardy_utils::ShardyMeshSharding::generate()`.
+
+**XLA Ingestion Cleaning:**
+
+When Shardy is used, the output shardings must be converted to XLA-compatible format. This is handled by `cleanForXlaIngestion()` at [pjrt_implementation/src/api/module_builder/frontend_passes/shlo_clean_for_xla_ingestion.cc:362-424](), which:
+1. Strips TT-specific dialect attributes (ttcore, ttir) from function arguments/results
+2. Strips location information via `createStripDebugInfoPass()`
+3. Extracts output shardings from `ManualComputationOp` and converts to HloShardingV2 format
+4. Injects output shardings as `mhlo.spmd_output_sharding` module attribute
+5. Removes `sdy::MeshOp` operations
+6. Simplifies the main function by replacing manual computation body with dummy outputs
+
+Sources: [pjrt_implementation/src/api/module_builder/module_builder.cc:470-500](), [pjrt_implementation/src/api/module_builder/module_builder.cc:533-584](), [pjrt_implementation/src/api/module_builder/module_builder.cc:709-744](), [pjrt_implementation/src/api/module_builder/module_builder.cc:1311-1349](), [pjrt_implementation/src/api/module_builder/frontend_passes/shlo_clean_for_xla_ingestion.cc:362-424]()
+```
+
+
+#### Composite Op Mechanism
+
+
+```mermaid
+graph TB
+    subgraph "FX Graph Before"
+        CallFunc["call_function<br/>target: torch.nn.functional.gelu"]
+        CallMod["call_module<br/>target: 'layer_norm'<br/>(nn.LayerNorm instance)"]
+    end
+    
+    subgraph "Transformation"
+        HandleComposite["handle_composite_ops(gm)"]
+        Replacements["composite_ops.replacements<br/>dict"]
+        FuncReplace["Function replacement<br/>Change node.target"]
+        ModReplace["Module replacement<br/>Create new call_function"]
+    end
+    
+    subgraph "FX Graph After"
+        CompGelu["call_function<br/>target: composite_gelu"]
+        CompLayerNorm["call_function<br/>target: composite_layer_norm<br/>with get_attr for params"]
+    end
+    
+    subgraph "StableHLO Output"
+        CompOp["stablehlo.composite<br/>name: 'tenstorrent.gelu'<br/>decomposition: {...}"]
+    end
+    
+    CallFunc --> HandleComposite
+    CallMod --> HandleComposite
+    HandleComposite --> Replacements
+    Replacements --> FuncReplace
+    Replacements --> ModReplace
+    
+    FuncReplace --> CompGelu
+    ModReplace --> CompLayerNorm
+    
+    CompGelu --> CompOp
+    CompLayerNorm --> CompOp
+```
+
+
+#### Marker Insertion
+
+
+```mermaid
+graph LR
+    subgraph "Before"
+        GetAttr1["get_attr<br/>target: 'L__self___layers_0_weight'"]
+        User1["user: matmul"]
+        GetAttr1 --> User1
+    end
+    
+    subgraph "After"
+        GetAttr2["get_attr<br/>target: 'L__self___layers_0_weight'"]
+        Marker["call_function<br/>target: tt.mark_argument_attributes<br/>kwargs: {argument_type: 'parameter',<br/>name: 'layers.0.weight'}"]
+        User2["user: matmul"]
+        GetAttr2 --> Marker
+        Marker --> User2
+    end
+```
+
+
+#### Decomposition Registration
+
+
+```mermaid
+graph TB
+    Start["populate_decompositions()"]
+    
+    Step1["Get core_aten_decompositions()"]
+    Step2["Remove einsum decomposition"]
+    Step3["Remove dot decomposition"]
+    Step4["Add default decompositions"]
+    Step5["Add custom decompositions"]
+    
+    Result["DecompositionTable"]
+    
+    Start --> Step1
+    Step1 --> Step2
+    Step2 --> Step3
+    Step3 --> Step4
+    Step4 --> Step5
+    Step5 --> Result
+```
+
+**Diagram: Decomposition table construction pipeline**
+
+Notable removals from default decompositions:
+- `torch.ops.aten.einsum.default` - Removed because custom matmul decomposition uses einsum, and PyTorch's bmm folding breaks SPMD shard specs
+- `torch.ops.aten.dot.default` - Removed because StableHLO lowering was incorrect; replaced with custom dot→matmul decomposition
+
+Sources: [python_package/tt_torch/backend/decompositions.py:382-398]()
+```
+
+
+#### Composite Operation Pass
+
+
+```mermaid
+graph TB
+    Start["handle_composite_ops(gm)"]
+    
+    IterNode["For each node in graph"]
+    CheckFunc{"node.op == 'call_function'?"}
+    CheckMod{"node.op == 'call_module'?"}
+    
+    ReplaceFunc["Replace node.target<br/>with composite function"]
+    ReplaceMod["Call replacement function<br/>to transform graph"]
+    
+    Done["graph.lint()"]
+    
+    Start --> IterNode
+    IterNode --> CheckFunc
+    CheckFunc -->|Yes| ReplaceFunc
+    CheckFunc -->|No| CheckMod
+    CheckMod -->|Yes| ReplaceMod
+    CheckMod -->|No| IterNode
+    
+    ReplaceFunc --> IterNode
+    ReplaceMod --> IterNode
+    IterNode --> Done
+```
+
+**Diagram: Composite operation replacement logic**
+
+The replacements dictionary maps operations to their composite implementations:
+
+```python
+replacements = {
+    # Function replacements
+    torch.nn.functional.gelu: composite_gelu,
+    torch.rms_norm: composite_rms_norm,
+    torch.nn.functional.rms_norm: composite_rms_norm,
+    torch.nn.functional.layer_norm: composite_layer_norm,
+    # Module replacements
+    torch.nn.LayerNorm: replace_layer_norm_module,
+}
+```
+
+Sources: [python_package/tt_torch/backend/passes.py:34-58](), [python_package/tt_torch/composite_ops.py:194-202]()
+```
+
+
+#### LLM-Specific Parameterization
+
+
+```mermaid
+graph TB
+    subgraph "LLM Test Parameters"
+        A["test_entry_and_phase<br/>(model, LLM_DECODE|LLM_PREFILL)"]
+        B["sequence_length<br/>(128, 1024, 2048, 4096, 8192)"]
+        C["batch_size<br/>(1, 2)"]
+        D["run_mode<br/>(inference)"]
+        E["parallelism<br/>(single_device|tensor_parallel)"]
+    end
+    
+    subgraph "Generated Test ID"
+        F["llama/causal_lm/pytorch-3.2_1B-<br/>llm_prefill-seq_128-batch_1-<br/>single_device-inference"]
+    end
+    
+    subgraph "Input Selection"
+        G["load_inputs_prefill()"]
+        H["load_inputs_decode()"]
+        I["batch_size parameter"]
+        J["seq_len parameter"]
+    end
+    
+    A --> F
+    B --> F
+    C --> F
+    D --> F
+    E --> F
+    
+    A --> G
+    A --> H
+    G --> I
+    G --> J
+    H --> I
+```
+
+**LLM Test IDs**: LLM tests include the run phase (prefill/decode), sequence length, and batch size in the test ID. Only models with `load_inputs_prefill()` or `load_inputs_decode()` methods are included in the LLM test suite.
+
+Sources: [tests/runner/test_models.py:361-461](), [tests/runner/test_utils.py:38-44]()
+```
+
+
+#### Test Metadata Update Flow
+
+
+```mermaid
+graph TB
+    Exception["Exception<br/>(raised during test)"]
+    Stdout["stdout<br/>(captured)"]
+    Stderr["stderr<br/>(captured)"]
+    
+    subgraph "update_test_metadata_for_exception"
+        ConvertMsg["Convert exception to string"]
+        FindReason["FailingReasonsFinder.find_reason_by_exception"]
+        ExtractDetail["Extract detailed error<br/>(circular buffers, OOM, etc.)"]
+        SetAttrs["Set attributes on test_metadata:<br/>- runtime_reason<br/>- failing_reason<br/>- failing_reason_summary"]
+    end
+    
+    TestMetadata["test_metadata<br/>(ModelTestConfig)"]
+    
+    Exception --> ConvertMsg
+    Exception --> FindReason
+    Stdout --> FindReason
+    Stderr --> FindReason
+    Stdout --> ExtractDetail
+    Stderr --> ExtractDetail
+    
+    ConvertMsg --> ExtractDetail
+    FindReason --> SetAttrs
+    ExtractDetail --> SetAttrs
+    SetAttrs --> TestMetadata
+```
+

@@ -81,6 +81,92 @@ The Core Runtime System, also known as TT-Metalium, is the foundational layer of
 This page covers the runtime system architecture, initialization flows, and core subsystems. For high-level neural network operations, see [Neural Network Operations (TTNN)](https://deepwiki.com/tenstorrent/tt-metal/4-neural-network-operations-(ttnn)). For build system details, see [Build and Packaging System](https://deepwiki.com/tenstorrent/tt-metal/5-build-and-packaging-system). For CI/CD infrastructure, see [CI/CD and Testing Infrastructure](https://deepwiki.com/tenstorrent/tt-metal/6-cicd-and-testing-infrastructure).
 
 ## System Architecture
+```mermaid
+graph TB
+    subgraph "Stage 1: Parameter Definition"
+        SweepModules["Sweep Modules<br/>tests/sweep_framework/sweeps/**/*.py"]
+        Parameters["parameters dict<br/>{suite_name: {param: [values]}}"]
+        InvalidateFunc["invalidate_vector()<br/>Filter invalid params"]
+    end
+    
+    subgraph "Stage 2: Vector Generation"
+        Generator["sweeps_parameter_generator.py<br/>generate_vectors()"]
+        Permutations["framework/permutations.py<br/>Cartesian product"]
+        Serialize["framework/serialize.py<br/>serialize_structured()"]
+        VectorExport["vectors_export/<br/>module.json<br/>module.hw_*.json"]
+    end
+    
+    subgraph "Stage 3: Test Execution"
+        Runner["sweeps_runner.py<br/>run_sweeps()"]
+        VectorSource["framework/vector_source.py<br/>VectorExportSource.load_vectors()"]
+        ExecuteSuite["execute_suite()<br/>Child process isolation"]
+        RunFunc["run() in sweep module<br/>Test logic"]
+        ResetUtil["framework/tt_smi_util.py<br/>ResetUtil.reset()"]
+    end
+    
+    subgraph "Stage 4: Result Collection"
+        ResultDest["framework/result_destination.py<br/>Destinations"]
+        ResultExport["results_export/<br/>sweep_*.json<br/>oprun_*.json"]
+        SupersetDest["SupersetResultDestination<br/>SFTP upload"]
+    end
+    
+    SweepModules --> Parameters
+    SweepModules --> InvalidateFunc
+    Parameters --> Generator
+    InvalidateFunc --> Generator
+    Generator --> Permutations
+    Permutations --> Serialize
+    Serialize --> VectorExport
+    
+    VectorExport --> VectorSource
+    VectorSource --> Runner
+    Runner --> ExecuteSuite
+    ExecuteSuite --> RunFunc
+    ExecuteSuite --> ResetUtil
+    
+    ExecuteSuite --> ResultDest
+    ResultDest --> ResultExport
+    ResultDest --> SupersetDest
+```
+
+Sources: [tests/sweep_framework/sweeps_parameter_generator.py:154-183](), [tests/sweep_framework/sweeps_runner.py:38-63](), [tests/sweep_framework/framework/result_destination.py:25-32]()
+
+---
+```
+
+
+```mermaid
+graph TD
+    subgraph "Host (CPU)"
+        TracyServer["Tracy Server/GUI"]
+        PythonPerf["Python Analysis Scripts<br/>(process_ops_logs.py)"]
+        HostProfiler["Host Profiler (C++)<br/>ProfilerStateManager"]
+    end
+
+    subgraph "Device (Tenstorrent Chip)"
+        subgraph "Tensix/Eth Core"
+            KernelProfiler["Kernel Profiler (RISC-V)<br/>kernel_profiler.hpp"]
+            NocProfiler["NOC Event Profiler<br/>noc_event_profiler.hpp"]
+            L1Buf["L1 Profiler Buffer"]
+        end
+        DRAMBuf["DRAM Profiler Buffer<br/>(Optional Double Buffering)"]
+    end
+
+    KernelProfiler -->|"Logs Events"| L1Buf
+    NocProfiler -->|"Logs NOC Traffic"| L1Buf
+    L1Buf -->|"DMA/Slow Dispatch"| DRAMBuf
+    DRAMBuf -->|"Readback"| HostProfiler
+    HostProfiler -->|"CSV/JSON"| PythonPerf
+    HostProfiler -->|"Real-time Trace"| TracyServer
+```
+
+**Key Components:**
+- **Kernel Profiler**: A header-only library used within device kernels to record timestamps and custom markers into L1 memory. It timestamps kernel events using RISC-V registers and manages buffer flushing to DRAM to prevent overflow. It also supports tracing NOC events. [tt_metal/tools/profiler/kernel_profiler.hpp:40-116]()
+- **NOC Event Profiler**: Instrumentation for tracking Network-on-Chip read/write and barrier events, recording source/destination coordinates, byte counts, and posting information for detailed congestion analysis. [tt_metal/tools/profiler/noc_event_profiler.hpp:7-112]()
+- **ProfilerStateManager**: The host-side manager that orchestrates profiling sessions, reading data from devices, aggregating results, and interfacing with the Tracy timeline. [tt_metal/impl/profiler/profiler_state_manager.hpp:1-30]()
+- **Tracy Integration**: Handles the translation and forwarding of device profiling events into the Tracy profiler context, enabling live, cross-device profiling visualization. [tt_metal/impl/profiler/profiler.cpp:20-60]()
+```
+
 
 ```mermaid
 graph TB
@@ -163,6 +249,53 @@ Title: MetalContext Lifecycle and Managed Entities
 **Sources**: [tt_metal/impl/context/metal_context.cpp 63-90](https://github.com/tenstorrent/tt-metal/blob/f30f8df0/tt_metal/impl/context/metal_context.cpp#L63-L90)[tt_metal/impl/context/metal_context.cpp 152-183](https://github.com/tenstorrent/tt-metal/blob/f30f8df0/tt_metal/impl/context/metal_context.cpp#L152-L183)[tt_metal/impl/context/metal_context.hpp 56-130](https://github.com/tenstorrent/tt-metal/blob/f30f8df0/tt_metal/impl/context/metal_context.hpp#L56-L130)
 
 ### Key Components
+```mermaid
+graph TB
+    subgraph "Host-Facing API"
+        WriteToBuffer["tt::tt_metal::detail::WriteToBuffer"]
+        ReadFromBuffer["tt::tt_metal::detail::ReadFromBuffer"]
+        EnqueueWrite["EnqueueWriteBuffer<br/>Async Fast Dispatch"]
+        EnqueueRead["EnqueueReadBuffer<br/>Async Fast Dispatch"]
+    end
+    
+    subgraph "Core Transfer Logic"
+        BufferDispatch["tt::tt_metal::buffer_dispatch<br/>Command Assembly"]
+        InterleavedParams["InterleavedBufferWriteDispatchParams"]
+        ShardedParams["ShardedBufferWriteDispatchParams"]
+    end
+    
+    subgraph "Dispatch Layer"
+        DeviceCommand["DeviceCommandCalculator<br/>Command Encoding"]
+        HWCmdQueue["HWCommandQueue<br/>Dispatch Execution"]
+        MeshCQ["FDMeshCommandQueue<br/>Multi-Device Dispatch"]
+    end
+    
+    subgraph "Hardware Interface"
+        ClusterAPI["tt_cluster<br/>write_core(), read_core()"]
+        NOC["NOC_CMD_BUF<br/>Non-blocking API"]
+    end
+    
+    EnqueueWrite --> BufferDispatch
+    BufferDispatch --> InterleavedParams
+    BufferDispatch --> ShardedParams
+    InterleavedParams --> DeviceCommand
+    ShardedParams --> DeviceCommand
+    DeviceCommand --> HWCmdQueue
+    DeviceCommand --> MeshCQ
+    
+    WriteToBuffer --> ClusterAPI
+    ReadFromBuffer --> ClusterAPI
+    HWCmdQueue --> NOC
+    MeshCQ --> NOC
+```
+
+**Diagram: Data Movement Architecture and Code Entities**
+
+Sources: `tt_metal/impl/buffers/dispatch.cpp:41-81`, `tt_metal/impl/buffers/dispatch.cpp:100-117`, `tt_metal/impl/buffers/dispatch.cpp:182-210`
+
+---
+```
+
 
 | Component | Type | Purpose |
 | --- | --- | --- |

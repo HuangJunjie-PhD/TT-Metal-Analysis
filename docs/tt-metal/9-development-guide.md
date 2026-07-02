@@ -369,3 +369,265 @@ Dismiss
 Refresh this wiki
 
 Enter email to refresh
+
+## Additional Diagrams
+
+
+## Summary Diagram: Code Review and CI/CD Workflow Integration
+
+
+```mermaid
+graph TD
+    PR["Pull Request"]
+    CODEOWNERS{CODEOWNERS File}
+    Owners["Reviewers Assigned"]
+    Tests["CI/CD Test Pipelines"]
+    Failure["Test Failure Detected"]
+    SlackNotify["Send Slack Notification"]
+    OwnerNotify["Owners Notified via owner_id"]
+
+    PR --> CODEOWNERS
+    CODEOWNERS --> Owners
+    PR --> Tests
+    Tests -->|Pass| Merge["PR Merged"]
+    Tests -->|Fail| Failure
+    Failure --> SlackNotify
+    SlackNotify --> OwnerNotify
+```
+
+---
+```
+
+
+#### Prefill and Decode Execution Stages
+
+
+```mermaid
+graph LR
+    Prefill["Prefill Stage<br/>prefill_forward"]
+    Decode["Decode Stage<br/>decode_forward"]
+    KVCache["KV Cache Allocation<br/>(allocate_kv_cache)"]
+    
+    Prefill --> KVCache
+    KVCache --> Decode
+```
+
+Sources:  
+[tech_reports/LLMs/vLLM_integration.md:13-34](), [models/docs/MODEL_UPDATES.md:12-14]()
+
+---
+```
+
+
+## Summary Diagram — From Natural Language Concepts to Key Code Entities
+
+
+```mermaid
+graph LR
+    NL_Hardware["Hardware Platforms (N150, N300, Blackhole, Galaxy)"]
+    NL_Runtime["TT-Metalium Runtime & HAL"]
+    NL_NN["TT-NN Neural Network Library (Python/C++)"]
+    NL_Build["Build & Packaging System"]
+    NL_CI_CD["CI/CD Pipeline & Tests"]
+
+    NL_Hardware -->|Supported by| TTM_Device["tt_metal/hw/ + tt_metal/tt-llk/ (Device Kernels)"]
+    NL_Runtime -->|Core Runtime| TTM_Runtime["tt_metal/impl/ (Metalium_impl) + UMD"]
+    NL_NN -->|NN APIs| TTNN_Code["ttnn/ (Neural Network Operations) + Python bindings"]
+    NL_Build -->|Built by| CMake_Files["CMakeLists.txt, build_metal.sh"]
+    NL_CI_CD -->|Runs on triggers| GHA_Workflows[".github/workflows/*.yaml"]
+
+    TTM_Device -.-> TTM_Runtime
+    TTM_Runtime --> TTNN_Code
+    CMake_Files --> TTM_Runtime
+    CMake_Files --> TTNN_Code
+```
+
+Sources: [INSTALLING.md:120-150](), [CMakeLists.txt:28-36](), [.github/workflows/build-artifact.yaml:1-150]()
+
+---
+```
+
+
+#### Diagram: Kernel Compilation and Deployment Flow
+
+
+```mermaid
+graph TD
+    subgraph "Host Side"
+        SRC["KernelSource (.cpp or source string)"]
+        PROG["Program (detail::ProgramImpl)"]
+        GEN["genfiles.cpp: Generate Kernel Descriptors & Headers"]
+    end
+
+    subgraph "Compilation Artifacts"
+        OPTS["JitBuildOptions"]
+        BINDINGS["kernel_bindings_generated.h"]
+        ARGS_HDR["kernel_args_generated.h"]
+        ELF["Kernel ELF Binary"]
+    end
+
+    subgraph "Device"
+        DEV["IDevice, HWCommandQueue"]
+        BRISC_BIN["BRISC Processor Binary"]
+        TRISC_BIN["TRISC Processor Binary (UNPACK/MATH/PACK)"]
+    end
+
+    SRC --> PROG
+    PROG --> GEN
+    GEN --> BINDINGS
+    GEN --> ARGS_HDR
+    GEN --> OPTS
+    OPTS --> ELF
+    ELF --> DEV
+    DEV --> BRISC_BIN
+    DEV --> TRISC_BIN
+```
+
+Sources: [tt_metal/impl/kernels/kernel.cpp:122-178](), [tt_metal/jit_build/genfiles.cpp:5-87](), [tt_metal/impl/program/program.cpp:156-189](), [tt_metal/impl/dispatch/hardware_command_queue.cpp:28-52]()
+
+---
+```
+
+
+### Contribution Workflow Overview
+
+
+```mermaid
+graph TB
+    Start[Start] --> Clone_Repo[Clone Repository]
+    Clone_Repo --> Setup_Env[Setup Development Environment]
+    Setup_Env --> Branch_Create[Create Feature Branch]
+    Branch_Create --> Implementation[Implement Features / Fixes]
+    Implementation --> Pre_Commit_Checks[Run Pre-commit Checks]
+    Pre_Commit_Checks --> Local_Testing[Run Local Tests]
+    Local_Testing --> Push_To_Origin[Push Branch to Origin]
+    Push_To_Origin --> Pull_Request[Open Pull Request]
+    Pull_Request --> PR_Gate_CI[PR Gate CI: Sanity/Smoke Tests]
+    PR_Gate_CI --> Code_Review[Code Review by Owners]
+    Code_Review --> Post_Commit_CI[Post Commit CI: Full Regression]
+    Post_Commit_CI --> Merge_To_Main[Merge to Main Branch]
+
+    Code_Review -- "Changes Requested" --> Implementation
+    Post_Commit_CI -- "Failures" --> Implementation
+
+    subgraph "Local Development"
+        Clone_Repo -- "git clone --recurse-submodules" --> Setup_Env
+        Setup_Env -- "See CONTRIBUTING.md instructions" --> Branch_Create
+        Implementation -- "C++ / Python code changes" --> Pre_Commit_Checks
+    end
+
+    subgraph "CI/CD & Review"
+        PR_Gate_CI -- "Run Sanity and Smoke Tests" --> Code_Review
+        Post_Commit_CI -- "Run Full Device Regression (T3000/Galaxy)" --> Merge_To_Main
+    end
+```
+
+This flow ensures only thoroughly tested and reviewed code integrates into the main development line, preserving code quality for releases.
+```
+
+
+#### Hardware Test Integration and Automatic Triage
+
+
+```mermaid
+graph LR
+    GH_Actions_Runs[GitHub Actions Runs] --> Fetch_JS[fetch-workflow-data.js]
+    Fetch_JS -- "workflow-data.json" --> Analyze_JS[analyze-workflow-data.js]
+    Analyze_JS -- "owners.json mapping" --> Slack_Report[Slack Reporting via Bot]
+
+    subgraph "Analysis Layer"
+    Analyze_JS -- "lib/reporting.js" --> Regression_Detection[Detect Regressions]
+    Analyze_JS -- "lib/error-processing.js" --> Error_Categorization[Classify Errors]
+    end
+```
+
+This workflow detects flaky and persistent failures by analyzing test history and posting owner-tagged notifications to Slack channels, speeding up response times to failures.
+```
+
+
+### Summary Diagram: Contribution and Review Process Expanded with Code Entities
+
+
+```mermaid
+graph TB
+    Start["Developer clones repo -> `git clone --recurse-submodules`"]
+    SetupEnv["Setup Environment per CONTRIBUTING.md"]
+    FeatureBranch["Create feature branch"]
+    Implementation["Implement C++ / Python code changes"]
+    PreCommit["Run pre-commit checks:\
+- clang-format\
+- black\
+- Metalium includes\
+- TTNN torch import\
+- LLK includes"]
+    LocalTests["Run local tests:\
+- Unit tests\
+- Demo tests\
+- Model tests"]
+    PushOrigin["Push branch to origin (GitHub)"]
+    PR["Open Pull Request:\
+Use PR template with notes"]
+    PRGateCI["Run PR Gate CI:\
+- Sanity\
+- Smoke tests"]
+    CodeReview["Mandatory review by CODEOWNERS:\
+- tt_metal owners\
+- tt_stl owners\
+- ttnn owners"]
+    PostCommitCI["Run Post Commit CI:\
+- Full hardware regression\
+- Device perf tests"]
+    MergeMain["Merge to main upon successful CI and review"]
+
+    Start --> SetupEnv --> FeatureBranch --> Implementation --> PreCommit --> LocalTests --> PushOrigin --> PR --> PRGateCI --> CodeReview --> PostCommitCI --> MergeMain
+    CodeReview -- "Changes requested" --> Implementation
+    PostCommitCI -- "Failures" --> Implementation
+
+    subgraph Utilities[tt_stl Utility Usage]
+      Implementation --> Reflection["ttsl::get_type_name<T>()"]
+      Implementation --> Hashing["ttsl::hash::detail::hash_object"]
+      Implementation --> JSON["ttsl::json::to_json/from_json"]
+      Implementation --> StrongType["strong_type for type safety"]
+    end
+```
+
+---
+```
+
+
+#### Extraction Pipeline Diagram
+
+
+```mermaid
+graph TD
+    subgraph "Natural_Language_Space"
+        A["Model_Test_Intent_(e.g._Llama-3.2)"]
+    end
+
+    subgraph "Code_Entity_Space:_model_tracer"
+        B["generic_ops_tracer.py"]
+        C["--trace-params_flag"]
+        D["Operation_JSONs_(generated/ttnn/reports/operation_parameters/)"]
+        E["ttnn_operations_master.json"]
+    end
+
+    subgraph "Code_Entity_Space:_sweep_framework"
+        F["master_config_loader_v2.py"]
+        G["sweeps_parameter_generator.py"]
+        H["sweeps_runner.py"]
+    end
+
+    A -->|invokes| B
+    B -->|triggers| C
+    C -->|outputs| D
+    D -->|merged_into| E
+    E -->|parsed_by| F
+    F -->|provides_params_to| G
+    G -->|generates_vectors_for| H
+```
+
+Sources: [[model_tracer/generic_ops_tracer.py:6-25]](), [[model_tracer/README.md:15-25]](), [[tests/sweep_framework/sweeps_parameter_generator.py:17-21]](), [[tests/sweep_framework/README.md:25-38]](), [[tests/sweep_framework/sweeps_runner.py:65-88]]()
+
+---
+```
+

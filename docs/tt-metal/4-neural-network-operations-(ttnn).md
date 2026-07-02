@@ -93,6 +93,52 @@ As a parent page, it outlines the key components, operation categories, and desi
 * * *
 
 ## Architecture Overview
+```mermaid
+graph TB
+    subgraph "Physical Device [Device]"
+        PD["Device"]
+        CORES["Worker Core Grid (Tensix/Eth)"]
+        PD --> CORES
+    end
+    
+    subgraph "Sub-Device Management Layer"
+        TRACKER["SubDeviceManagerTracker"]
+        DEFAULT["Default SubDeviceManager (Full Grid)"]
+        CUSTOM["SubDeviceManager 1 (Custom Partition)"]
+        ACTIVE["active_sub_device_manager_"]
+        
+        TRACKER --> DEFAULT
+        TRACKER --> CUSTOM
+        TRACKER --> ACTIVE
+    end
+    
+    subgraph "Active Configuration [SubDeviceManager]"
+        SD0["SubDevice 0 (CoreRangeSet)"]
+        SD1["SubDevice 1 (CoreRangeSet)"]
+        
+        ALLOC0["AllocatorImpl 0"]
+        ALLOC1["AllocatorImpl 1"]
+        
+        NOC0["noc_mcast_unicast_data_ 0"]
+        NOC1["noc_mcast_unicast_data_ 1"]
+        
+        SD0 --> ALLOC0
+        SD1 --> ALLOC1
+        SD0 --> NOC0
+        SD1 --> NOC1
+    end
+    
+    ACTIVE -. "references" .-> SD0
+    ACTIVE -. "references" .-> SD1
+    SD0 -. "maps to" .-> CORES
+    SD1 -. "maps to" .-> CORES
+```
+
+**Diagram: Sub-Device Management Architecture**
+
+Sources: [tt_metal/impl/sub_device/sub_device_manager.cpp:46-76](), [tt_metal/impl/sub_device/sub_device_manager_tracker.cpp:37-53](), [tt_metal/api/tt-metalium/device.hpp:174-180]()
+```
+
 
 TTNN forms the high-level neural network operation layer in the Tenstorrent software stack. User-facing Python code invokes TTNN operations through the `ttnn` package, which internally calls into a nanobind C++ extension (`ttnn._ttnn`) backed by TTNN core libraries. These libraries manage tensor abstractions, operation execution via the `device_operation` framework, and invoke the TT-Metalium low-level runtime for device dispatch.
 
@@ -260,3 +306,231 @@ Dismiss
 Refresh this wiki
 
 Enter email to refresh
+
+## Additional Diagrams
+
+
+### Backward Operation Architecture
+
+
+```mermaid
+graph TB
+    subgraph "Python API Layer (ttnn/)"
+        PyCall["ttnn.log_bw(grad, input)"]
+        GoldenFunc["ttnn.get_golden_function(ttnn_function)"]
+        AttachGolden["ttnn.attach_golden_function"]
+    end
+    
+    subgraph "C++ Backend (ttnn/cpp/ttnn/operations/eltwise/)"
+        UnaryBWImpl["unary_backward.cpp functions"]
+        ReduceImpl["generic_reductions.cpp functions"]
+        ProdImpl["prod.cpp functions"]
+    end
+    
+    subgraph "Device Operations (TT-Metalium)"
+        SFPU["SFPU Kernels (e.g., gelu_bw_device_operation.hpp)"]
+        ReduceKernels["Reduce Kernels (e.g., reduce_op.hpp)"]
+        OutputGrad["Result Gradient Tensors"]
+    end
+    
+    subgraph "Testing Framework (tests/ttnn/)"
+        RunTest["test_std() / test_var()"]
+        AssertPCC["assert_numeric_metrics"]
+    end
+
+    PyCall --> UnaryBWImpl
+    UnaryBWImpl --> SFPU
+    UnaryBWImpl --> ReduceImpl
+    ReduceImpl --> ReduceKernels
+    SFPU --> OutputGrad
+    ReduceKernels --> OutputGrad
+    
+    RunTest --> PyCall
+    RunTest --> GoldenFunc
+    AttachGolden -.-> GoldenFunc
+    GoldenFunc -.->|"Validates correctness"| AssertPCC
+    OutputGrad --> AssertPCC
+```
+
+**Diagram: Backward Operation Invocation and Validation Flow**
+
+Backward operations follow a consistent architectural pattern:
+
+1.  **Python API**: User invokes `ttnn.operation_bw` with gradient and original inputs.
+2.  **C++ Backend**: Implementation logic resides in `unary_backward.cpp` for element-wise operations [ttnn/cpp/ttnn/operations/eltwise/unary_backward/unary_backward.cpp:35-63]() or `generic_reductions.cpp` for reduction operations [ttnn/cpp/ttnn/operations/reduction/generic/generic_reductions.cpp:31-40](). These functions often compose other ttnn operations or lower-level `prim` operations. For example, `clamp_bw` uses `ttnn::ge`, `ttnn::le`, `ttnn::logical_and`, and `ttnn::multiply` [ttnn/cpp/ttnn/operations/eltwise/unary_backward/unary_backward.cpp:57-60]().
+3.  **Golden function**: PyTorch reference implementation is attached via `ttnn.attach_golden_function` [tests/ttnn/unit_tests/operations/eltwise/test_unary.py:57-58]() and used to validate correctness during testing [tests/ttnn/unit_tests/operations/reduce/test_reduction.py:26-27]().
+4.  **Unit Testing**: Automated tests generate random shapes and dtypes, comparing device results against golden functions using PCC (Pearson Correlation Coefficient) or ULP (Unit in the Last Place) [tests/ttnn/unit_tests/operations/reduce/test_reduction.py:52-59]().
+```
+
+
+#### Precision Tuning for Performance
+
+
+```mermaid
+graph LR
+    classDef codeEntity fill:#eeeeee,stroke:#333,stroke-width:0.5px,font-family:monospace,font-size:12px
+    PrecisionSetting[/"PrecisionSetting\Enum"/]:::codeEntity --> ModelOptimizations
+    MathFidelitySetting[/"MathFidelitySetting\Enum"/]:::codeEntity --> ModelOptimizations
+    OpGroup[/"OpGroup\Enum"/]:::codeEntity --> ModelOptimizations
+```
+
+These settings are applied at the layer or model instantiation level to balance speed and accuracy trade-offs [models/tt_transformers/tt/model_config.py:61-110](), [models/tt_transformers/tt/model_config.py:113-140]().
+
+---
+```
+
+
+#### Autograd Data Flow Diagram
+
+
+```mermaid
+graph LR
+    Input["ttml::autograd::Tensor (Input)"] --> Op["ttml::ops::* (Forward)"]
+    Op --> Output["ttml::autograd::Tensor (Output)"]
+    Output -- "backward()" --> GradOp["ttml::ops::* (Backward)"]
+    GradOp --> InputGrad["Input->set_grad()"]
+```
+
+Sources: [tt-train/sources/ttml/autograd/tensor.cpp:7-9](), [tt-train/tests/ops/rmsnorm_op_test.cpp:58-91]().
+
+---
+```
+
+
+#### Stack Usage Data Flow
+
+
+```mermaid
+graph LR
+    subgraph "Device Execution Environment"
+        Kernel["Kernel Binary"]
+        Stack["Stack Memory"]
+    end
+    
+    subgraph "Host Side Watcher"
+        Reader["WatcherDeviceReader"]
+        Log["watcher.log"]
+    end
+
+    Kernel -->|updates| Stack
+    Reader -->|polls| Stack
+    Reader -->|writes stack usage summaries| Log
+```
+
+- Stack usage data is collected during kernel execution.
+
+- Read back by WatcherDeviceReader and logged for diagnostics.
+
+Sources:  
+[tt_metal/impl/debug/watcher_device_reader.cpp:191-197]() (implied usage of RiscData and polling functions)
+
+---
+```
+
+
+### Environment Variable Categories
+
+
+```mermaid
+graph LR
+    subgraph "Configuration"
+        Path["Path Configuration<br/>TT_METAL_CACHE<br/>TT_METAL_KERNEL_PATH<br/>TT_METAL_LOGS_PATH"]
+        Hardware["Hardware Config<br/>TT_METAL_ENABLE_HW_CACHE_INVALIDATION<br/>TT_METAL_DISABLE_RELAXED_MEM_ORDERING"]
+        JIT["JIT Build<br/>TT_METAL_FORCE_JIT_COMPILE<br/>TT_METAL_LOG_KERNELS_COMPILE_COMMANDS"]
+    end
+    
+    subgraph "Debugging"
+        Watcher["Watcher System<br/>TT_METAL_WATCHER<br/>TT_METAL_WATCHER_DUMP_ALL"]
+        DPRINT["DPRINT<br/>TT_METAL_DPRINT_CORES<br/>TT_METAL_DPRINT_FILE"]
+        Inspector["Inspector<br/>TT_METAL_INSPECTOR<br/>TT_METAL_INSPECTOR_RPC"]
+        Kernel["Kernel Debugging<br/>TT_METAL_NULL_KERNELS<br/>TT_METAL_KERNELS_EARLY_RETURN"]
+    end
+    
+    subgraph "Profiling"
+        DevProf["Device Profiler<br/>TT_METAL_DEVICE_PROFILER<br/>TT_METAL_PROFILER_SYNC"]
+        NOCProf["NOC Profiler<br/>TT_METAL_DEVICE_PROFILER_NOC_EVENTS"]
+        MemProf["Memory Profiler<br/>TT_METAL_MEM_PROFILER"]
+    end
+```
+
+Sources: [tt_metal/llrt/rtoptions.cpp:47-205]()
+```
+
+
+#### Modular Script Framework and Data Flow
+
+
+```mermaid
+graph TD
+    subgraph "Host Space"
+        TriageMain["tools/triage/triage.py"]
+        ScriptRunner["run_script()"]
+        Context["ttexalens.context.Context"]
+        Inspector["inspector_data.py: InspectorData"]
+        ElfsCache["elfs_cache.py: ElfsCache"]
+        RunChecks["run_checks.py: RunChecks"]
+    end
+
+    subgraph "Modular Diagnostic Scripts"
+        DumpCallstacks["dump_callstacks.py"]
+        DumpFastDispatch["dump_fast_dispatch.py"]
+        CheckNocStatus["check_noc_status.py"]
+        DumpRiscDebugSignals["dump_risc_debug_signals.py"]
+        DumpRunningOps["dump_running_operations.py"]
+    end
+
+    subgraph "Hardware Layer"
+        Device["ttexalens.device.Device"]
+        ARC["ARC Processor"]
+        NOC["NoC Registers"]
+        L1["L1 Memory / Mailboxes"]
+        RISC_Cores["BRISC / NCRISC / TRISCs / ERISC"]
+    end
+
+    TriageMain --> ScriptRunner
+    ScriptRunner --> DumpCallstacks & DumpFastDispatch & CheckNocStatus & DumpRiscDebugSignals & DumpRunningOps
+    ScriptRunner --> Context
+    Context --> Inspector & ElfsCache & RunChecks & Device
+    Device --> ARC & NOC & L1 & RISC_Cores
+    Inspector -.-> DumpFastDispatch & DumpRunningOps
+```
+
+_Sources: [tools/triage/triage.py:1-160](), [tools/triage/run_checks.py:112-158](), [tools/triage/dispatcher_data.py:89-151]()_
+
+---
+```
+
+
+#### CCL High-Level Mapping Diagram
+
+
+```mermaid
+graph TD
+    subgraph TTNN_API["TTNN API"]
+        all_gather["all_gather"]
+        reduce_scatter["reduce_scatter"]
+    end
+
+    subgraph CCL_Backend["CCL Backend Logic"]
+        Topo["Topology (Ring/Line/Mesh/Torus)"]
+        Fabric["Fabric Config (1D/2D)"]
+        Slicer["CclTensorSlicer"]
+    end
+
+    subgraph Device_Entities["Device Entities"]
+        EthSender["eth_sender_cores"]
+        EthReceiver["eth_receiver_cores"]
+        Worker["Worker Cores (Tensix)"]
+    end
+
+    all_gather --> Topo
+    reduce_scatter --> Topo
+
+    Topo --> EthSender
+    Topo --> EthReceiver
+
+    all_gather -- "shards partitioned by" --> Slicer
+    Fabric --> Topo
+    Worker --> all_gather
+```
+

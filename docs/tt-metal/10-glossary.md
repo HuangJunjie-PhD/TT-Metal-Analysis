@@ -357,3 +357,599 @@ Dismiss
 Refresh this wiki
 
 Enter email to refresh
+
+## Additional Diagrams
+
+
+#### Cluster Class Structure
+
+
+```mermaid
+graph TD
+    Cluster["tt::Cluster<br/>tt_metal/llrt/tt_cluster.hpp"]
+    UMD["tt::umd::Cluster<br/>UMD driver<br/>Device communication"]
+    ClusterDesc["tt::umd::ClusterDescriptor<br/>Physical topology<br/>Ethernet connections"]
+    SocDesc["metal_SocDescriptor<br/>Per-chip core layout<br/>Memory maps"]
+    RunTimeOptions["llrt::RunTimeOptions<br/>Configuration<br/>Target device"]
+    HAL["tt_metal::Hal<br/>Architecture-specific<br/>queries"]
+    
+    Cluster -->|"owns driver_"| UMD
+    Cluster -->|"owns cluster_desc_"| ClusterDesc
+    Cluster -->|"owns per chip sdesc_per_chip_"| SocDesc
+    Cluster -->|"references rtoptions_"| RunTimeOptions
+    Cluster -->|"references hal_"| HAL
+    
+    UMD -->|provides| ClusterDesc
+    UMD -->|"get_soc_descriptor()"| SocDesc
+    
+    style Cluster stroke-width:2px
+```
+
+**Diagram: Cluster Class Dependencies**
+
+The `Cluster` constructor performs the following initialization sequence:
+
+1.  **Architecture and Target Detection** - `detect_arch_and_target()` determines the hardware architecture (Wormhole B0, Blackhole, Quasar) and target device type (Silicon, Simulator, Mock) [tt_metal/llrt/tt_cluster.cpp:240-254]().
+2.  **Driver Initialization** - `initialize_device_drivers()` opens the UMD driver, generates cluster descriptors, and validates harvesting masks [tt_metal/llrt/tt_cluster.cpp:313-340]().
+3.  **Ethernet Core Configuration** - `initialize_ethernet_cores_router_mode()` configures ethernet cores for routing if fabric is enabled [tt_metal/llrt/tt_cluster.cpp:230]().
+4.  **RISC Reset** - `assert_risc_reset()` holds all RISC processors in reset state [tt_metal/llrt/tt_cluster.cpp:236]().
+```
+
+
+#### Cluster Type Classification
+
+
+```mermaid
+graph TD
+    ClusterDesc["tt::umd::ClusterDescriptor<br/>from UMD"]
+    Analyze["get_cluster_type_from_cluster_desc()"]
+    
+    ClusterDesc --> Analyze
+    
+    Analyze --> N150["ClusterType::N150<br/>Single Wormhole chip"]
+    Analyze --> N300["ClusterType::N300<br/>Dual Wormhole chips"]
+    Analyze --> T3K["ClusterType::T3K<br/>8 N300 boards<br/>3-3-2 connection pattern"]
+    Analyze --> TG["ClusterType::TG (Galaxy)<br/>32+ chips<br/>UBB boards"]
+    Analyze --> P150["ClusterType::P150<br/>Single Blackhole chip"]
+    Analyze --> BHG["ClusterType::BLACKHOLE_GALAXY<br/>UBB Blackhole boards"]
+```
+
+**Diagram: Cluster Type Detection Logic**
+
+The detection algorithm examines:
+*   **Number of chips** in the cluster [tt_metal/llrt/tt_cluster.cpp:121]().
+*   **Board types** (N150, N300, GALAXY, etc.) [tt_metal/llrt/tt_cluster.cpp:113]().
+*   **Ethernet connection patterns** - number of remote chips each chip connects to [tt_metal/llrt/tt_cluster.cpp:136-152]().
+*   **MMIO capability** - which chips have PCIe connections [tt_metal/llrt/tt_cluster.cpp:144]().
+```
+
+
+#### Sub-Device State Reset
+
+
+```mermaid
+graph TD
+    subgraph "SubDeviceManagerTracker::load_sub_device_manager"
+        LOAD["load_sub_device_manager(id)"]
+        RESET["reset_sub_device_state(manager)"]
+    end
+    
+    subgraph "MeshDevice/MeshCommandQueue"
+        MCQ["MeshCommandQueue::reset_worker_state"]
+        RESET_HW["Reset HW Dispatcher State"]
+    end
+    
+    LOAD --> RESET
+    RESET --> MCQ
+    MCQ --> RESET_HW
+```
+**Diagram: Sub-Device Loading and Reset Flow**
+
+Sources: [tt_metal/impl/sub_device/sub_device_manager_tracker.cpp:64-105]()
+```
+
+
+#### SFPU Initialization Flow
+
+
+```mermaid
+graph TD
+    A[TRISC Start] --> B["enable_cc_stack()"]
+    B --> C["TTI_SFPENCC (Enable SFPU Lanes)"]
+    C --> D{Compute Op?}
+    D -- Untilize --> E["llk_unpack_untilize_init()"]
+    D -- Tilize --> F["llk_unpack_tilize_init()"]
+    E --> G[Perform Op]
+    F --> G
+```
+
+Sources: [tt_metal/hw/firmware/src/tt-2xx/trisc.cc:111-117](), [tests/tt_metal/tt_metal/llk/test_untilize_tilize.cpp:61-100]()
+```
+
+
+#### Operation Attributes and Parameters
+
+
+```mermaid
+graph LR
+    subgraph "MatmulDeviceOperation Attributes"
+        Transpose["transpose_a / transpose_b<br/>bool"]
+        OutDtype["output_dtype<br/>DataType"]
+        ProgConfig["program_config<br/>MatmulProgramConfig variant"]
+        Act["fused_activation<br/>std::optional<UnaryWithParam>"]
+        ComputeConfig["compute_kernel_config<br/>DeviceComputeKernelConfig"]
+    end
+```
+
+
+### Circular Buffer (CB) and Dataflow
+
+
+```mermaid
+graph LR
+    subgraph "Dataflow Kernels (Reader/Writer)"
+        ReaderA["Reader Input A<br/>(Interleaved/Sharded)"]
+        ReaderB["Reader Input B<br/>(Mcast Sender/Receiver)"]
+        Writer["Writer Output C"]
+    end
+
+    subgraph "Circular Buffers"
+        CB_IN0["cb_in0<br/>Input A Tiles"]
+        CB_IN1["cb_in1<br/>Input B Tiles"]
+        CB_BIAS["cb_bias<br/>Fused Bias Tiles"]
+        CB_OUT["cb_out0<br/>Output Tiles"]
+    end
+
+    ReaderA --> CB_IN0
+    ReaderB --> CB_IN1
+    CB_IN0 --> Compute["Compute Kernel<br/>llk_math_matmul"]
+    CB_IN1 --> Compute
+    CB_BIAS --> Compute
+    Compute --> CB_OUT
+    CB_OUT --> Writer
+```
+
+
+#### Resource Usage Analysis
+
+
+```mermaid
+graph LR
+    subgraph "Natural Language Space"
+        UserReq["How much L1 does my MatMul use?"]
+    end
+
+    subgraph "Code Entity Space"
+        Query["ttnn::graph::invoke_op"]
+        TensorSpec["ttnn::graph::DistributedTensorSpec"]
+        MockDevice["tt::tt_metal::experimental::MockDevice"]
+        Capture["ttnn::graph::GraphProcessor"]
+        ResourceUsage["ttnn::graph::ResourceUsage"]
+        ConstraintQueryResponse["ttnn::graph::ConstraintQueryResponse"]
+    end
+
+    UserReq --> Query
+    Query -- "Op, MockDevice, Args" --> Capture
+    Capture -- "Detailed Buffer Tracing" --> ResourceUsage
+    Query -- "Returns" --> ConstraintQueryResponse
+    ConstraintQueryResponse -- "Contains" --> ResourceUsage
+```
+**Diagram: Constraint Query Data Flow**
+```
+
+
+#### Version Detection and Configuration
+
+
+```mermaid
+graph TD
+    SFPI_VER["tt_metal/sfpi-version"]
+    INFO_SH["tt_metal/sfpi-info.sh"]
+    HW_CMAKE["tt_metal/hw/CMakeLists.txt"]
+    
+    SFPI_VER --> INFO_SH
+    INFO_SH --> HW_CMAKE
+    HW_CMAKE -->|TT_USE_SYSTEM_SFPI=OFF| FETCH["FetchContent (Download)"]
+    HW_CMAKE -->|TT_USE_SYSTEM_SFPI=ON| SYS_PATH["/opt/tenstorrent/sfpi"]
+    
+    FETCH --> GPP_BIN["riscv-tt-elf-g++"]
+    SYS_PATH --> GPP_BIN
+    GPP_BIN -->|Verify| VER_CHECK["GPP_VERSION == SFPI_version"]
+```
+
+Sources: [tt_metal/sfpi-version:1-13](), [tt_metal/hw/CMakeLists.txt:41-135](), [tt_metal/sfpi-info.sh:1-10]()
+```
+
+
+#### Platform Configuration Resolution
+
+
+```mermaid
+graph LR
+    Input["platform input<br/>'Ubuntu 24.04'"]
+    Workflow["build-artifact.yaml<br/>(Logic)"]
+    
+    subgraph "ResolvedEntities"
+        Distro["distro: ubuntu"]
+        Version["version: 24.04"]
+        Toolchain["toolchain: x86_64-linux-clang-20-libstdcpp-toolchain.cmake"]
+        PyVer["PYTHON_VERSION: 3.12"]
+    end
+    
+    Input --> Workflow
+    Workflow --> Distro
+    Workflow --> Version
+    Workflow --> Toolchain
+    Workflow --> PyVer
+```
+Python versions are auto-detected from the Ubuntu version: 3.10 for Ubuntu 22.04 and 3.12 for Ubuntu 24.04 [dockerfile/Dockerfile:108-119](). The default toolchain uses Clang 20 with `libstdc++` [.github/workflows/build-artifact.yaml:36-40]().
+
+Sources: [.github/workflows/build-artifact.yaml:72-82](), [dockerfile/Dockerfile:108-119](), [CMakeLists.txt:30-38]()
+```
+
+
+## Bridging Natural Language Concepts to Code Entities
+
+
+```mermaid
+graph LR
+    ModelSpec["Natural Language Model Specification"]
+    Checkpoint["Model Checkpoint Files"]
+    ModelArgs["ModelArgs class<br/>models/tt_transformers/tt/model_config.py:168-200"]
+    Transformer["Transformer class<br/>models/tt_transformers/tt/model.py:23-166"]
+    Attention["Attention class<br/>models/tt_transformers/tt/attention.py:18-147"]
+    Prefetcher["Prefetcher<br/>models/tt_transformers/tt/prefetcher.py:10-110"]
+    Generator["Generator class<br/>models/tt_transformers/tt/generator.py:76-460"]
+    MeshDevice["MeshDevice object<br/>ttnn.MeshDevice (external lib)"]
+    KVCache["KV Cache Allocation<br/>tech_reports/LLMs/vLLM_integration.md:20-34"]
+    TTNNTrace["ttnn.trace system<br/>kernel command replay - tech_reports, runtime"]
+    MetricPCC["PCC Metric<br/>models/common/utility_functions.py:580-630"]
+    TokenAcc["TokenAccuracy class<br/>models/tt_transformers/demo/simple_text_demo.py:38-75"]
+
+    ModelSpec --> Checkpoint
+    Checkpoint --> ModelArgs
+    ModelArgs --> Transformer
+    Transformer --> Attention
+    Transformer --> Prefetcher
+    Transformer --> Generator
+    Generator --> MeshDevice
+    Generator --> KVCache
+    Generator --> TTNNTrace
+    Generator --> TokenAcc
+    TokenAcc --> MetricPCC
+```
+
+This diagram maps the natural language concepts (model specifications and checkpoints) to core code entities and runtime constructs critical for the model bring-up workflow.
+
+Sources:  
+[models/tt_transformers/tt/model_config.py:168-200](), [models/tt_transformers/tt/model.py:23-166](), [models/tt_transformers/tt/attention.py:18-147](), [models/tt_transformers/tt/generator.py:76-460](), [models/tt_transformers/demo/simple_text_demo.py:38-75](), [models/common/utility_functions.py:580-630]()
+
+---
+```
+
+
+#### SubDevice Resource Partitioning Diagram
+
+
+```mermaid
+graph TD
+    Device["Physical Device"]
+    SubDeviceMgr["SubDeviceManager"]
+    CoreRanges["CoreRange allocations"]
+    L1Allocators["Per-subdevice L1BankingAllocator"]
+    StallGroups["Stall Groups for sync"]
+    SubDevice["SubDevice Instances"]
+
+    Device --> SubDeviceMgr
+    SubDeviceMgr --> CoreRanges
+    SubDeviceMgr --> L1Allocators
+    SubDeviceMgr --> StallGroups
+    SubDeviceMgr --> SubDevice
+```
+
+
+#### Submesh Partitioning Diagram Bridging Natural Language to Code Entities
+
+
+```mermaid
+graph LR
+    subgraph NaturalLanguage
+        TP["Tensor Parallelism (TP)"]
+        DP["Data Parallelism (DP)"]
+        Hybrid["Hybrid TP+DP"]
+        Submesh["Submesh Strategies"]
+    end
+
+    subgraph CodeEntities
+        MeshDevice["MeshDevice"]
+        MeshDeviceView["MeshDeviceView (submesh)"]
+        TensorToMesh["TensorToMesh"]
+        DistributedTensor["DistributedTensor"]
+        TT_CCL["TT_CCL - Collective Communication"]
+        SubDeviceManager["SubDeviceManager"]
+    end
+
+    TP --> MeshDevice
+    DP --> MeshDevice
+    Hybrid --> MeshDevice
+    Submesh --> MeshDeviceView
+
+    MeshDeviceView --> SubDeviceManager
+    MeshDevice --> TensorToMesh
+    TensorToMesh --> DistributedTensor
+
+    DistributedTensor --> TT_CCL
+    SubDeviceManager --> TT_CCL
+```
+
+This diagram shows how high-level parallelism concepts correspond to key code entities managing distributed tensor layout, submesh device views, and collective communication primitives.
+
+---
+```
+
+
+#### Framework Component Mapping
+
+
+```mermaid
+graph TD
+    subgraph "Natural Language Space"
+        A["Autograd Context"]
+        B["Neural Network Module"]
+        C["Optimizer"]
+        D["Distributed Context"]
+        E["Tensor Abstraction"]
+    end
+
+    subgraph "Code Entity Space (ttml namespace)"
+        A1["ttml::autograd::AutoContext"]
+        B1["ttml::modules::ModuleBase"]
+        C1["ttml::optimizers::OptimizerBase"]
+        D1["ttml::autograd::ParallelismContext"]
+        E1["ttml::autograd::Tensor"]
+    end
+
+    A --> A1
+    B --> B1
+    C --> C1
+    D --> D1
+    E --> E1
+    
+    A1 -- "manages" --> E1
+    B1 -- "registers" --> E1
+    C1 -- "updates" --> E1
+```
+
+Sources: [tt-train/sources/ttml/CMakeLists.txt:4-104](), [tt-train/sources/ttml/autograd/auto_context.cpp:4-7](), [tt-train/sources/ttml/modules/module_base.cpp:43-45](), [tt-train/sources/ttml/optimizers/optimizer_base.cpp:85-87]().
+
+---
+```
+
+
+#### Code Entity Space Mapping
+
+
+```mermaid
+graph TB
+    subgraph "Host Runtime (C++)"
+        WS["WatcherServer::Impl"]
+        WDR["WatcherDeviceReader"]
+        MC["MetalContext"]
+        HAL["Hal"]
+        HPI["HalProcessorIdentifier"]
+    end
+    
+    subgraph "Device L1 Memory (Mailboxes)"
+        SAN["debug_sanitize_addr_msg_t (Sanitize)"]
+        ASSERT_MSG["debug_assert_msg_t (Assert)"]
+        WP["debug_waypoint_msg_t (Waypoints)"]
+        MAIL["mailboxes_t"]
+    end
+    
+    subgraph "Device Firmware/Kernels (C++)"
+        K_ASSERT["ASSERT() macro"]
+        K_WP["WAYPOINT() macro"]
+    end
+
+    MC -->|owns| WS
+    WS -->|manages| WDR
+    WDR -->|queries| HAL
+    WDR -->|uses| HPI
+    WDR -->|reads via UMD| SAN
+    WDR -->|reads via UMD| ASSERT_MSG
+    WDR -->|reads via UMD| MAIL
+    
+    K_ASSERT -->|writes to| ASSERT_MSG
+    K_WP -->|writes to| WP
+    
+    HAL -->|defines| HPI
+```
+
+Explanation:
+
+- **MetalContext**: Central singleton managing device clusters and hardware abstraction.
+
+- **WatcherServer::Impl**: Host-side server thread managing polling and debug state.
+
+- **WatcherDeviceReader**: Reads per-device debug mailboxes and interprets them.
+
+- **HAL / HalProcessorIdentifier**: Defines core types and provides addressing information.
+
+- **Device L1 Memory**: Holds debug structures written by device side, like asserts and waypoints.
+
+- **ASSERT() / WAYPOINT() macros**: Embedded in device kernels for runtime error and progress reporting.
+
+Sources:  
+[tt_metal/impl/debug/watcher_server.hpp:46-70](),  
+[tt_metal/impl/debug/watcher_device_reader.hpp:26-55](),  
+[tt_metal/impl/debug/watcher_device_reader.cpp:30-36]()
+
+---
+```
+
+
+### Implementation: Natural Language to Code Entity Space
+
+
+```mermaid
+graph LR
+    subgraph "EnvironmentVariableSpace"
+        E1["TT_METAL_WATCHER"]
+        E2["TT_METAL_DPRINT_CORES"]
+        E3["TT_METAL_DEVICE_PROFILER"]
+        E4["TT_METAL_INSPECTOR"]
+    end
+
+    subgraph "CodeEntitySpace"
+        C1["WatcherSettings<br/>(rtoptions.hpp:97)"]
+        C2["TargetSelection<br/>(rtoptions.hpp:81)"]
+        C3["ProfilerStateManager<br/>(metal_context.hpp:44)"]
+        C4["InspectorSettings<br/>(rtoptions.hpp:110)"]
+    end
+
+    E1 --> C1
+    E2 --> C2
+    E3 --> C3
+    E4 --> C4
+```
+
+Sources: [tt_metal/llrt/rtoptions.hpp:81-121](), [tt_metal/impl/context/metal_context.hpp:31-44]()
+
+**Runtime Initialization Flow**
+
+```mermaid
+graph TB
+    subgraph "InitializationSequence"
+        S1["MetalContext::instance()<br/>(metal_context.cpp:65)"]
+        S2["RunTimeOptions::InitializeFromEnvVars()"]
+        S3["MetalContext::initialize()<br/>(metal_context.cpp:152)"]
+    end
+
+    subgraph "DebugServerActivation"
+        D1["WatcherServer<br/>(metal_context.cpp:40)"]
+        D2["DPrintServer<br/>(metal_context.cpp:34)"]
+        D3["Inspector<br/>(metal_context.cpp:35)"]
+    end
+
+    S1 --> S2
+    S2 --> S3
+    S3 --> D1
+    S3 --> D2
+    S3 --> D3
+```
+
+Sources: [tt_metal/impl/context/metal_context.cpp:33-65](), [tt_metal/impl/context/metal_context.cpp:152-160]()
+
+---
+
+This detailed exposition of debug environment variables guides runtime configuration and debugging of the TT-Metalium system, enabling precise control over instrumentation, logging, and system behavior for development and troubleshooting.
+5d:T4600,
+```
+
+
+#### Architecture Diagram: Logical to Code Entity Mapping for MeshDevice
+
+
+```mermaid
+graph TD
+    subgraph LogicalMesh["Logical Mesh Concepts"]
+        MD["MeshDevice"]
+        MDV["MeshDeviceView"]
+        Coord["MeshCoordinate"]
+        MShape["MeshShape"]
+    end
+
+    subgraph CodeEntities["Code Implementation"]
+        SDM["MeshDeviceImpl"]
+        SysMesh["SystemMesh"]
+        DMgr["DeviceManager"]
+        PhysDev["Device (Physical)"]
+        CoordTrans["DistributedCoordinateTranslator"]
+    end
+
+    MD -- "uses via pimpl_" --> SDM
+    SDM -- "manages devices" --> PhysDev
+    SDM -- "provides view" --> MDV
+    MDV -- "views" --> Coord
+    MDV -- "has shape" --> MShape
+    
+    SysMesh -- "represents cluster" --> PhysDev
+    SysMesh -- "uses" --> CoordTrans
+    DMgr -- "opens/manages" --> PhysDev
+
+    MDV -- "maps coord to device" --> PhysDev
+```
+
+
+#### Logical Mesh to Code Entity Mapping Diagram
+
+
+```mermaid
+graph LR
+  subgraph Logical_Space
+    CLUSTER["Cluster Topology"]
+    NODECFG["Node Configuration"]
+  end
+
+  subgraph Code_Space
+    CG["CablingGenerator"]
+    FSD["FactorySystemDescriptor (proto)"]
+    NB["NodeBase and Derived Node classes"]
+  end
+
+  CG -- "Generates" --> FSD
+  NB -- "Defines Node Templates" --> NODECFG
+  CG -- "Uses" --> NB
+  FSD -- "Describes Logical Topology" --> CLUSTER
+
+  subgraph Files
+    CGfile["cabling_generator.cpp"]
+    NodeFile["node.cpp"]
+    FSDProto["factory_system_descriptor.pb.h"]
+  end
+
+  CG -- "Implemented in" --> CGfile
+  NB -- "Implemented in" --> NodeFile
+  FSD -- "Proto defined in" --> FSDProto
+```
+
+---
+```
+
+
+### Operation Extraction Mapping
+
+
+```mermaid
+graph LR
+    subgraph "Execution_and_Capture"
+        TRACER["model_tracer/generic_ops_tracer.py"]
+        REPORT["generated/ttnn/reports/operation_parameters/"]
+    end
+
+    subgraph "Storage_and_Analysis"
+        MASTER_JSON["model_tracer/traced_operations/ttnn_operations_master.json"]
+        DB_LOADER["tests/sweep_framework/load_ttnn_ops_data_v2.py"]
+        REGISTRY["model_tracer/trace_selection_registry.yaml"]
+    end
+
+    subgraph "Sweep_Testing"
+        LOADER["tests/sweep_framework/master_config_loader_v2.py"]
+        GEN["tests/sweep_framework/sweeps_parameter_generator.py"]
+        RUNNER["tests/sweep_framework/sweeps_runner.py"]
+    end
+
+    TRACER -->|Writes| REPORT
+    REPORT -->|Aggregated_into| MASTER_JSON
+    MASTER_JSON -->|Loaded_into_DB| DB_LOADER
+    REGISTRY -->|Filters| DB_LOADER
+    MASTER_JSON -->|Read_by| LOADER
+    LOADER -->|Supplies_config| GEN
+    GEN -->|Feeds_vectors_to| RUNNER
+```
+
+Sources: [[model_tracer/README.md:20-25]](), [[model_tracer/trace_selection_registry.yaml:1-40]](), [[tests/sweep_framework/sweeps_runner.py:65-84]](), [[tests/sweep_framework/sweeps_parameter_generator.py:9-22]](), [[tests/sweep_framework/README.md:31-38]]()
+
+---
+```
+

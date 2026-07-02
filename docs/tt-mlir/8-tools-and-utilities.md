@@ -29,6 +29,45 @@ Relevant source files
 *   [tools/ttnn-standalone/emitc_compiler.py](https://github.com/tenstorrent/tt-mlir/blob/c7d92e92/tools/ttnn-standalone/emitc_compiler.py)
 
 ## Purpose and Scope
+```mermaid
+graph TB
+    subgraph "TTNN Compilation Pipeline"
+        [TTIR_Ops] --> [TTIRToTTNN_Pass]
+        [TTIRToTTNN_Pass] --> [TTNN_Ops_Initial]
+        [TTNN_Ops_Initial] --> [TTNN_Fusing_Pass]
+        [TTNN_Fusing_Pass] --> [TTNNWorkarounds_Pass]
+        [TTNNWorkarounds_Pass] --> [TTNN_Ops_Hardware_Compatible]
+        [TTNN_Ops_Hardware_Compatible] --> [TTNNOptimizer]
+    end
+    
+    subgraph "Workaround System Entities"
+        [wa::TTNNWorkaroundInterface]
+        [wa::TTNNOperandsWorkaroundsFactory]
+        [TTNNWorkaroundsPatterns.cpp]
+        [Decomposition_Patterns]
+    end
+    
+    subgraph "Workaround Types"
+        [Layout_Workarounds]
+        [Buffer_Type_Workarounds]
+        [Memory_Layout_Workarounds]
+        [Data_Type_Workarounds]
+    end
+    
+    [TTNNWorkarounds_Pass] -- "uses" --> [wa::TTNNWorkaroundInterface]
+    [wa::TTNNWorkaroundInterface] -- "calls" --> [wa::TTNNOperandsWorkaroundsFactory]
+    [wa::TTNNOperandsWorkaroundsFactory] -- "defines" --> [Layout_Workarounds]
+    [wa::TTNNOperandsWorkaroundsFactory] -- "defines" --> [Buffer_Type_Workarounds]
+    [wa::TTNNOperandsWorkaroundsFactory] -- "defines" --> [Memory_Layout_Workarounds]
+    [wa::TTNNOperandsWorkaroundsFactory] -- "defines" --> [Data_Type_Workarounds]
+    
+    [TTNNWorkaroundsPatterns.cpp] -- "implements" --> [wa::TTNNWorkaroundInterface]
+    [Decomposition_Patterns] -- "part of" --> [TTNNWorkarounds_Pass]
+```
+
+Sources: [lib/Dialect/TTNN/Pipelines/TTNNPipelines.cpp:113-132](), [lib/Dialect/TTNN/Transforms/Workarounds/TTNNWorkaroundsPatterns.cpp:1-61](), [include/ttmlir/Dialect/TTNN/Transforms/Passes.td:31-52]()
+```
+
 
 This section provides an overview of the command-line tools and utilities available in `tt-mlir` for compilation, code generation, runtime execution, and development workflows. These tools form the practical interface to the compilation pipeline and enable developers to transform, execute, and debug MLIR programs targeting Tenstorrent hardware.
 
@@ -213,3 +252,180 @@ Dismiss
 Refresh this wiki
 
 Enter email to refresh
+
+## Additional Diagrams
+
+
+#### Workflow Entity Association
+
+
+```mermaid
+graph TD
+    subgraph "MLIR_Entity_Space"
+    P["TTNNToEmitCPass"]
+    E["EmitCTTNNEmitter"]
+    C["DefaultOpConversionPattern"]
+    end
+
+    subgraph "Build_System_Space"
+    CMake["tools/ttnn-standalone/CMakeLists.txt"]
+    Standalone["ttnn-standalone.cpp"]
+    Dylib["ttnn-dylib.cpp"]
+    CompilerPy["emitc_compiler.py"]
+    end
+
+    P -- "Drives" --> E
+    E -- "Generates" --> Dylib
+    C -- "Formats calls for" --> Standalone
+    CompilerPy -- "Invokes Clang on" --> Dylib
+    CMake -- "Configures build for" --> Dylib
+```
+
+Sources: [lib/Conversion/TTNNToEmitC/TTNNToEmitC.cpp:80-92](), [tools/ttnn-standalone/CMakeLists.txt:158-175](), [tools/ttnn-standalone/emitc_compiler.py:1-35]()
+
+---
+```
+
+
+### PR Workflow Job Graph
+
+
+```mermaid
+graph TD
+  A["pre-commit\
+(call-pre-commit.yml)"]
+  B["build-image\
+(call-build-docker.yml)"]
+  C["prepare-run\
+(call-prepare-run.yml)"]
+  D["release-build\
+(call-build-release.yml)"]
+  E["debug-build\
+(call-build-debug.yml)"]
+  F["lint\
+(call-lint.yml)"]
+  G["test\
+(call-test.yml)"]
+  H["ttsim-test\
+(call-test-ttsim.yml)"]
+  I["downstream-checks\
+(tt-forge-onnx, tt-xla)"]
+  J["check-all-green\
+(re-actors/alls-green)"]
+
+  B --> D
+  C --> D
+  B --> E
+  C --> E
+  B --> F
+  C --> F
+  A --> G
+  B --> G
+  C --> G
+  D --> G
+  B --> H
+  C --> H
+  D --> H
+  D --> I
+  E --> I
+  G --> I
+  D --> J
+  E --> J
+  G --> J
+  H --> J
+  A --> J
+  B --> J
+  C --> J
+  F --> J
+  I --> J
+```
+
+Sources: [.github/workflows/on-pr.yml:28-145]()
+
+The `downstream-checks` job is specifically triggered when the PR branch is named `uplift`. It uses the GitHub CLI (`gh`) to trigger workflows in `tenstorrent/tt-forge-onnx` and `tenstorrent/tt-xla`, passing the current `tt-mlir` SHA as `mlir_override` to validate cross-repo compatibility.
+
+Sources: [.github/workflows/on-pr.yml:85-125]()
+
+---
+```
+
+
+#### Test Execution Workflow
+
+
+```mermaid
+graph TB
+    "TestFile[.mlir]" -->|"Parse RUN"| "LitRunner[lit.cfg.py]"
+    "LitRunner[lit.cfg.py]" -->|"Execute"| "ttmlir-opt"
+    "ttmlir-opt" -->|"Apply Pipeline"| "PassManager"
+    "PassManager" -->|"IR Output"| "FileCheck"
+    "TestFile[.mlir]" -->|"Patterns"| "FileCheck"
+    "FileCheck" -->|"Verify"| "Result[Pass/Fail]"
+```
+
+
+### Integrated Tools Build
+
+
+```mermaid
+graph TD
+    ttnn_standalone["ttnn-standalone (Executable)"]
+    ttnn_dylib["ttnn-dylib (Shared Library)"]
+    
+    subgraph "External Linkage"
+        lib_tt_metal["libtt_metal.so"]
+        lib_tt_stl["libtt_stl.so"]
+        lib_ttnncpp["_ttnncpp.so"]
+    end
+
+    ttnn_standalone --> lib_tt_metal
+    ttnn_standalone --> lib_tt_stl
+    ttnn_standalone --> lib_ttnncpp
+    
+    ttnn_dylib --> lib_tt_metal
+    ttnn_dylib --> lib_ttnncpp
+```
+
+Sources: [tools/ttnn-standalone/CMakeLists.txt:120-125](), [tools/ttnn-standalone/CMakeLists.txt:161-175](), [lib/CMakeLists.txt:71-113]()
+
+---
+```
+
+
+## Save results to JSON
+
+
+```mermaid
+graph TB
+    ["ttrt_query_CLI"] -- "calls" --> DISPATCH["tt::runtime::getCurrentSystemDesc()<br/>runtime/lib/runtime.cpp"]
+    
+    subgraph "Backend_Implementation"
+        SD_ENTRY["tt::runtime::system_desc::getCurrentSystemDesc()<br/>runtime/lib/common/system_desc.cpp"]
+    end
+    
+    subgraph "Hardware_Query"
+        DEVICE["tt::tt_metal::distributed::MeshDevice"]
+        CORES["logical_grid_size()"]
+        MEM["l1_size_per_core()<br/>dram_size_per_channel()"]
+        ALIGN["get_alignment()"]
+        ETH["get_active_ethernet_cores()"]
+    end
+    
+    FLATBUF["flatbuffers::FlatBufferBuilder"]
+    FILE["system_desc.ttsys"]
+    
+    DISPATCH -- "calls" --> SD_ENTRY
+    SD_ENTRY -- "queries" --> DEVICE
+    DEVICE -- "obtains" --> CORES
+    DEVICE -- "obtains" --> MEM
+    DEVICE -- "obtains" --> ALIGN
+    DEVICE -- "obtains" --> ETH
+    
+    CORES -- "serializes_to" --> FLATBUF
+    MEM -- "serializes_to" --> FLATBUF
+    ALIGN -- "serializes_to" --> FLATBUF
+    ETH -- "serializes_to" --> FLATBUF
+    
+    FLATBUF -- "writes" --> FILE
+```
+

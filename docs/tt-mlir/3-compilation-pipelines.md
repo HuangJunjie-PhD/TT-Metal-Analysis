@@ -296,3 +296,60 @@ Dismiss
 Refresh this wiki
 
 Enter email to refresh
+
+## Additional Diagrams
+
+
+#### D2M to TTNN/TTMetal Patterns
+
+
+```mermaid
+graph TD
+    subgraph "D2M Dialect"
+        MemRef["MemRefType<br/>(DeviceLayout)"]
+        D2MGen["d2m.generic"]
+    end
+    
+    subgraph "Conversion Logic (D2MToTTNN)"
+        GetLayout["getTTNNLayoutFromDeviceLayout"]
+        TypeConv["convertMemrefToTTNNTensor"]
+    end
+    
+    subgraph "TTNN Dialect"
+        TTNNTensor["RankedTensorType<br/>(TTNNLayoutAttr)"]
+        TTNNOp["ttnn.generic"]
+    end
+    
+    MemRef --> GetLayout
+    GetLayout --> TypeConv
+    TypeConv --> TTNNTensor
+    D2MGen --> TTNNOp
+```
+Sources: [lib/Conversion/D2MToTTNN/D2MToTTNN.cpp:62-141]()
+```
+
+
+### Validation and Fallback
+
+
+```mermaid
+graph TD
+    Start["Start Pass"] --> WalkOps["Walk TTNN Operations"]
+    WalkOps --> IsExempt{"OpModelExempt?"}
+    IsExempt -- Yes --> Skip["Skip Validation"]
+    IsExempt -- No --> Query["Query OpModel Constraints"]
+    Query --> Valid{"Valid?"}
+    Valid -- Yes --> Next["Continue"]
+    Valid -- No --> TryFallback["Try Fallback (Layout/DType)"]
+    TryFallback --> FallbackSuccess{"Success?"}
+    FallbackSuccess -- Yes --> ApplyTransform["Apply ToLayoutOp"]
+    FallbackSuccess -- No --> Error["Emit Compiler Error"]
+```
+
+Operations can be marked with the `OpModelExempt` trait to bypass validation if they are known to be host-side or special-case operations [include/ttmlir/Dialect/TTNN/IR/TTNNTraits.h:58-60](). The `validateConstraints` function handles the core logic of comparing hardware query results against the effective L1 limit of the device [lib/Dialect/TTNN/Validation/OpConstraintValidation.cpp:129-144]().
+
+Sources: [lib/Dialect/TTNN/Transforms/OptimizerPasses/OperationValidationAndFallback.cpp:149-185](), [lib/Dialect/TTNN/Validation/OpConstraintValidation.cpp:107-156](), [include/ttmlir/Dialect/TTNN/IR/TTNNTraits.h:58-60]()
+
+---
+```
+

@@ -37,6 +37,85 @@ For detailed information about specific subsystems, see:
 TT-XLA serves as an integration layer between machine learning frameworks and Tenstorrent hardware, using the PJRT (Portable JAX Runtime) interface as the primary integration mechanism. The system transforms framework-specific computational graphs into optimized device code through a multi-stage compilation pipeline.
 
 ### High-Level Architecture
+```mermaid
+graph TB
+    subgraph "Test Discovery Layer"
+        DynamicLoader["DynamicLoader (base)"]
+        TorchLoader["TorchDynamicLoader"]
+        JaxLoader["JaxDynamicLoader"]
+        ForgeModels["third_party/tt_forge_models<br/>loader.py files"]
+    end
+    
+    subgraph "Test Entry Points"
+        TestModels["tests/runner/test_models.py"]
+        TestAllTorch["test_all_models_torch()"]
+        TestAllJax["test_all_models_jax()"]
+        TestLLMs["test_llms_torch()"]
+        TestOpByOp["test_all_models_op_by_op()"]
+    end
+    
+    subgraph "Test Execution Layer"
+        ModelTester["ModelTester (base)"]
+        TorchTester["TorchModelTester"]
+        JaxTester["JaxModelTester"]
+        DynamicTorchTester["DynamicTorchModelTester"]
+        DynamicJaxTester["DynamicJaxModelTester"]
+    end
+    
+    subgraph "Configuration & Fixtures"
+        PytestIni["pytest.ini"]
+        Conftest["conftest.py"]
+        TestConfig["test_config_*.yaml"]
+        ModelTestConfig["ModelTestConfig"]
+        ComparisonConfig["ComparisonConfig"]
+    end
+    
+    subgraph "Validation & Analysis"
+        Evaluator["Evaluator"]
+        ComparisonResult["ComparisonResult"]
+        FailingReasonsFinder["FailingReasonsFinder"]
+        FailingReasons["FailingReasons (50+ patterns)"]
+    end
+    
+    DynamicLoader --> TorchLoader
+    DynamicLoader --> JaxLoader
+    TorchLoader --> ForgeModels
+    JaxLoader --> ForgeModels
+    
+    ForgeModels --> TestModels
+    TestModels --> TestAllTorch
+    TestModels --> TestAllJax
+    TestModels --> TestLLMs
+    TestModels --> TestOpByOp
+    
+    TestAllTorch --> DynamicTorchTester
+    TestAllJax --> DynamicJaxTester
+    TestLLMs --> DynamicTorchTester
+    
+    ModelTester --> TorchTester
+    ModelTester --> JaxTester
+    TorchTester --> DynamicTorchTester
+    JaxTester --> DynamicJaxTester
+    
+    PytestIni --> TestModels
+    Conftest --> TestModels
+    TestConfig --> ModelTestConfig
+    ModelTestConfig --> DynamicTorchTester
+    ModelTestConfig --> DynamicJaxTester
+    ComparisonConfig --> DynamicTorchTester
+    ComparisonConfig --> DynamicJaxTester
+    
+    DynamicTorchTester --> Evaluator
+    DynamicJaxTester --> Evaluator
+    Evaluator --> ComparisonResult
+    DynamicTorchTester -.exception.-> FailingReasonsFinder
+    DynamicJaxTester -.exception.-> FailingReasonsFinder
+    FailingReasonsFinder --> FailingReasons
+```
+
+**Architecture Overview**: The test framework follows a layered architecture. At the top, `DynamicLoader` classes discover models from the `tt_forge_models` repository. Test entry points in `test_models.py` parametrize these models with run modes (inference/training) and parallelism modes (single-device/data-parallel/tensor-parallel). The execution layer uses framework-specific `ModelTester` subclasses to compile and run models on both CPU and TT hardware. Results flow through the validation layer (`Evaluator` and `ComparisonResult`) which applies PCC and ATOL thresholds. On failure, the `FailingReasonsFinder` classifies exceptions using 50+ predefined patterns.
+```
+
 
 ```mermaid
 graph TB
@@ -365,3 +444,211 @@ Dismiss
 Refresh this wiki
 
 Enter email to refresh
+
+## Additional Diagrams
+
+
+### Build Options and Configuration Variables
+
+
+```mermaid
+graph LR
+    subgraph "Primary Build Options"
+        PerfTrace["TTMLIR_ENABLE_PERF_TRACE<br/>(default: ON)"]
+        PyBindings["TTMLIR_ENABLE_BINDINGS_PYTHON<br/>(default: OFF)"]
+        Explorer["TTXLA_ENABLE_EXPLORER<br/>(default: OFF)"]
+        PJRTTests["TTXLA_ENABLE_PJRT_TESTS<br/>(default: OFF)"]
+        Tracy["TTXLA_TRACY_ZONES<br/>(default: OFF)"]
+        Coverage["CODE_COVERAGE<br/>(default: OFF)"]
+    end
+    
+    subgraph "Cache Variables"
+        BuildType["TTMLIR_BUILD_TYPE<br/>(default: Release)"]
+    end
+    
+    subgraph "Derived Settings"
+        RTDebug["TT_RUNTIME_DEBUG"]
+    end
+    
+    Explorer -->|"implies"| PyBindings
+    Explorer -->|"enables"| RTDebug
+    BuildType -.->|"passed to tt-mlir"| TTMLIR["tt-mlir build"]
+    PerfTrace -.->|"passed to tt-mlir"| TTMLIR
+    PyBindings -.->|"passed to tt-mlir"| TTMLIR
+    RTDebug -.->|"passed to tt-mlir"| TTMLIR
+```
+
+**Diagram: Build Configuration Options and Dependencies**
+```
+
+
+#### Purpose and Mechanism
+
+
+```mermaid
+graph LR
+    subgraph "Without Composite"
+        Input1["torch.nn.functional.gelu"]
+        Decomp1["Multiple StableHLO ops<br/>mul, add, tanh, etc."]
+        TTIR1["Generic TTIR lowering"]
+    end
+    
+    subgraph "With Composite"
+        Input2["torch.nn.functional.gelu"]
+        Composite["stablehlo.composite<br/>name='tenstorrent.gelu'"]
+        TTIR2["ttir.gelu<br/>(native implementation)"]
+    end
+    
+    Input1 --> Decomp1 --> TTIR1
+    Input2 --> Composite --> TTIR2
+```
+
+**Diagram: Composite operations enable native TT-MLIR implementations**
+
+Sources: [python_package/tt_torch/composite_ops.py:1-25]()
+```
+
+
+### Code Entity Map
+
+
+```mermaid
+graph TD
+    subgraph "vllm_tt/input_batch.py"
+        IB["InputBatch\
+add_request(), remove_request()\
+temperature_cpu_tensor\
+top_k_cpu_tensor\
+bad_words_token_ids\
+logit_bias"]
+    end
+
+    subgraph "vllm_tt/metadata.py"
+        XLASM["XLASupportedSamplingMetadata\
+from_input_batch()\
+_compute_token_counts()\
+_compute_prompt_mask()\
+_compute_bad_words_mask()"]
+    end
+
+    subgraph "vllm_tt/sampler.py"
+        SAM["Sampler\
+forward()\
+sample()\
+apply_bad_words()\
+apply_logit_bias()\
+apply_penalties()\
+apply_temperature()\
+apply_min_p()\
+greedy_sample()\
+random_sample()"]
+        TOPKP["apply_top_k_top_p()\
+(module-level function)"]
+    end
+
+    subgraph "vllm_tt/model_runner.py"
+        MR["TTModelRunner\
+sample_from_logits_func\
+torch.compile(backend=tt)"]
+    end
+
+    IB -->|"from_input_batch()"| XLASM
+    XLASM -->|"passed to"| SAM
+    SAM --> TOPKP
+    MR -->|"compiles"| SAM
+```
+
+Sources: [integrations/vllm_plugin/vllm_tt/input_batch.py:24-210](), [integrations/vllm_plugin/vllm_tt/metadata.py:24-328](), [integrations/vllm_plugin/vllm_tt/sampler.py:14-244](), [integrations/vllm_plugin/vllm_tt/model_runner.py:438-446]()
+2b:T870b,
+```
+
+
+#### Exception-Based Detection
+
+
+```mermaid
+graph TB
+    ExceptionData["ExceptionData"]
+    
+    subgraph "Exception Properties"
+        ClassName["class_name<br/>(e.g., 'RuntimeError')"]
+        Message["message<br/>(exception.__str__())"]
+        ErrorLog["error_log<br/>(pytest traceback)"]
+        Stdout["stdout<br/>(captured output)"]
+        Stderr["stderr<br/>(captured errors)"]
+    end
+    
+    subgraph "ExceptionCheck Matchers"
+        ClassMatch["class_name match"]
+        MsgCheckers["message checkers<br/>(contains, starts_with, regex, etc.)"]
+        LogCheckers["error_log checkers<br/>(last_line, any, neg, etc.)"]
+        OutCheckers["stdout/stderr checkers"]
+        ComponentMatch["component match<br/>(ComponentChecker)"]
+    end
+    
+    ExceptionData -->|provides| ClassName
+    ExceptionData -->|provides| Message
+    ExceptionData -->|provides| ErrorLog
+    ExceptionData -->|provides| Stdout
+    ExceptionData -->|provides| Stderr
+    
+    ClassName --> ClassMatch
+    Message --> MsgCheckers
+    ErrorLog --> LogCheckers
+    Stdout --> OutCheckers
+    Stderr --> OutCheckers
+    ErrorLog --> ComponentMatch
+    
+    ClassMatch -->|all must pass| Result["ExceptionCheck.check()<br/>returns True/False"]
+    MsgCheckers -->|all must pass| Result
+    LogCheckers -->|all must pass| Result
+    OutCheckers -->|all must pass| Result
+    ComponentMatch -->|must pass| Result
+```
+
+
+#### Debugging a Compilation Issue
+
+
+```mermaid
+graph TB
+    Issue["Compilation Error<br/>or Wrong Output"]
+    
+    Issue --> EnableExport["Set export_path + export_model_name"]
+    EnableExport --> RunModel["Run model to trigger compilation"]
+    RunModel --> ExamineVHLO["Examine vhlo_*.mlir<br/>Input from framework"]
+    
+    ExamineVHLO --> CheckSHLO{"SHLO stage<br/>looks correct?"}
+    CheckSHLO -->|No| FrameworkIssue["Framework serialization issue<br/>Check JAX/PyTorch version"]
+    CheckSHLO -->|Yes| CheckTTIR{"TTIR stage<br/>looks correct?"}
+    
+    CheckTTIR -->|No| SHLOIssue["SHLO→TTIR lowering issue<br/>Check tt-mlir pipeline"]
+    CheckTTIR -->|Yes| CheckTTNN{"TTNN stage<br/>looks correct?"}
+    
+    CheckTTNN -->|No| TTNNIssue["TTIR→TTNN lowering issue<br/>Check optimization passes"]
+    CheckTTNN -->|Yes| RuntimeIssue["Runtime execution issue<br/>Check device logs"]
+    
+    style Issue fill:#fee
+```
+
+**Workflow Example**:
+
+1. **Enable IR Export**:
+```python
+torch_xla.set_custom_compile_options({
+    "export_path": "./debug",
+    "export_model_name": "problematic_model",
+})
+```
+
+2. **Trigger Compilation**:
+```python
+output = model(input)
+torch_xla.sync()
+```
+
+3. **Examine Generated IRs**:
+```bash
+ls debug/irs/
+```
+

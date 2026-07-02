@@ -372,3 +372,1146 @@ Dismiss
 Refresh this wiki
 
 Enter email to refresh
+
+## Additional Diagrams
+
+
+#### Model Loading and Tracing
+
+
+```mermaid
+graph LR
+    subgraph "PaddlePaddle Loading"
+        P_Loader["ModelLoader(variant)"]
+        P_Model["loader.load_model()"]
+        P_Trace["paddle_trace(model, inputs)"]
+        P_Compile["forge.compile(framework_model, inputs)"]
+    end
+    
+    subgraph "ONNX Loading"
+        O_Loader["ModelLoader(variant)"]
+        O_Tmp["tempfile.TemporaryDirectory()"]
+        O_Model["loader.load_model(onnx_tmp_path)"]
+        O_Compile["forge.compile(onnx_model, [inputs])"]
+    end
+
+    P_Loader --> P_Model --> P_Trace --> P_Compile
+    O_Loader --> O_Tmp --> O_Model --> O_Compile
+```
+
+
+### Integration with CI/CD Pipeline
+
+
+```mermaid
+graph TB
+    subgraph "Build Phase"
+        Wheel["build-release-wheel"]
+        Docker["docker-build-push"]
+    end
+    
+    subgraph "Validation Phase"
+        Basic["basic-tests.yml"]
+        Demo["demo-tests.yml"]
+    end
+    
+    subgraph "Release Phase"
+        PyPI["publish-tenstorrent-pypi"]
+    end
+    
+    Docker -->|workflow_call| Basic
+    Docker -->|workflow_call| Demo
+    Basic -->|Success| PyPI
+    Demo -->|Success| PyPI
+```
+
+The workflow sets `TRACY_NO_INVARIANT_CHECK: 1` to ensure that Tracy profiler checks do not interfere with the rapid smoke test execution.
+```
+
+
+#### Version Tag Construction
+
+
+```mermaid
+graph TB
+    VersionFile[".version file<br/>MAJOR=0<br/>MINOR=1"]
+    
+    subgraph " "
+        NightlyFormat["Nightly Format<br/>X.Y.Z.devYYYYMMDD"]
+        RCFormat["RC Format<br/>X.Y.ZrcN"]
+        StableFormat["Stable Format<br/>X.Y.Z"]
+        PatchFormat["Patch Format<br/>X.Y.Z+1"]
+    end
+    
+    VersionFile -->|"release_type=nightly"| NightlyFormat
+    VersionFile -->|"release_type=rc"| RCFormat
+    VersionFile -->|"release_type=stable"| StableFormat
+    VersionFile -->|"release_type=stable<br/>(after X.Y.Z exists)"| PatchFormat
+    
+    NightlyFormat -->|"new_version_tag"| NightlyExample["Example: 0.1.0.dev20250108"]
+    RCFormat -->|"new_version_tag"| RCExample["Example: 0.1.0rc1"]
+    StableFormat -->|"new_version_tag"| StableExample["Example: 0.1.0"]
+    PatchFormat -->|"new_version_tag"| PatchExample["Example: 0.1.1"]
+```
+
+Sources: [.github/actions/set-release-facts/action.yaml:140-212](), [RELEASE.md:570-590]()
+```
+
+
+#### set-release-facts Action
+
+
+```mermaid
+graph TB
+    Input["Inputs: repo, release_type, new_version_tag, branch"]
+    
+    ReadVersion["Read .version file (MAJOR, MINOR)"]
+    
+    SetDefaults["Set default values: prerelease=true, make_latest=false, workflow_allow_failed=false"]
+    
+    CheckType{release_type?}
+    
+    Nightly["release_type=nightly<br/>new_version_tag=VERSION.devYYYYMMDD<br/>workflow_allow_failed=true<br/>build_release_find_workflow_branch=main"]
+    
+    RC["release_type=rc<br/>new_version_tag=X.Y.ZrcN (from input)<br/>prerelease=true<br/>make_latest=false"]
+    
+    Stable["release_type=stable<br/>new_version_tag=X.Y.Z (from input)<br/>prerelease=false<br/>make_latest=true"]
+    
+    DraftCheck{draft mode?}
+    
+    DraftTransform["Transform version tags:<br/>gh_new_version_tag=draft.repo_short.build_release_tag<br/>build_release_latest_branch_commit=null<br/>test_demo_filter=bge_m3<br/>test_perf_filter=resnet"]
+    
+    SetOutputs["Set outputs: new_version_tag, gh_new_version_tag, build_release_tag, prerelease, make_latest, major_version, minor_version"]
+    
+    Input --> ReadVersion
+    ReadVersion --> SetDefaults
+    SetDefaults --> CheckType
+    
+    CheckType -->|nightly| Nightly
+    CheckType -->|rc| RC
+    CheckType -->|stable| Stable
+    
+    Nightly --> DraftCheck
+    RC --> DraftCheck
+    Stable --> DraftCheck
+    
+    DraftCheck -->|true| DraftTransform
+    DraftCheck -->|false| SetOutputs
+    DraftTransform --> SetOutputs
+```
+
+Sources: [.github/actions/set-release-facts/action.yaml:134-371]()
+```
+
+
+#### Repository-Specific Configuration
+
+
+```mermaid
+graph LR
+    RepoInput["repo input"]
+    
+    subgraph TTFE["tt-forge-fe"]
+        TTFE_Wheels["pip_wheel_names: tt_forge_fe, tt_tvm"]
+        TTFE_Artifacts["artifact_download_glob: *wheel*, *test-reports*"]
+    end
+    
+    subgraph TTMLIR["tt-mlir"]
+        TTMLIR_Wheels["pip_wheel_names: ttmlir"]
+        TTMLIR_Skip["skip_docker_build: true, skip_model_compatible_table: true"]
+    end
+    
+    subgraph TTXLA["tt-xla"]
+        TTXLA_Wheels["pip_wheel_names: pjrt-plugin-tt"]
+        TTXLA_Artifacts["artifact_download_glob: *xla-whl-release*, *test-reports*"]
+        TTXLA_Uplift["uplift_artifacts_by_commit: true, artifact_name_prefix: xla-whl-release"]
+    end
+    
+    subgraph TTForge["tt-forge"]
+        TTForge_Wheels["pip_wheel_names: tt-forge, pip_wheel_deps_names: pjrt-plugin-tt"]
+        TTForge_Ignore["ignore_artifacts: true, skip_model_compatible_table: true"]
+    end
+    
+    RepoInput -->|"contains 'tt-forge-fe'"| TTFE
+    RepoInput -->|"contains 'tt-mlir'"| TTMLIR
+    RepoInput -->|"contains 'tt-xla'"| TTXLA
+    RepoInput -->|"contains 'tt-forge'"| TTForge
+```
+
+Sources: [.github/actions/set-release-facts/action.yaml:216-248]()
+```
+
+
+#### Version Increment Rules
+
+
+```mermaid
+graph TB
+    Start["New commit on release branch"]
+    
+    GetTag["Get latest release tag on branch (git-facts action)"]
+    
+    CheckTag{Tag format?}
+    
+    IsRC["Tag contains 'rc' (Example: 0.1.0rc2)"]
+    IsStable["Tag is X.Y.Z (Example: 0.1.0)"]
+    
+    IncrementRC["Increment RC number: 0.1.0rc2 → 0.1.0rc3"]
+    IncrementPatch["Increment patch version: 0.1.0 → 0.1.1"]
+    
+    NewTag["Create new release with new tag"]
+    
+    Start --> GetTag
+    GetTag --> CheckTag
+    
+    CheckTag -->|"contains 'rc'"| IsRC
+    CheckTag -->|"X.Y.Z format"| IsStable
+    
+    IsRC --> IncrementRC
+    IsStable --> IncrementPatch
+    
+    IncrementRC --> NewTag
+    IncrementPatch --> NewTag
+```
+
+Sources: [RELEASE.md:244-250](), [RELEASE.md:322-333]()
+```
+
+
+#### Version Tags in release.yml
+
+
+```mermaid
+graph TB
+    WorkflowInput["release.yml inputs: release_type, new_version_tag, branch"]
+    
+    SetFacts["set-release-facts action<br/>Outputs: new_version_tag, gh_new_version_tag, build_release_tag"]
+    
+    BuildWheel["build-release-wheel action<br/>Uses: build_release_tag to find source artifacts"]
+    
+    UpdateVersion["wheel-version-updater.sh<br/>Uses: new_version_tag to reversion wheel files"]
+    
+    DockerTag["Docker image tag<br/>Uses: gh_new_version_tag (Example: 0.1.0rc1 or latest)"]
+    
+    PyPIPublish["publish-tenstorrent-pypi<br/>Uses: new_version_tag to upload wheel"]
+    
+    GitHubRelease["publish-github-release<br/>Uses: gh_new_version_tag to create release page"]
+    
+    GitTag["push-annotated-git-tag<br/>Uses: gh_new_version_tag to tag commit"]
+    
+    WorkflowInput --> SetFacts
+    SetFacts --> BuildWheel
+    SetFacts --> UpdateVersion
+    SetFacts --> DockerTag
+    SetFacts --> PyPIPublish
+    SetFacts --> GitHubRelease
+    SetFacts --> GitTag
+```
+
+Sources: [.github/workflows/release.yml:95-102](), [.github/workflows/release.yml:140-150](), [.github/workflows/release.yml:178-183](), [.github/workflows/release.yml:303-315](), [.github/workflows/release.yml:329-338](), [.github/workflows/release.yml:340-353]()
+```
+
+
+#### Nightly Release Path
+
+
+```mermaid
+graph TD
+    ReleaseNightly["release-nightly Job<br/>Matrix: All Repos"]
+    
+    subgraph "Per Repository Execution"
+        RepoForgeFE["tt-forge-fe<br/>Parallel"]
+        RepoMLIR["tt-mlir<br/>Parallel"]
+        RepoXLA["tt-xla<br/>Parallel"]
+        RepoForge["tt-forge<br/>Parallel"]
+    end
+    
+    subgraph "release.yml Invocation"
+        ReleaseParams["Parameters:<br/>release_type: nightly<br/>branch: main<br/>overwrite_releases: false<br/>draft: from input"]
+        SetFacts["set-release-facts:<br/>new_version_tag:<br/>X.Y.Z.devYYYYMMDD"]
+        BuildPhase["Build Phase"]
+        TestPhase["Test Phase"]
+        PublishPhase["Publish Phase"]
+    end
+    
+    ReleaseNightly --> RepoForgeFE
+    ReleaseNightly --> RepoMLIR
+    ReleaseNightly --> RepoXLA
+    ReleaseNightly --> RepoForge
+    
+    RepoForgeFE --> ReleaseParams
+    RepoMLIR --> ReleaseParams
+    RepoXLA --> ReleaseParams
+    RepoForge --> ReleaseParams
+    
+    ReleaseParams --> SetFacts
+    SetFacts --> BuildPhase
+    BuildPhase --> TestPhase
+    TestPhase --> PublishPhase
+```
+
+**Characteristics:**
+- **Execution:** Always runs, regardless of draft mode [.github/workflows/daily-releaser.yml:84]().
+- **Source Branch:** `main` branch for all repositories [.github/workflows/daily-releaser.yml:95]().
+- **Version Format:** `X.Y.Z.devYYYYMMDD` (e.g., `0.1.0.dev20240315`).
+- **Overwrite Policy:** Creates new releases daily; checks for existing releases.
+- **Failure Handling:** Allows workflow failures when finding build artifacts.
+```
+
+
+#### RC and Stable Update Path
+
+
+```mermaid
+graph TD
+    UpdateReleases["update-releases Workflow<br/>Conditional: !draft"]
+    GetBranches["get-release-branches Job"]
+    
+    subgraph "Branch Discovery"
+        FetchBranches["Fetch all branches<br/>pattern: release-X.Y"]
+        CheckCommits["Compare commits:<br/>Latest branch commit vs<br/>Latest release tag commit"]
+        FilterBranches["Filter branches:<br/>Only include if new commits<br/>or no releases exist"]
+    end
+    
+    subgraph "Matrix Construction"
+        MatrixOutput["JSON Matrix Output:<br/>repo<br/>repo_short<br/>branch<br/>release_type<br/>new_version_tag<br/>latest_branch_commit<br/>current_release_tag_commit"]
+    end
+    
+    subgraph "Release Execution"
+        MatrixJobs["update-release-branches Job<br/>Matrix: Each branch"]
+        ReleaseInvoke["release.yml Workflow<br/>Per branch parameters"]
+    end
+    
+    UpdateReleases --> GetBranches
+    GetBranches --> FetchBranches
+    FetchBranches --> CheckCommits
+    CheckCommits --> FilterBranches
+    FilterBranches --> MatrixOutput
+    MatrixOutput --> MatrixJobs
+    MatrixJobs --> ReleaseInvoke
+```
+
+**Discovery Logic:**
+The `get-release-branches` action performs sophisticated analysis:
+1. **Branch Enumeration:** Finds all branches matching `release-X.Y` pattern.
+2. **Commit Comparison:** For each branch, determines if new commits exist since last release.
+3. **Release Type Determination:**
+   - If no releases exist for the branch → Create `rc1`.
+   - If `rcN` releases exist → Create `rcN+1`. 
+   - If stable release exists and new commits → Create patch release.
+4. **Skipping Logic:** Branches with no new commits are excluded from the matrix.
+
+**Conditional Execution:**
+```yaml
+if: ${{ !inputs.draft }}
+```
+The entire path is skipped when `draft=true`, preventing accidental RC/stable releases during testing [.github/workflows/daily-releaser.yml:69]().
+```
+
+
+#### Workflow Inputs and Triggers
+
+
+```mermaid
+graph LR
+    subgraph "Workflow Inputs"
+        draft["draft<br/>boolean<br/>default: true"]
+        repo["repo<br/>string<br/>required"]
+        release_type["release_type<br/>string<br/>nightly|rc|stable"]
+        overwrite["overwrite_releases<br/>boolean<br/>default: false"]
+        new_version_tag["new_version_tag<br/>string"]
+        branch["branch<br/>string"]
+        latest_commit["latest_branch_commit<br/>string"]
+    end
+    
+    subgraph "Calling Workflows"
+        daily_releaser["daily-releaser.yml"]
+        manual["workflow_dispatch"]
+        test_lifecycle["test-rc-stable-release-lifecycle.yml"]
+    end
+    
+    subgraph "Release Workflow"
+        release["release.yml"]
+    end
+    
+    daily_releaser --> release
+    manual --> release
+    test_lifecycle --> release
+    
+    draft --> release
+    repo --> release
+    release_type --> release
+    overwrite --> release
+    new_version_tag --> release
+    branch --> release
+    latest_commit --> release
+```
+
+
+#### Job Dependency Graph
+
+
+```mermaid
+graph TB
+    generate_seed["generate-seed<br/>────────<br/>Job: generate-seed<br/>Runner: ubuntu-latest<br/>Action: .github/actions/random"]
+    
+    build_release["build-release<br/>────────<br/>Job: build-release<br/>Runner: ubuntu-latest<br/>Steps:<br/>• set-release-facts<br/>• check_release<br/>• build-release-wheel<br/>• docker-build-push"]
+    
+    test_release["test-release<br/>────────<br/>Job: test-release<br/>Runner: ubuntu-latest<br/>Condition: release_exists == false<br/>Steps:<br/>• trigger-basic-test<br/>• trigger-demo-test<br/>• wait-workflow"]
+    
+    publish_release["publish-release<br/>────────<br/>Job: publish-release<br/>Runner: ubuntu-latest<br/>Condition: release_exists == false<br/>Steps:<br/>• download-release-artifacts<br/>• docs-generator<br/>• publish-tenstorrent-pypi<br/>• docker-build-push (tag latest)<br/>• push-annotated-git-tag<br/>• publish-github-release"]
+    
+    test_after_publish["test-release-after-publish<br/>────────<br/>Job: test-release-after-publish<br/>Runner: ubuntu-latest<br/>Condition: release_exists == false<br/>Steps:<br/>• trigger-perf-test"]
+    
+    generate_seed --> build_release
+    generate_seed --> test_release
+    generate_seed --> publish_release
+    generate_seed --> test_after_publish
+    
+    build_release --> test_release
+    test_release --> publish_release
+    publish_release --> test_after_publish
+```
+
+
+#### Test Phase
+
+
+```mermaid
+graph LR
+    test_release["test-release job"]
+    
+    subgraph "Triggered Workflows"
+        basic_tests["Basic tests<br/>────────<br/>Workflow: basic-tests.yml<br/>Image: harbor_image_tag<br/>Filter: basic_tests_runner_filter<br/>Wait: true"]
+        
+        demo_tests["Demo tests<br/>────────<br/>Workflow: demo-tests.yml<br/>Image: harbor_image_tag<br/>Filter: test_demo_filter<br/>Wait: test_demo_wait"]
+    end
+    
+    test_release -->|"trigger-workflow action"| basic_tests
+    test_release -->|"trigger-workflow action"| demo_tests
+    
+    basic_tests -->|"wait-workflow action"| test_release
+```
+
+**Test Workflow Parameters:**
+
+| Workflow | Parameters |
+|----------|-----------|
+| `basic-tests.yml` | `docker-image`, `project-filter`, `runner-filter` |
+| `demo-tests.yml` | `docker-image`, `project-filter`, `test-filter` |
+
+The `trigger-workflow` action (`.github/actions/trigger-workflow`) starts the workflow and optionally waits for completion. The `wait-workflow` action (`.github/actions/wait-workflow`) blocks until specified tests complete.
+```
+
+
+#### Cross-Repository Artifact Flow
+
+
+```mermaid
+graph TB
+    subgraph "Source Repositories"
+        tt_xla["tt-xla repository<br/>────────<br/>Workflow: On push / On nightly<br/>Artifact: xla-whl-release-{short_sha}<br/>Wheel: pjrt-plugin-tt"]
+        
+        tt_mlir["tt-mlir repository<br/>────────<br/>Workflow: schedule-nightly.yml<br/>Artifact: ttmlir-wheel<br/>Wheel: ttmlir"]
+        
+        tt_forge_fe["tt-forge-fe repository<br/>────────<br/>Workflow: On push / On nightly<br/>Artifact: wheel + test-reports<br/>Wheels: tt_forge_fe, tt_tvm"]
+    end
+    
+    subgraph "Artifact Retrieval"
+        uplift["uplift-artifacts action<br/>────────<br/>Inputs:<br/>• repo<br/>• run-id or run-commit-sha<br/>• artifact_download_glob<br/>• uplift_artifacts_by_commit<br/>Output:<br/>• download-path"]
+        
+        wait_wheels["wait-on-tt-pypi-wheels.sh<br/>────────<br/>Polls TT-PyPI for availability<br/>Timeout: 30 minutes"]
+    end
+    
+    subgraph "TT-Forge Meta-package"
+        forge_build["tt-forge build<br/>────────<br/>Requires: pjrt-plugin-tt<br/>Creates: tt-forge wheel<br/>Direct URL dependency"]
+    end
+    
+    tt_xla -->|"build-release-wheel"| uplift
+    tt_mlir -->|"build-release-wheel"| uplift
+    tt_forge_fe -->|"build-release-wheel"| uplift
+    
+    uplift -->|"publish"| tt_pypi["TT-PyPI<br/>S3: tt-pypi-wheels"]
+    
+    tt_pypi -->|"poll"| wait_wheels
+    wait_wheels -->|"available"| forge_build
+    
+    forge_build -->|"publish"| tt_pypi
+```
+
+
+#### Testing Gate Matrix
+
+
+```mermaid
+graph LR
+    subgraph "Pre-Publish Gates"
+        basic["Basic Tests<br/>────────<br/>Workflow: basic-tests.yml<br/>Duration: ~5-10 minutes<br/>Scope: Smoke tests<br/>Blocking: Yes"]
+        
+        demo["Demo Tests<br/>────────<br/>Workflow: demo-tests.yml<br/>Duration: ~30 minutes<br/>Scope: Real-world models<br/>Blocking: Conditional"]
+    end
+    
+    subgraph "Post-Publish Gates"
+        perf["Performance Tests<br/>────────<br/>Workflow: perf-benchmark.yml<br/>Duration: ~60 minutes<br/>Scope: Regression detection<br/>Blocking: No"]
+    end
+    
+    build["Build Phase"] --> basic
+    build --> demo
+    basic -->|"wait"| publish["Publish Phase"]
+    demo -->|"wait if test_demo_wait"| publish
+    publish --> perf
+```
+
+**Test Filtering for Draft Releases:**
+
+Draft releases (used for integration testing) use restricted test filters to reduce CI time:
+- `test_demo_filter = "bge_m3"` (single demo test)
+- `test_perf_filter = "resnet"` (single performance test)
+- `basic_tests_runner_filter = "tt-ubuntu-2204-n150-stable"` (single hardware type)
+
+[.github/actions/set-release-facts/action.yaml:256-264]()
+```
+
+
+#### Standard Artifact Uplift
+
+
+```mermaid
+graph TB
+    FindWorkflow["build-release-wheel action:<br/>Find latest workflow run on main"]
+    GetRunID["Extract workflow run ID"]
+    DownloadArtifacts["uplift-artifacts action:<br/>Download by run-id"]
+    
+    FindWorkflow --> GetRunID
+    GetRunID --> DownloadArtifacts
+```
+
+
+#### Commit-Based Artifact Uplift (tt-xla)
+
+
+```mermaid
+graph TB
+    GetCommit["Get latest commit SHA<br/>from main branch"]
+    ShortSHA["Convert to short SHA:<br/>git rev-parse --short"]
+    BuildArtifactName["Construct artifact name:<br/>xla-whl-release-{short_sha}"]
+    CheckArtifact["GitHub API check:<br/>/repos/{repo}/actions/artifacts?name={artifact_name}"]
+    GetRunID["Extract workflow_run.id<br/>from artifact metadata"]
+    Download["Download artifacts<br/>by run-id"]
+    
+    GetCommit --> ShortSHA
+    ShortSHA --> BuildArtifactName
+    BuildArtifactName --> CheckArtifact
+    CheckArtifact -->|"found"| GetRunID
+    GetRunID --> Download
+    CheckArtifact -->|"not found"| Error["Exit with error"]
+```
+
+
+### Testing Configuration for Nightly Releases
+
+
+```mermaid
+graph TB
+    BuildComplete["Build phase complete<br/>Docker image ready"]
+    
+    subgraph "Parallel Test Execution"
+        BasicTests["basic-tests.yml<br/>trigger-workflow action<br/>wait=false<br/>wait_for_run_url=true"]
+        DemoTests["demo-tests.yml<br/>trigger-workflow action<br/>wait=false<br/>wait_for_run_url=true"]
+    end
+    
+    WaitBasic["wait-workflow action<br/>Block on basic-tests"]
+    ProceedPublish["Proceed to publish phase"]
+    
+    BuildComplete --> BasicTests
+    BuildComplete --> DemoTests
+    
+    BasicTests --> WaitBasic
+    WaitBasic --> ProceedPublish
+```
+
+The demo tests run in parallel but don't block the release pipeline, while basic tests must complete successfully before publishing.
+```
+
+
+### Nightly Release Version Progression
+
+
+```mermaid
+graph TB
+    VersionFile[".version file<br/>MAJOR=0, MINOR=6, PATCH=0"]
+    
+    subgraph "Daily Nightly Releases"
+        Day1["0.6.0.dev20250115<br/>Jan 15 nightly"]
+        Day2["0.6.0.dev20250116<br/>Jan 16 nightly"]
+        Day3["0.6.0.dev20250117<br/>Jan 17 nightly"]
+    end
+    
+    subgraph "Release Branch Creation"
+        CreateBranch["create-version-branches.yml<br/>Creates release-0.6 branch"]
+        RC1["0.6.0rc1<br/>First release candidate"]
+    end
+    
+    subgraph "Continued Development"
+        BumpMinor["bump-version.yml<br/>Increment MINOR to 7"]
+        NextNightly["0.7.0.dev20250120<br/>Next nightly series"]
+    end
+    
+    VersionFile --> Day1
+    Day1 --> Day2
+    Day2 --> Day3
+    Day3 --> CreateBranch
+    
+    CreateBranch --> RC1
+    CreateBranch --> BumpMinor
+    BumpMinor --> NextNightly
+    
+    style Day1 fill:#f9f9f9
+    style Day2 fill:#f9f9f9
+    style Day3 fill:#f9f9f9
+    style NextNightly fill:#f9f9f9
+```
+
+
+### Dependency Uplift Integration
+
+
+```mermaid
+graph TB
+    Schedule["Weekly Cron<br/>Saturday 08:00 UTC"]
+    CheckLatest["gh api repos/tenstorrent/tt-forge-models/commits/main"]
+    UpdateSubmodule["git submodule update --remote --merge"]
+    CreatePR["peter-evans/create-pull-request<br/>Branch: uplift-forge-models"]
+    ApprovePR["gh pr review --approve"]
+    AutoMerge["gh pr merge --squash --auto"]
+
+    Schedule --> CheckLatest
+    CheckLatest --> UpdateSubmodule
+    UpdateSubmodule --> CreatePR
+    CreatePR --> ApprovePR
+    ApprovePR --> AutoMerge
+```
+
+
+#### Patch Versions
+
+
+```mermaid
+graph LR
+    RC1["0.4.0rc1<br/>First RC"]
+    RC2["0.4.0rc2<br/>Second RC"]
+    RC3["0.4.0rc3<br/>Third RC"]
+    Stable["0.4.0<br/>Stable"]
+    Patch1["0.4.1<br/>Patch"]
+    Patch2["0.4.2<br/>Patch"]
+    
+    RC1 -->|"bump-version.yml"| RC2
+    RC2 -->|"bump-version.yml"| RC3
+    RC3 -->|"promote-stable.yml"| Stable
+    Stable -->|"bump-version.yml"| Patch1
+    Patch1 -->|"bump-version.yml"| Patch2
+```
+
+
+#### Bump Version Workflow
+
+
+```mermaid
+graph TB
+    Commit["New commit on release-X.Y branch"]
+    UpdateReleases["update-releases.yml<br/>Detects commit"]
+    BumpVersion["bump-version.yml<br/>Called with branch name"]
+    FindRC["Find latest RC tag<br/>e.g., X.Y.Zrc2"]
+    IncrementRC["Increment RC number<br/>rc2 → rc3"]
+    TriggerRelease["release.yml<br/>with new_version_tag=X.Y.Zrc3"]
+    CreateRelease["Build and publish X.Y.Zrc3"]
+    
+    Commit --> UpdateReleases
+    UpdateReleases --> BumpVersion
+    BumpVersion --> FindRC
+    FindRC --> IncrementRC
+    IncrementRC --> TriggerRelease
+    TriggerRelease --> CreateRelease
+```
+
+The test lifecycle demonstrates this by simulating a second commit to the release branch and verifying the version bump [.github/workflows/test-rc-stable-release-lifecycle.yml:335-350]().
+```
+
+
+#### Promotion Process
+
+
+```mermaid
+graph TB
+    Manual["Manual trigger or<br/>automated decision"]
+    PromoteStable["promote-stable.yml<br/>Input: release_branch"]
+    FindLatestRC["Find latest RC on branch<br/>e.g., X.Y.Zrc3"]
+    ExtractBase["Extract base version<br/>X.Y.Z from X.Y.Zrc3"]
+    TriggerRelease["release.yml<br/>type=stable<br/>new_version_tag=X.Y.Z"]
+    SetFacts["set-release-facts<br/>prerelease=false<br/>make_latest=true"]
+    BuildPublish["Build, test, and publish<br/>as stable release"]
+    TagLatest["Docker: Tag as latest<br/>GitHub: Mark as latest release"]
+    
+    Manual --> PromoteStable
+    PromoteStable --> FindLatestRC
+    FindLatestRC --> ExtractBase
+    ExtractBase --> TriggerRelease
+    TriggerRelease --> SetFacts
+    SetFacts --> BuildPublish
+    BuildPublish --> TagLatest
+```
+
+When `release_type == "stable"`, the `set-release-facts` action sets `prerelease="false"` and `make_latest="true"` [.github/actions/set-release-facts/action.yaml:202-204](). The test lifecycle validates this promotion [.github/workflows/test-rc-stable-release-lifecycle.yml:352-368]().
+```
+
+
+#### Phase 1: Build Release
+
+
+```mermaid
+graph TB
+    Input["Workflow inputs<br/>repo, release_type, new_version_tag, branch"]
+    SetFacts["set-release-facts<br/>Configure based on release_type"]
+    CheckExists["check_release.sh<br/>Skip if exists & !overwrite"]
+    UpliftArtifacts["uplift-artifacts or wait-on-tt-pypi-wheels<br/>Retrieve dependencies"]
+    BuildWheel["build-release-wheel<br/>Create Python packages"]
+    BuildDocker["docker-build-push<br/>Create container image"]
+    
+    Input --> SetFacts
+    SetFacts --> CheckExists
+    CheckExists -->|"release does not exist"| UpliftArtifacts
+    UpliftArtifacts --> BuildWheel
+    BuildWheel --> BuildDocker
+```
+
+[.github/workflows/release.yml:78-184]()
+```
+
+
+#### Phase 2: Test Release
+
+
+```mermaid
+graph TB
+    BuildComplete["Build phase complete<br/>Artifacts available"]
+    TriggerBasic["Trigger basic-tests.yml<br/>Quick validation"]
+    TriggerDemo["Trigger demo-tests.yml<br/>Comprehensive model tests"]
+    WaitBasic["wait-workflow<br/>Wait for basic tests"]
+    DemoAsync["Demo tests run async<br/>unless test_demo_wait=true"]
+    
+    BuildComplete --> TriggerBasic
+    BuildComplete --> TriggerDemo
+    TriggerBasic --> WaitBasic
+    TriggerDemo --> DemoAsync
+    WaitBasic --> ProceedToPublish["Proceed to publish phase"]
+```
+
+[.github/workflows/release.yml:185-256]()
+```
+
+
+#### Phase 3: Publish Release
+
+
+```mermaid
+graph TB
+    TestsPass["Tests passed"]
+    DownloadArtifacts["Download release artifacts<br/>from build phase"]
+    GenerateDocs["docs-generator<br/>Changelog, README, install instructions"]
+    PublishPyPI["publish-tenstorrent-pypi<br/>Upload wheels to S3-backed PyPI"]
+    TagDocker["Tag Docker image as latest<br/>if make_latest=true"]
+    PushTag["push-annotated-git-tag<br/>Create GPG-signed Git tag"]
+    PublishGH["publish-github-release<br/>Create GitHub release page"]
+    PerfTest["trigger perf-benchmark.yml<br/>Post-publish validation"]
+    
+    TestsPass --> DownloadArtifacts
+    DownloadArtifacts --> GenerateDocs
+    GenerateDocs --> PublishPyPI
+    PublishPyPI --> TagDocker
+    TagDocker --> PushTag
+    PushTag --> PublishGH
+    PublishGH --> PerfTest
+```
+
+[.github/workflows/release.yml:257-391]()
+```
+
+
+### Artifact Management
+
+
+```mermaid
+graph LR
+    GHRun["GitHub Workflow Run"]
+    DAAction["Download Artifact Action<br/>.github/actions/download-artifact"]
+    RetryLogic["Retry Loop<br/>(lines 101-111)"]
+    Extraction["Extraction Logic<br/>(lines 81-94)"]
+    Workspace["Local Workspace"]
+
+    GHRun --> DAAction
+    DAAction --> RetryLogic
+    RetryLogic --> Extraction
+    Extraction --> Workspace
+```
+
+For details, see [Artifact Management](#5.4.2).
+```
+
+
+#### Artifact Management Architecture
+
+
+```mermaid
+graph TB
+    subgraph "Source Repositories"
+        TTFE["tt-forge-fe"]
+        TTTorch["tt-torch"]
+        TTXLA["tt-xla"]
+        TTMLIR["tt-mlir"]
+    end
+    
+    subgraph "Artifact Operations"
+        UpliftAction["uplift-artifacts<br/>Cross-repo discovery"]
+        DownloadAction["download-artifact<br/>gh run download + retry"]
+        InstallAction["install-wheel<br/>Project-specific install"]
+    end
+    
+    subgraph "Storage & Consumers"
+        GitHub["GitHub Artifacts"]
+        Workflows["CI Workflows<br/>(release.yml, perf-benchmark.yml)"]
+    end
+    
+    TTFE --> GitHub
+    TTTorch --> GitHub
+    TTXLA --> GitHub
+    TTMLIR --> GitHub
+    
+    Workflows --> UpliftAction
+    Workflows --> InstallAction
+    UpliftAction --> DownloadAction
+    InstallAction --> DownloadAction
+    DownloadAction --> GitHub
+```
+
+Sources: [.github/actions/download-artifact/action.yaml:1-34](), [.github/actions/download-artifact-test.yml:1-11]()
+```
+
+
+### Image Build Architecture
+
+
+```mermaid
+graph TB
+    subgraph "Base Image Build"
+        Ubuntu["ubuntu:22.04<br/>Official Ubuntu image"]
+        BaseDockerfile[".github/Dockerfile.ubuntu-22-04-py3-11"]
+        BaseBuild["docker-build-push action<br/>Build base Python image"]
+        BaseImage["ghcr.io/tenstorrent/forge-ubuntu-22-04-py3-11<br/>Tagged: VERSION & latest"]
+        
+        Ubuntu --> BaseDockerfile
+        BaseDockerfile --> BaseBuild
+        BaseBuild --> BaseImage
+    end
+    
+    subgraph "Wheel Artifacts"
+        WheelBuild["build-release-wheel action<br/>Creates wheel files"]
+        WheelPath["wheel_files_path<br/>Workspace path to .whl files"]
+        
+        WheelBuild --> WheelPath
+    end
+    
+    subgraph "Slim Image Build"
+        SlimDockerfile[".github/Dockerfile.single-wheel-slim"]
+        SlimBuildArgs["Build args:<br/>--build-arg REPO_SHORT<br/>--build-arg WHEEL_FILES_PATH<br/>--build-arg DOCKER_BASE_IMAGE"]
+        SlimBuild["docker-build-push action<br/>Build slim image"]
+        SlimImage["ghcr.io/tenstorrent/REPO_SHORT-slim:VERSION<br/>Examples:<br/>- tt-xla-slim<br/>- tt-forge-fe-slim"]
+        
+        BaseImage --> SlimBuildArgs
+        WheelPath --> SlimBuildArgs
+        SlimDockerfile --> SlimBuildArgs
+        SlimBuildArgs --> SlimBuild
+        SlimBuild --> SlimImage
+    end
+    
+    subgraph "Tagging Strategy"
+        VersionTag["VERSION tag<br/>e.g., 0.5.0"]
+        LatestTag["latest tag<br/>For stable releases only"]
+        
+        SlimImage --> VersionTag
+        SlimImage -.->|if stable release| LatestTag
+    end
+```
+
+Sources: [.github/workflows/release.yml:152-183]()
+
+---
+```
+
+
+#### Base Image Build Step
+
+
+```mermaid
+graph LR
+    CheckPythonVer["Check python_version<br/>from set-release-facts"]
+    BuildBase["docker-build-push action<br/>Step: docker-build-push-3-11"]
+    DetermineBase["determine-docker-base-image step<br/>Set DOCKER_BASE_IMAGE output"]
+    
+    CheckPythonVer -->|if python_version == 3.11| BuildBase
+    BuildBase --> DetermineBase
+```
+
+The build is executed in [.github/workflows/release.yml:152-170]():
+- **Condition**: Only builds if `python_version == '3.11'` (line 153)
+- **Action**: `docker-build-push` with specific parameters
+- **Caching**: Enabled via `cache_docker_tag: true` (line 158)
+- **Latest tag**: Always set to `true` for base images (line 159)
+```
+
+
+#### Slim Image Build Process
+
+
+```mermaid
+graph TB
+    subgraph "Preconditions"
+        SkipCheck["Check skip_docker_build flag<br/>from set-release-facts"]
+        ReleaseCheck["Check release_exists<br/>from check_release step"]
+        OverwriteCheck["Check overwrite_releases input"]
+        
+        SkipCheck -->|skip_docker_build == false| ProceedBuild
+        ReleaseCheck -->|release_exists == false| ProceedBuild
+        OverwriteCheck -->|overwrite_releases == true| ProceedBuild
+    end
+    
+    subgraph "Build Execution"
+        ProceedBuild["Proceed with build"]
+        SetArgs["Set build arguments:<br/>REPO_SHORT: e.g., tt-xla<br/>WHEEL_FILES_PATH: from build-release-wheel<br/>DOCKER_BASE_IMAGE: from determine step"]
+        DockerBuildPush["docker-build-push action"]
+        OutputImageTag["Output: harbor_image_tag, image_tag"]
+        
+        ProceedBuild --> SetArgs
+        SetArgs --> DockerBuildPush
+        DockerBuildPush --> OutputImageTag
+    end
+    
+    subgraph "Image Registry"
+        GHCR["GitHub Container Registry<br/>ghcr.io/tenstorrent/"]
+        Harbor["Harbor Registry<br/>Internal mirror"]
+        
+        OutputImageTag --> GHCR
+        OutputImageTag --> Harbor
+    end
+```
+
+The slim image build occurs at [.github/workflows/release.yml:172-183]():
+
+**Input Parameters**:
+- `image_name`: Constructed as `ghcr.io/tenstorrent/${repo_short}-slim`
+- `docker_tag`: The version tag from `gh_new_version_tag`
+- `make_latest`: Set to `false` during initial build (line 179)
+- `force_rebuild`: Equals `overwrite_releases` input (line 180)
+- `draft`: Draft mode flag (line 181)
+- `dockerfile`: `.github/Dockerfile.single-wheel-slim` (line 182)
+- `build_args`: Three build arguments passed to Dockerfile (line 183)
+
+**Build Arguments** (line 183):
+```
+--build-arg REPO_SHORT=${{ repo_short }}
+--build-arg WHEEL_FILES_PATH=${{ wheel_files_path }}
+--build-arg DOCKER_BASE_IMAGE=${{ DOCKER_BASE_IMAGE }}
+```
+
+Sources: [.github/workflows/release.yml:172-183]()
+
+---
+```
+
+
+### Image Tagging Strategy
+
+
+```mermaid
+graph TB
+    subgraph "Phase 1: Initial Build"
+        InitialBuild["Slim image build<br/>build-release job"]
+        InitialTag["Tag: VERSION<br/>make_latest: false"]
+        
+        InitialBuild --> InitialTag
+    end
+    
+    subgraph "Phase 2: Post-Publish Tagging"
+        PublishJob["After publish-release job completes"]
+        CheckMakeLatest["Check make_latest flag<br/>from set-release-facts"]
+        RetagJob["docker-build-push action<br/>Re-tag existing image"]
+        LatestTag["Additional tag: latest<br/>Applied if stable release"]
+        
+        PublishJob --> CheckMakeLatest
+        CheckMakeLatest -->|make_latest == true| RetagJob
+        RetagJob --> LatestTag
+    end
+    
+    InitialTag -.-> PublishJob
+    
+    subgraph "Version Tag Patterns"
+        Nightly["Nightly:<br/>X.Y.Z.devYYYYMMDD"]
+        RC["Release Candidate:<br/>X.Y.ZrcN"]
+        Stable["Stable:<br/>X.Y.Z"]
+        Draft["Draft:<br/>draft.REPO_SHORT.X.Y.Z"]
+    end
+```
+
+
+#### Documentation Data Flow
+
+
+```mermaid
+graph TB
+    subgraph "Trigger Sources"
+        DailyReleaser["daily-releaser.yml<br/>Scheduled: 0 4 * * *"]
+        UpdateReleases["update-releases.yml<br/>RC/Stable updates"]
+        ReleaseWF["release.yml<br/>Main release orchestrator"]
+        PushMain["push to main branch"]
+    end
+    
+    subgraph "docs-generator Action (Release Docs)"
+        GetTags["Get current tags<br/>action.yml lines 66-126"]
+        ModelTable["Create model compatible table<br/>action.yml lines 128-144"]
+        BuildChangelog["Build Changelog<br/>mikepenz action<br/>action.yml lines 146-212"]
+        OutputReadme["Output readme<br/>action.yml lines 214-267"]
+    end
+    
+    subgraph "mdBook (Static Docs)"
+        InstallMDB["Install mdBook 0.4.47<br/>pages.yml lines 28-32"]
+        BuildMDB["mdbook build docs<br/>pages.yml line 36"]
+    end
+    
+    subgraph "Output Artifacts"
+        ReadmeFile["/tmp/release/docs/readme<br/>Combined documentation"]
+        GitHubRelease["GitHub Release Page"]
+        GitHubPages["GitHub Pages Site"]
+    end
+    
+    DailyReleaser -->|triggers| ReleaseWF
+    UpdateReleases -->|triggers| ReleaseWF
+    ReleaseWF -->|invokes| GetTags
+    PushMain -->|triggers| InstallMDB
+    
+    GetTags --> ModelTable
+    GetTags --> BuildChangelog
+    BuildChangelog --> OutputReadme
+    OutputReadme --> ReadmeFile
+    ReadmeFile --> GitHubRelease
+    
+    InstallMDB --> BuildMDB
+    BuildMDB --> GitHubPages
+```
+
+
+#### Test Workflow Sequence
+
+
+```mermaid
+graph TB
+    Start["Test Trigger<br/>Push or PR to release code"]
+    
+    GetRepos["get-repos job<br/>────────────<br/>Identifies tt-mlir for testing"]
+    
+    ExpectedArtifacts["expected-artifacts job<br/>────────────<br/>Defines expected tags:<br/>- draft.tt-mlir.X.Y.0rc1/rc2/rc3<br/>- draft.tt-mlir.X.Y.0/1/2<br/>- draft.tt-mlir.first-commit-*<br/>- draft.tt-mlir.second-commit-*"]
+    
+    MockWorkflow1["mock-successful-workflow-pre-release-branch<br/>────────────<br/>Trigger Mock Successful workflow<br/>Get run_head_sha"]
+    
+    CreateBranch["create-version-branch job<br/>────────────<br/>Calls create-version-branches.yml<br/>draft: true<br/>Creates draft-tt-mlir-release-X.Y"]
+    
+    GetBranches["get-release-branches job<br/>────────────<br/>Finds draft release branches<br/>ignore_update_check: true"]
+    
+    subgraph "RC Creation Phase"
+        FirstRC["first-commit-successful-pre-release-branch<br/>────────────<br/>mock-commit-tag-merge action<br/>Tag: FIRST_COMMIT_PRE_RELEASE_TAG<br/>Merge to release branch"]
+        
+        ReleaseRC1["release-rc-first-commit-observed<br/>────────────<br/>Calls update-releases.yml<br/>Creates draft.tt-mlir.X.Y.0rc1"]
+    end
+    
+    subgraph "RC Bump Phase"
+        SecondRC["second-commit-successful-pre-release-branch<br/>────────────<br/>mock-commit-tag-merge action<br/>Tag: SECOND_COMMIT_PRE_RELEASE_TAG<br/>Merge to release branch"]
+        
+        BumpRC["bump-rc-version-observed<br/>────────────<br/>Calls bump-version.yml<br/>Creates draft.tt-mlir.X.Y.0rc2"]
+    end
+    
+    subgraph "Stable Promotion Phase"
+        PromoteStable["promote-stable job<br/>────────────<br/>Calls promote-stable.yml<br/>Creates draft.tt-mlir.X.Y.0"]
+    end
+    
+    subgraph "Patch Release Phase"
+        FirstStable["first-commit-successful-stable-branch<br/>────────────<br/>mock-commit-tag-merge action<br/>Tag: FIRST_COMMIT_STABLE_TAG"]
+        
+        ReleaseStable1["release-stable-first-commit-observed<br/>────────────<br/>Calls update-releases.yml<br/>Creates draft.tt-mlir.X.Y.1"]
+        
+        SecondStable["second-commit-successful-stable-branch<br/>────────────<br/>mock-commit-tag-merge action<br/>Tag: SECOND_COMMIT_STABLE_TAG"]
+        
+        BumpStable["bump-stable-version-observed<br/>────────────<br/>Calls bump-version.yml<br/>Creates draft.tt-mlir.X.Y.2"]
+    end
+    
+    subgraph "Validation Phase"
+        ValidateTags["validate-draft-artifacts job<br/>────────────<br/>Verify all expected tags exist<br/>Verify non-expected tags absent<br/>Verify draft branches exist<br/>Verify draft releases exist"]
+        
+        DeleteArtifacts["delete-draft-artifacts job<br/>────────────<br/>Delete draft tags<br/>Delete draft branches<br/>Delete draft releases"]
+    end
+    
+    Start --> GetRepos
+    GetRepos --> ExpectedArtifacts
+    GetRepos --> MockWorkflow1
+    
+    MockWorkflow1 --> CreateBranch
+    CreateBranch --> GetBranches
+    
+    GetBranches --> FirstRC
+    FirstRC --> ReleaseRC1
+    
+    ReleaseRC1 --> SecondRC
+    SecondRC --> BumpRC
+    
+    BumpRC --> PromoteStable
+    
+    PromoteStable --> FirstStable
+    FirstStable --> ReleaseStable1
+    
+    ReleaseStable1 --> SecondStable
+    SecondStable --> BumpStable
+    
+    BumpStable --> ValidateTags
+    ExpectedArtifacts --> ValidateTags
+    
+    ValidateTags --> DeleteArtifacts
+```
+
+
+### Test Types Overview
+
+
+```mermaid
+graph TB
+    Developer["Developer Changes"]
+    
+    subgraph "Test Categories"
+        BasicTests["Basic Tests<br/>───────────<br/>Quick validation<br/>Frontend smoke tests<br/>~5-10 minutes"]
+        DemoTests["Demo Tests<br/>───────────<br/>Real-world models<br/>Comprehensive coverage<br/>~30 minutes"]
+        PerfBench["Performance Benchmarks<br/>───────────<br/>Regression detection<br/>FPS measurements<br/>~60 minutes"]
+        CICDTests["CI/CD Validation Tests<br/>───────────<br/>Release lifecycle<br/>Infrastructure validation<br/>~2-3 hours"]
+    end
+    
+    subgraph "Execution Context"
+        LocalExec["Local Execution<br/>Developer machine"]
+        CIExec["CI Execution<br/>Automated pipelines"]
+    end
+    
+    Developer --> BasicTests
+    Developer --> DemoTests
+    
+    BasicTests --> LocalExec
+    BasicTests --> CIExec
+    
+    DemoTests --> CIExec
+    PerfBench --> CIExec
+    CICDTests --> CIExec
+```
+

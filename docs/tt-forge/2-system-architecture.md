@@ -173,3 +173,526 @@ Dismiss
 Refresh this wiki
 
 Enter email to refresh
+
+## Additional Diagrams
+
+
+#### Data Flow
+
+
+```mermaid
+graph TD
+    subgraph "Input Formats"
+        ONNX_F[".onnx"]
+        TF_F["TensorFlow Protobuf"]
+        Paddle_F["Paddle Model"]
+    end
+
+    subgraph "TT-Forge-ONNX Pipeline"
+        TVM_Ingest["TT-TVM Ingestion"]
+        Relay["TVM Relay IR"]
+        ForgeCompile["forge.compile()"]
+    end
+
+    subgraph "MLIR Layer"
+        TTIR["TTIR Dialect"]
+    end
+
+    ONNX_F --> TVM_Ingest
+    TF_F --> TVM_Ingest
+    Paddle_F --> TVM_Ingest
+    TVM_Ingest --> Relay
+    Relay --> ForgeCompile
+    ForgeCompile --> TTIR
+```
+
+Sources: [README.md:28](), [demos/README.md:11-13]()
+
+---
+```
+
+
+#### Runtime Configuration
+
+
+```mermaid
+graph LR
+    subgraph "Environment and Runtime"
+        SetDevice["xr.set_device_type('TT')<br/>torch_xla.runtime"]
+        GetDevice["xm.xla_device()<br/>torch_xla.core.xla_model"]
+    end
+    
+    subgraph "Compile Options"
+        EnableOpt["enable_optimizer=True"]
+        MemLayout["enable_memory_layout_analysis=True"]
+        FuseConv["enable_fusing_conv2d_with_multiply_pattern=True"]
+    end
+    
+    subgraph "Execution"
+        CompileModel["torch.compile(model, backend='tt')"]
+        ToDevice["model.to(device)"]
+    end
+    
+    SetDevice --> GetDevice
+    GetDevice --> ToDevice
+    EnableOpt --> CompileModel
+    MemLayout --> CompileModel
+    FuseConv --> CompileModel
+    CompileModel --> ToDevice
+```
+
+Sources: [demos/tt-xla/cnn/resnet_demo.py:26-38](), [demos/tt-xla/cnn/arnold_demo.py:18-30](), [benchmark/tt-xla/resnet.py:150-159]()
+```
+
+
+#### System Data Flow: Configuration to Results
+
+
+```mermaid
+graph TD
+    Entry["benchmark(config: dict)"]
+    ParseConfig["Parse Configuration<br/>batch_size, loop_count,<br/>data_format, task"]
+    LoadModel["Load Model via ModelLoader<br/>UNetLoader / SegformerLoader / ViTLoader"]
+    PrepareInputs["Prepare Input Tensors<br/>load_benchmark_dataset()<br/>or random torch.randn()"]
+    ConfigXLA["Configure torch-xla<br/>torch_xla.set_custom_compile_options()"]
+    Compile["Compile Model<br/>torch.compile(backend='tt')"]
+    Warmup["Warmup Phase<br/>torch_xla_warmup_model()"]
+    Measure["Benchmark Measurement<br/>torch_xla_measure_fps()"]
+    Validate["PCC Validation<br/>compute_pcc()"]
+    Serialize["Serialize Modules<br/>serialize_modules()"]
+    Results["Create Benchmark Result<br/>create_benchmark_result()"]
+    
+    Entry --> ParseConfig
+    ParseConfig --> LoadModel
+    LoadModel --> PrepareInputs
+    PrepareInputs --> ConfigXLA
+    ConfigXLA --> Compile
+    Compile --> Warmup
+    Warmup --> Measure
+    Measure --> Validate
+    Validate --> Serialize
+    Serialize --> Results
+```
+
+
+#### Configuration Hierarchy
+
+
+```mermaid
+graph LR
+    CLI["Command-line Args<br/>--batch-size 32"]
+    JSON["perf-bench-matrix.json<br/>variant config"]
+    Defaults["BATCH_SIZE = 32<br/>llms.py constants"]
+    
+    CLI -->|"Override"| Final["Final Configuration"]
+    JSON -->|"Override if CLI None"| Final
+    Defaults -->|"Fallback"| Final
+    
+    style Final fill:#f9f9f9
+```
+
+
+#### Superset API Integration
+
+
+```mermaid
+graph LR
+    subgraph "GitHub Workflow"
+        Step1["superset-api action"]
+    end
+    
+    subgraph "Infrastructure"
+        APIGateway["AWS API Gateway<br/>(SigV4 Auth)"]
+        Lambda["Lambda/Compute"]
+        Postgres["Postgres Database<br/>(Superset Data)"]
+    end
+    
+    Step1 --> APIGateway
+    APIGateway --> Lambda
+    Lambda --> Postgres
+```
+
+
+#### Logic and Data Flow
+
+
+```mermaid
+graph TD
+    subgraph "Trigger Sources"
+        WorkflowDispatch["workflow_dispatch<br/>(Manual)"]
+        WorkflowCall["workflow_call<br/>(From release.yml)"]
+    end
+    
+    subgraph "Input Configuration"
+        DockerImage["docker-image<br/>Default: tt-forge-slim:nightly-latest"]
+        ParentRunID["parent_run_id<br/>Workflow tracking"]
+        ProjectFilter["project-filter<br/>Choices: tt-forge-onnx, tt-torch, tt-xla, tt-forge"]
+        RunnerFilter["runner-filter<br/>Choices: n150, p150, All"]
+    end
+    
+    subgraph "Job: build_matrix"
+        SetMatrix["set-matrix step"]
+        FilterLogic["Filter Logic:<br/>Map project-filter to frontends<br/>Expand runner-filter"]
+        BuildJSON["Build JSON Matrix<br/>[{frontend, runs_on}]"]
+        
+        SetMatrix --> FilterLogic
+        FilterLogic --> BuildJSON
+    end
+    
+    subgraph "Job: basic-test"
+        MatrixStrategy["Matrix Strategy<br/>fail-fast: false"]
+        ParallelJobs["Parallel Job Instances:<br/>basic-test frontend on runner"]
+        
+        MatrixStrategy --> ParallelJobs
+    end
+    
+    subgraph "Test Execution"
+        Checkout["Checkout repository"]
+        FixHome["Fix HOME directory<br/>Container issue workaround"]
+        RunTest["python basic_tests/FRONTEND/demo_test.py"]
+        
+        Checkout --> FixHome
+        FixHome --> RunTest
+    end
+    
+    WorkflowDispatch --> DockerImage
+    WorkflowCall --> DockerImage
+    DockerImage --> SetMatrix
+    ProjectFilter --> FilterLogic
+    RunnerFilter --> FilterLogic
+    
+    BuildJSON -->|json_matrix output| MatrixStrategy
+    ParallelJobs --> Checkout
+```
+
+
+#### Configuration Propagation
+
+
+```mermaid
+graph TD
+    DailyReleaser["daily-releaser.yml"]
+    ReleaseWorkflow["release.yml Workflow"]
+    UpdateWorkflow["update-releases.yml Workflow"]
+    
+    subgraph "Configuration Layer"
+        SetFactsCall["set-release-facts Action<br/>Called by release.yml"]
+        VersionFile[".version File<br/>MAJOR=X<br/>MINOR=Y<br/>VERSION=X.Y.Z"]
+        RepoSpecifics["Repository-Specific Logic"]
+    end
+    
+    subgraph "Configuration Outputs"
+        VersionOutput["Version Information:<br/>new_version_tag<br/>gh_new_version_tag<br/>build_release_tag"]
+        ArtifactOutput["Artifact Patterns:<br/>artifact_download_glob<br/>pip_wheel_names"]
+        TestOutput["Test Configuration:<br/>test_demo_filter<br/>test_perf_filter<br/>basic_tests_runner_filter"]
+        WorkflowOutput["Workflow Settings:<br/>workflow_allow_failed<br/>skip_docker_build"]
+    end
+    
+    DailyReleaser --> ReleaseWorkflow
+    DailyReleaser --> UpdateWorkflow
+    
+    ReleaseWorkflow --> SetFactsCall
+    UpdateWorkflow --> SetFactsCall
+    
+    SetFactsCall --> VersionFile
+    SetFactsCall --> RepoSpecifics
+    
+    VersionFile --> VersionOutput
+    RepoSpecifics --> ArtifactOutput
+    RepoSpecifics --> TestOutput
+    RepoSpecifics --> WorkflowOutput
+```
+
+
+#### Version Management Workflows
+
+
+```mermaid
+graph TB
+    subgraph "Manual Version Operations"
+        create_branch["create-version-branches.yml<br/>────────<br/>Creates release-X.Y branch<br/>Triggers release.yml for initial RC"]
+        
+        bump_version["bump-version.yml<br/>────────<br/>Increments patch version<br/>Updates .version file<br/>Commits to release branch"]
+        
+        promote_stable["promote-stable.yml<br/>────────<br/>Removes rc suffix<br/>Creates stable release<br/>May trigger version bump"]
+    end
+    
+    subgraph "Version File"
+        version_file[".version<br/>────────<br/>MAJOR=0<br/>MINOR=6<br/>PATCH=0<br/>VERSION=$MAJOR.$MINOR.$PATCH"]
+    end
+    
+    create_branch -->|"reads"| version_file
+    bump_version -->|"modifies"| version_file
+    promote_stable -->|"reads"| version_file
+    
+    create_branch -->|"invokes"| release_yml["release.yml<br/>type=rc"]
+    bump_version -->|"invokes"| release_yml
+    promote_stable -->|"invokes"| release_yml2["release.yml<br/>type=stable"]
+```
+
+
+#### Patch Version Flow
+
+
+```mermaid
+graph TB
+    StableRelease["Stable release X.Y.0<br/>Published"]
+    Commit1["New commit on release-X.Y"]
+    UpdateReleases1["update-releases.yml<br/>Detects commit"]
+    BumpVersion1["bump-version.yml<br/>X.Y.0 → X.Y.1"]
+    Release1["release.yml<br/>type=stable<br/>new_version_tag=X.Y.1"]
+    Publish1["Publish X.Y.1<br/>make_latest=true"]
+    
+    Commit2["Another commit"]
+    BumpVersion2["bump-version.yml<br/>X.Y.1 → X.Y.2"]
+    Release2["release.yml<br/>new_version_tag=X.Y.2"]
+    Publish2["Publish X.Y.2<br/>make_latest=true"]
+    
+    StableRelease --> Commit1
+    Commit1 --> UpdateReleases1
+    UpdateReleases1 --> BumpVersion1
+    BumpVersion1 --> Release1
+    Release1 --> Publish1
+    
+    Publish1 --> Commit2
+    Commit2 --> BumpVersion2
+    BumpVersion2 --> Release2
+    Release2 --> Publish2
+```
+
+The test lifecycle validates that a second commit after stable release bumps the version from `X.Y.0` to `X.Y.1` [.github/workflows/test-rc-stable-release-lifecycle.yml:455-470]().
+```
+
+
+#### Tag Logic Diagram
+
+
+```mermaid
+graph TB
+    InputTag["Input: new_version_tag"]
+    
+    CheckRelType{"release_type?"}
+    
+    Stable["stable:<br/>new_version_tag unchanged<br/>gh_new_version_tag=new_version_tag<br/>build_release_tag=new_version_tag"]
+    
+    RC["rc:<br/>new_version_tag unchanged<br/>gh_new_version_tag=new_version_tag<br/>build_release_tag=new_version_tag"]
+    
+    Nightly["nightly:<br/>new_version_tag=VERSION.devYYYYMMDD<br/>gh_new_version_tag=new_version_tag<br/>build_release_tag=new_version_tag"]
+    
+    CheckDraftMode{"draft=true?"}
+    
+    DraftStable["draft + stable:<br/>new_version_tag=draft.repo.X.Y.Z<br/>build_release_tag=X.Y.Z<br/>gh_new_version_tag=draft.repo.X.Y.Z<br/>git_log_fail_on_error=false"]
+    
+    DraftRC["draft + rc:<br/>new_version_tag unchanged<br/>build_release_tag=X.Y.ZrcN<br/>gh_new_version_tag=draft.repo.X.Y.ZrcN<br/>git_log_fail_on_error=false"]
+    
+    DraftNightly["draft + nightly:<br/>new_version_tag unchanged<br/>build_release_tag=new_version_tag<br/>gh_new_version_tag=draft.repo.new_version_tag"]
+    
+    NoDraft["No draft modifications"]
+    
+    Output["Output:<br/>new_version_tag<br/>gh_new_version_tag<br/>build_release_tag"]
+    
+    InputTag --> CheckRelType
+    
+    CheckRelType -->|stable| Stable
+    CheckRelType -->|rc| RC
+    CheckRelType -->|nightly| Nightly
+    
+    Stable --> CheckDraftMode
+    RC --> CheckDraftMode
+    Nightly --> CheckDraftMode
+    
+    CheckDraftMode -->|true + stable| DraftStable
+    CheckDraftMode -->|true + rc| DraftRC
+    CheckDraftMode -->|true + nightly| DraftNightly
+    CheckDraftMode -->|false| NoDraft
+    
+    DraftStable --> Output
+    DraftRC --> Output
+    DraftNightly --> Output
+    NoDraft --> Output
+```
+
+
+#### System Architecture and Data Flow
+
+
+```mermaid
+graph TD
+    subgraph "Frontend_Layer"
+        A["HuggingFace / PyTorch / JAX"] -- "torch.compile(backend='tt')" --> B["TT-XLA (PJRT)"]
+        C["ONNX / TensorFlow"] -- "TVM Ingestion" --> D["TT-Forge-ONNX"]
+    end
+
+    subgraph "TT-MLIR_Compiler"
+        B -- "Produces" --> E["StableHLO Dialect"]
+        D -- "Produces" --> F["TTIR Dialect"]
+        E -- "Lowering" --> F
+        F -- "Optimization Passes (Fusion/Layout)" --> G["TTNN-IR"]
+        G -- "Custom Kernels" --> H["TTKernel-IR"]
+    end
+
+    subgraph "Hardware_Runtime"
+        G -- "Dispatch" --> I["TT-Metalium (TTNN + TTMetal)"]
+        H -- "Execution" --> I
+        I -- "Firmware/LLK" --> J["Wormhole / Blackhole Card"]
+    end
+
+    style A stroke-width:2px
+    style J stroke-width:2px
+```
+Sources: [docs/src/model-bring-up-guide.md:26-65](), [README.md:23-32]()
+```
+
+
+#### System Architecture: Natural Language to Code Entity Space
+
+
+```mermaid
+graph TD
+    subgraph "Natural Language Space"
+        UserPrompt["User Prompt / Issue / PR Comment"]
+        WorkflowDispatch["workflow_dispatch (Prompt Input)"]
+    end
+
+    subgraph "Agent Orchestration (GitHub Actions)"
+        ClaudeAction["anthropics/claude-code-action@v1"]
+        ClaudeYAML[".github/workflows/claude.yml"]
+        CallClaudeYAML[".github/workflows/call-claude.yml"]
+    end
+
+    subgraph "Code Entity Space"
+        CLAUDE_MD["CLAUDE.md (Style & Context)"]
+        SkillsDir[".claude/skills/ (Task Blueprints)"]
+        ForgeModels["tt-forge-models (Target Repository)"]
+        TTXLA["tt-xla (Frontend Environment)"]
+    end
+
+    UserPrompt --> ClaudeYAML
+    WorkflowDispatch --> CallClaudeYAML
+    ClaudeYAML --> ClaudeAction
+    CallClaudeClaudeYAML --> ClaudeAction
+    
+    ClaudeAction -.-> CLAUDE_MD
+    ClaudeAction -.-> SkillsDir
+    ClaudeAction -->|Executes Bash| TTXLA
+    ClaudeAction -->|Writes Code| ForgeModels
+```
+
+
+#### Mapping Natural Language to Code Entities
+
+
+```mermaid
+graph TD
+    subgraph "Natural Language Space"
+        A["'I want to fuse these ops'"]
+        B["'I need to shard this tensor'"]
+        C["'Run this on remote hardware'"]
+    end
+
+    subgraph "Code Entity Space"
+        direction TB
+        A -->|Uses| S1["ttl.kernel"]
+        A -->|Uses| S2["ttl.compute"]
+        B -->|Uses| S3["ttnn.ShardTensorToMesh"]
+        B -->|Uses| S4["ttnn.MemoryConfig"]
+        C -->|Uses| S5["scripts/run-test.sh"]
+        C -->|Uses| S6["scripts/remote-run.sh"]
+    end
+
+    subgraph "Implementation Files"
+        S1 & S2 -.-> F1["skills/tt-lang/SKILL.md"]
+        S3 & S4 -.-> F2["skills/ttnn/SKILL.md"]
+        S5 & S6 -.-> F3["skills/tt-connect-remote-device/SKILL.md"]
+    end
+```
+
+
+### PipeNet: Inter-Core Communication
+
+
+```mermaid
+graph LR
+    subgraph "Core (0, 0)"
+        D1["dm_read()"] -- "ttl.copy(blk, pipe)" --> P1["Pipe Source"]
+    end
+
+    subgraph "Pipe Infrastructure"
+        P1 --> P2["Pipe Destination"]
+    end
+
+    subgraph "Core (1, 0)"
+        P2 -- "ttl.copy(pipe, blk)" --> D2["dm_read()"]
+    end
+
+    PN["ttl.PipeNet"] -. "Manages" .-> P1
+    PN -. "Manages" .-> P2
+```
+Sources: [skills/tt-lang/examples.md:8-10](), [skills/tt-lang/examples.md:28-35]()
+```
+
+
+#### 2.2 Auto-Profiling and Signposts
+
+
+```mermaid
+graph TD
+    subgraph "Natural Language Space"
+        "Wall Time Ground Truth"
+        "Core Utilization"
+        "Hotspot Analysis"
+    end
+
+    subgraph "Code Entity Space"
+        "TT_METAL_DEVICE_PROFILER"["TT_METAL_DEVICE_PROFILER=1"]
+        "TT_METAL_DEVICE_PROFILER_NOC_EVENTS"["TT_METAL_DEVICE_PROFILER_NOC_EVENTS=1"]
+        "TTLANG_PERF_DUMP"["TTLANG_PERF_DUMP=1"]
+        "TTLANG_AUTO_PROFILE"["TTLANG_AUTO_PROFILE=1"]
+        "ttl_signpost"["ttl.signpost()"]
+        "perf_summary"["ttl._src.perf_summary"]
+    end
+
+    "Wall Time Ground Truth" --> "TTLANG_PERF_DUMP"
+    "Core Utilization" --> "perf_summary"
+    "Hotspot Analysis" --> "TTLANG_AUTO_PROFILE"
+    "Hotspot Analysis" --> "ttl_signpost"
+    "TT_METAL_DEVICE_PROFILER" --> "TTLANG_PERF_DUMP"
+    "TT_METAL_DEVICE_PROFILER_NOC_EVENTS" --> "perf_summary"
+```
+
+Sources: [skills/tt-lang-profile-optimize/SKILL.md:21-117](), [skills/tt-lang-profile-optimize/performance-tools.md:1-144]()
+
+---
+```
+
+
+#### Frontend to Hardware Data Flow
+
+
+```mermaid
+graph TD
+    subgraph "Frontend Layer"
+        A["PyTorch/JAX"] -- "torch_xla / PJRT" --> B["TT-XLA"]
+        C["ONNX/TF"] -- "TVM" --> D["TT-Forge-ONNX"]
+    end
+
+    subgraph "TT-MLIR Compiler"
+        B -- "StableHLO" --> E["TTIR Dialect"]
+        D -- "TVM Relay/IR" --> E
+        E -- "Optimization Passes" --> F["TTNN Dialect"]
+        F -- "Lowering" --> G["TTKernel Dialect"]
+    end
+
+    subgraph "Runtime & Hardware"
+        F -- "Dispatch" --> H["TT-Metalium (TTNN)"]
+        G -- "Custom Kernels" --> I["TT-Metalium (TTMetal)"]
+        H --> J["Wormhole/Blackhole Silicon"]
+        I --> J
+    end
+
+    style B fill:none,stroke-width:2px
+    style D fill:none,stroke-width:2px
+    style E fill:none,stroke-width:2px
+    style H fill:none,stroke-width:2px
+```
+

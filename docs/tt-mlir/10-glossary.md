@@ -252,3 +252,206 @@ Dismiss
 Refresh this wiki
 
 Enter email to refresh
+
+## Additional Diagrams
+
+
+#### DataType Conversion
+
+
+```mermaid
+graph TB
+    subgraph "MLIR Representation"
+        MLIR["ttcore::DataType<br/>(TTCoreOpsEnums.td)"]
+    end
+    
+    subgraph "Flatbuffer Serialization"
+        FB_FUNC["toFlatbuffer()<br/>(MLIRToFlatbuffer.h:166)"]
+        FB["tt::target::DataType<br/>(types.fbs:18-41)"]
+    end
+    
+    subgraph "OpModel Conversion"
+        OM_FUNC["getDataType()<br/>(OpModel/TTNN/Conversion.cpp:24)"]
+        OM_TYPE["tt::tt_metal::DataType<br/>(Metal runtime type)"]
+    end
+    
+    MLIR --> FB_FUNC
+    FB_FUNC --> FB
+    MLIR --> OM_FUNC
+    OM_FUNC --> OM_TYPE
+```
+
+Sources: [include/ttmlir/Target/Utils/MLIRToFlatbuffer.h:166-198](), [lib/OpModel/TTNN/Conversion.cpp:24-45]()
+```
+
+
+#### Runtime Context Management
+
+
+```mermaid
+graph LR
+    subgraph "tt::runtime::RuntimeContext Singleton"
+        Instance["RuntimeContext::instance()"]
+        DevRT["currentDeviceRuntime"]
+        HostRT["currentHostRuntime"]
+        MHome["mlirHome"]
+        MetalH["metalHome"]
+    end
+    
+    subgraph "Selection APIs (runtime.h)"
+        SetDev["setCurrentDeviceRuntime()"]
+        SetHost["setCurrentHostRuntime()"]
+        SetComp["setCompatibleDeviceRuntime()"]
+        GetDev["getCurrentDeviceRuntime()"]
+        GetHost["getCurrentHostRuntime()"]
+    end
+    
+    SetDev --> DevRT
+    SetHost --> HostRT
+    SetComp --> DevRT
+    GetDev --> DevRT
+    GetHost --> HostRT
+```
+
+Sources: [runtime/lib/runtime.cpp:170-225](), [runtime/include/tt/runtime/runtime.h:35-42](), [runtime/include/tt/runtime/detail/common/runtime_context.h:10-40]()
+
+---
+```
+
+
+#### Layout Conversion Logic
+
+
+```mermaid
+graph TD
+    ToLayoutCall["to_layout call"] -->|Runtime Dispatch| ConvLogic["Layout Conversion Logic"]
+    ConvLogic -->|Host -> Device| ToDevice["ttnn::to_device"]
+    ConvLogic -->|Device -> Host| FromDevice["ttnn::from_device"]
+    ConvLogic -->|Layout Change| Typecast["ttnn::to_layout (ROW_MAJOR/TILE)"]
+    ConvLogic -->|Memory Change| ToMemCfg["ttnn::to_memory_config"]
+```
+
+
+#### GoldenMapTensor Class
+
+
+```mermaid
+graph LR
+    subgraph "GoldenMapTensor (tools/golden/mapping.py)"
+        GMT["GoldenMapTensor"]
+        ShardMap["_shard_map: Dict[int, torch.Tensor]"]
+        MeshShape["_mesh_shape: Tuple[int, int]"]
+        
+        GMT --> ShardMap
+        GMT --> MeshShape
+    end
+    
+    subgraph "PyTorch Integration"
+        TorchOp["torch.add(gmt1, gmt2)"]
+        TorchFunc["__torch_function__"]
+        ShardWise["_binary_map: Apply op per-shard"]
+        
+        TorchOp --> TorchFunc
+        TorchFunc --> ShardWise
+        ShardWise -.->|"returns"| GMT
+    end
+```
+
+**Key Features** [tools/golden/mapping.py:50-143]():
+
+| Feature | Description |
+|---------|-------------|
+| **Attribute forwarding** | Read-only tensor attributes (shape, dtype, etc.) forwarded to first shard [tools/golden/mapping.py:50-69]() |
+| **Mutating methods** | Operations like `to()`, `reshape()`, `permute()` return new `GoldenMapTensor` instances [tools/golden/mapping.py:72-96]() |
+| **BF16 Upcasting** | Automatically upcasts BF16 for CPU matmuls to avoid slowness on hardware without BF16 support [tools/golden/mapping.py:98-99]() |
+| **Runtime conversion** | `golden_map_tensor_as_torch_tensors()` ensures shards are contiguous and compatible with runtime [tools/golden/mapping.py:138-153]() |
+
+Sources: [tools/golden/mapping.py:36-153]()
+
+---
+```
+
+
+#### Test Function Structure
+
+
+```mermaid
+graph TD
+    TestFunc["test_hoisted_logical_not (test_ttir_ops.py)"]
+    ModuleDef["def module(builder: TTIRBuilder)"]
+    FuncDec["@builder.func"]
+    OpConstruct["logical_not(in0, builder)"]
+    CompileExec["compile_and_execute_ttir()"]
+    
+    TestFunc --> ModuleDef
+    ModuleDef --> FuncDec
+    FuncDec --> OpConstruct
+    OpConstruct --> CompileExec
+    
+    subgraph "Execution & Validation (builder_apis.py)"
+        BuildMod["build_module()"]
+        Pipeline["run_ttir_pipeline()"]
+        Execute["tt_runtime.execute()"]
+        Validate["compare_with_golden()"]
+    end
+    
+    CompileExec --> BuildMod
+    BuildMod --> Pipeline
+    Pipeline --> Execute
+    Execute --> Validate
+```
+
+**Key API Functions** [tools/builder/base/builder_apis.py:46-127]():
+
+| Function | Purpose |
+|----------|---------|
+| `compile_and_execute_ttir()` | Orchestrates full pipeline for `TTIR` dialect [tools/builder/base/builder_apis.py:46-74]() |
+| `compile_and_execute_shlo()` | Orchestrates full pipeline for `StableHLO` dialect [tools/builder/base/builder_apis.py:76-104]() |
+| `build_module()` | Context manager that handles builder instantiation and module construction [tools/builder/base/builder_apis.py:150-184]() |
+
+Sources: [test/python/golden/test_ttir_ops.py:47-71](), [tools/builder/base/builder_apis.py:46-184]()
+
+---
+```
+
+
+#### Test Definitions
+
+
+```mermaid
+graph TD
+    subgraph "Test_Config_Entities"
+        T_SIL["{ runs-on: Silicon, script: ttrt.sh }"]
+        T_GOLD["{ runs-on: n150, script: builder.sh }"]
+        T_JIT["{ runs-on: p150, script: ttnn_jit.sh }"]
+        T_EMITC["{ runs-on: n150, script: emitc.sh }"]
+    end
+
+    subgraph "Execution_Scripts"
+        ttrt_sh["ttrt.sh"]
+        builder_sh["builder.sh"]
+        jit_sh["ttnn_jit.sh"]
+        emitc_sh["emitc.sh"]
+    end
+
+    subgraph "System_Tools_and_Libs"
+        TTRT_BIN["ttrt tool"]
+        GOLDEN_PY["pytest (Golden)"]
+        JIT_LIB["TTNN JIT Runtime"]
+        EMITC_LIB["libttnn-dylib.so"]
+    end
+
+    T_SIL -- "executes" --> ttrt_sh
+    T_GOLD -- "executes" --> builder_sh
+    T_JIT -- "executes" --> jit_sh
+    T_EMITC -- "executes" --> emitc_sh
+
+    ttrt_sh -- "runs" --> TTRT_BIN
+    builder_sh -- "runs" --> GOLDEN_PY
+    jit_sh -- "validates" --> JIT_LIB
+    emitc_sh -- "links" --> EMITC_LIB
+```
+
+Sources: [.github/settings/tests.json:1-43](), [.github/test_scripts/builder.sh:12-35]()
+```
+

@@ -84,6 +84,103 @@ This document describes the CMake-based build system, packaging infrastructure, 
 The build system is structured around CMake as the primary build generator, with bash scripts providing convenience wrappers like `build_metal.sh`[build_metal.sh 1-200](https://github.com/tenstorrent/tt-metal/blob/f30f8df0/build_metal.sh#L1-L200) The system produces multiple artifact types: compiled libraries, Debian packages, Python wheels, and Docker images. Build configuration is highly flexible, supporting multiple platforms (Ubuntu 22.04, 24.04), compilers (GCC, Clang), and hardware targets (Wormhole, Blackhole).
 
 ### Build System Architecture
+```mermaid
+graph TB
+    subgraph "User Interface"
+        BuildScript["build_metal.sh"]
+        CreateVenv["create_venv.sh"]
+    end
+    
+    subgraph "CMake Configuration"
+        MainCMake["CMakeLists.txt:1-180<br/>Project root"]
+        MetalCMake["tt_metal/CMakeLists.txt:5-217<br/>tt_metal library"]
+        JitAPI["jitapi target:51<br/>tt_metal/CMakeLists.txt"]
+    end
+    
+    subgraph "Build Outputs"
+        Libraries["libtt_metal.so<br/>libttnn.so"]
+        DebPackages["Debian Packages<br/>.deb"]
+        Wheels["Python Wheels<br/>.whl"]
+    end
+    
+    subgraph "Support Systems"
+        SFPI["SFPI Toolchain<br/>tt_metal/hw/CMakeLists.txt:123"]
+        Docker["Docker Images<br/>dockerfile/Dockerfile:136"]
+        CCache["ccache integration<br/>CMakeLists.txt:115"]
+    end
+    
+    BuildScript --> MainCMake
+    MainCMake --> MetalCMake
+    MetalCMake --> SFPI
+    
+    MetalCMake --> Libraries
+    Libraries --> DebPackages
+    Libraries --> Wheels
+    
+    Docker --> BuildScript
+    CCache --> Libraries
+```
+
+
+```mermaid
+graph TB
+    subgraph "Entry_Points"
+        UserScript["build_metal.sh"]
+        DirectCMake["cmake -B build -G Ninja"]
+    end
+
+    subgraph "Root_Configuration"
+        RootCMake["CMakeLists.txt<br/>project(Metalium)"]
+        Version["cmake/version.cmake<br/>ParseGitDescribe()"]
+        ProjectOpts["cmake/project_options.cmake<br/>Options: BUILD_SHARED_LIBS, TT_UNITY_BUILDS"]
+    end
+
+    subgraph "Build_Configuration"
+        Toolchain["CMAKE_TOOLCHAIN_FILE<br/>e.g. x86_64-linux-clang-20-toolchain.cmake"]
+        Compilers["cmake/compilers.cmake<br/>CHECK_COMPILERS()"]
+        Linking["cmake/linking.cmake<br/>LTO, Mold Linker"]
+        Ccache["cmake/ccache.cmake<br/>Compiler Launcher"]
+    end
+
+    subgraph "Common_Setup"
+        CommonPCH["TT::CommonPCH<br/>fmt, nlohmann_json, STL"]
+        CommonLibs["metal_common_libs<br/>dl, pthread, hwloc, numa"]
+    end
+
+    subgraph "Subdirectory_Targets"
+        TTMetal["tt_metal/<br/>Target: tt_metal<br/>Alias: TT::Metalium"]
+        TTNN["ttnn/<br/>Target: ttnn_core<br/>Alias: TTNN::Core"]
+        HWToolchain["tt_metal/hw/<br/>Target: hw_toolchain"]
+    end
+
+    subgraph "Final_Artifacts"
+        LibTTMetal["libtt_metal.so"]
+        LibTTNN["libttnn_core.so"]
+        DebPackages["*.deb packages"]
+    end
+
+    UserScript --> RootCMake
+    DirectCMake --> RootCMake
+    RootCMake --> Version
+    RootCMake --> ProjectOpts
+    RootCMake --> Toolchain
+    RootCMake --> Compilers
+    RootCMake --> Linking
+    RootCMake --> Ccache
+    RootCMake --> CommonPCH
+    RootCMake --> CommonLibs
+    RootCMake --> TTMetal
+    RootCMake --> TTNN
+    TTMetal --> HWToolchain
+    TTMetal --> LibTTMetal
+    TTNN --> LibTTNN
+```
+
+Sources: [CMakeLists.txt:1-36](), [CMakeLists.txt:61-105](), [tt_metal/CMakeLists.txt:5-15](), [ttnn/CMakeLists.txt:92]()
+
+---
+```
+
 
 ```mermaid
 graph TB
@@ -214,6 +311,20 @@ For performance tuning details, see [Build Caching and Optimization](https://dee
 Firmware for Tenstorrent Tensix cores is compiled using a specialized RISC-V SFPI toolchain. The build system manages the download or local build of this toolchain via `sfpi-info.sh`[tt_metal/hw/CMakeLists.txt 46-51](https://github.com/tenstorrent/tt-metal/blob/f30f8df0/tt_metal/hw/CMakeLists.txt#L46-L51) For details, see [Hardware Toolchain and SFPI](https://deepwiki.com/tenstorrent/tt-metal/5.6-hardware-toolchain-and-sfpi).
 
 ### Kernel Compilation Flow
+```mermaid
+graph LR
+    subgraph "JIT Build System"
+        JitEnv["BuildEnvManager"]
+        Compiler["riscv-tt-elf-g++:109"]
+        Linker["erisc-b0-kernel.ld:194"]
+    end
+    
+    Source[".cpp Kernel Source"] --> JitEnv
+    JitEnv --> Compiler
+    Compiler --> Linker
+    Linker --> Binary["Kernel ELF/Hex"]
+```
+
 
 **Sources:**[tt_metal/hw/CMakeLists.txt 109](https://github.com/tenstorrent/tt-metal/blob/f30f8df0/tt_metal/hw/CMakeLists.txt#L109-L109)[tt_metal/hw/CMakeLists.txt 194-207](https://github.com/tenstorrent/tt-metal/blob/f30f8df0/tt_metal/hw/CMakeLists.txt#L194-L207)
 

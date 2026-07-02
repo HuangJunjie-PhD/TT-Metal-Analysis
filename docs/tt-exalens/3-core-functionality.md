@@ -19,6 +19,54 @@ Relevant source files
 *   [ttexalens/tt_exalens_lib.py](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/ttexalens/tt_exalens_lib.py)
 
 ## Purpose and Scope
+```mermaid
+graph TB
+  subgraph "ttexalens/register_store.py"
+    RD["RegisterDescription"]
+    CRD["ConfigurationRegisterDescription"]
+    DRD["DebugRegisterDescription"]
+    RCRD["RiscControlRegisterDescription"]
+    TGPRD["TensixGeneralPurposeRegisterDescription"]
+    NSR["NocStatusRegisterDescription"]
+    NCR["NocConfigurationRegisterDescription"]
+    NCTRL["NocControlRegisterDescription"]
+    ARRD["ArcResetRegisterDescription"]
+    RSI["RegisterStoreInitialization"]
+    RS["RegisterStore"]
+    RDT["REGISTER_DATA_TYPE"]
+    FRV["format_register_value()"]
+    PRV["parse_register_value()"]
+    RD --> CRD
+    RD --> DRD
+    RD --> RCRD
+    RD --> TGPRD
+    RD --> NSR
+    RD --> NCR
+    RD --> NCTRL
+    RD --> ARRD
+    RSI --> RS
+  end
+  subgraph "ttexalens/hardware/tensix_registers_description.py"
+    TRD["TensixRegisterDescription"]
+    TDBD["TensixDebugBusDescription"]
+  end
+  subgraph "ttexalens/hardware/wormhole/functional_worker_registers.py"
+    WH_MAP["register_map: dict[str, RegisterDescription]"]
+  end
+  subgraph "ttexalens/hardware/blackhole/functional_worker_registers.py"
+    BH_MAP["register_map: dict[str, RegisterDescription]"]
+  end
+  RS --> RD
+  RS --> RDT
+  WH_MAP --> RS
+  BH_MAP --> RS
+```
+
+Sources: [ttexalens/register_store.py:1-20](), [ttexalens/hardware/tensix_registers_description.py](), [ttexalens/hardware/wormhole/functional_worker_registers.py:1-15](), [ttexalens/hardware/blackhole/functional_worker_registers.py:1-15]()
+
+---
+```
+
 
 This page provides a comprehensive reference for the TTExaLens Python library API, which enables programmatic access to Tenstorrent AI accelerator hardware for debugging, memory inspection, firmware loading, and runtime analysis. The API is designed for use in Python scripts and Jupyter notebooks.
 
@@ -617,3 +665,325 @@ Dismiss
 Refresh this wiki
 
 Enter email to refresh
+
+## Additional Diagrams
+
+
+## Get program counter
+
+
+```mermaid
+graph TB
+    GetPC["get_pc()"]
+    CheckDebugBus{"Debug Bus<br/>Available?"}
+    ReadDebugBus["Read PC from<br/>debug_bus_pc_signal"]
+    NCRISCCheck{"NCRISC or<br/>ERISC?"}
+    FixBit["Set bit 31<br/>(0x80000000)"]
+    ReturnDB["Return PC"]
+    
+    Halt["ensure_halted()"]
+    ReadGPR["read_gpr(32)"]
+    ReturnGPR["Return PC"]
+    
+    GetPC --> CheckDebugBus
+    CheckDebugBus -->|"Yes"| ReadDebugBus
+    CheckDebugBus -->|"No"| Halt
+    
+    ReadDebugBus --> NCRISCCheck
+    NCRISCCheck -->|"Yes"| FixBit
+    NCRISCCheck -->|"No"| ReturnDB
+    FixBit --> ReturnDB
+    
+    Halt --> ReadGPR
+    ReadGPR --> ReturnGPR
+```
+
+**Note:** NCRISC and ERISC cores lose the topmost PC bit on the debug bus, requiring a correction by setting bit 31.
+```
+
+
+#### Function: `arc_msg()`
+
+
+```mermaid
+graph LR
+    User["User Code"]
+    ArcMsg["arc_msg()"]
+    CheckContext["check_context()"]
+    ValidateDevice["validate_device_id()"]
+    ServerIfc["server_ifc.arc_msg()"]
+    UMD["UMD Library"]
+    Hardware["ARC Hardware"]
+    
+    User --> ArcMsg
+    ArcMsg --> CheckContext
+    ArcMsg --> ValidateDevice
+    ArcMsg --> ServerIfc
+    ServerIfc --> UMD
+    UMD --> Hardware
+    Hardware -.reply.-> UMD
+    UMD -.response.-> ServerIfc
+    ServerIfc -.list[int].-> User
+```
+
+
+#### Function: `read_arc_telemetry_entry()`
+
+
+```mermaid
+graph TB
+    User["User Code"]
+    ReadTelem["read_arc_telemetry_entry()"]
+    GetArcBlock["device.arc_block"]
+    GetTagId["arc.get_telemetry_tag_id()"]
+    HasTagId["arc.has_telemetry_tag_id()"]
+    ServerIfc["server_ifc.read_arc_telemetry_entry()"]
+    Result["int value"]
+    
+    User -->|"device_id, tag"| ReadTelem
+    ReadTelem --> GetArcBlock
+    
+    ReadTelem -->|"if str"| GetTagId
+    ReadTelem -->|"if int"| HasTagId
+    
+    ReadTelem --> ServerIfc
+    ServerIfc --> Result
+    Result --> User
+    
+    style ReadTelem fill:#f9f9f9
+    style GetArcBlock fill:#f9f9f9
+```
+
+
+```mermaid
+graph LR
+    CheckFW["Check Firmware Version"]
+    Compare["version >= 18.4?"]
+    Read["Read Telemetry"]
+    Error["Raise TTException"]
+    
+    CheckFW --> Compare
+    Compare -->|Yes| Read
+    Compare -->|No| Error
+    
+    style Error fill:#ffe6e6
+```
+
+
+#### Register Window Counters (RWC)
+
+
+```mermaid
+graph LR
+    subgraph "Thread 0"
+        RWC0A["rwc0_srca<br/>SRCA row pointer"]
+        RWC0B["rwc0_srcb<br/>SRCB row pointer"]
+        RWC0D["rwc0_dst<br/>DSTACC row pointer"]
+    end
+    
+    subgraph "Thread 1"
+        RWC1A["rwc1_srca"]
+        RWC1B["rwc1_srcb"]
+        RWC1D["rwc1_dst"]
+    end
+    
+    subgraph "Thread 2"
+        RWC2A["rwc2_srca"]
+        RWC2B["rwc2_srcb"]
+        RWC2D["rwc2_dst"]
+    end
+```
+
+**Reading RWC Values:**
+
+RWC values can be read via debug bus signals:
+```python
+```
+
+
+### Address Space Organization
+
+
+```mermaid
+graph LR
+    subgraph PhysicalMemory["Physical Memory Region"]
+        L1["L1 Memory<br/>1536 KB"]
+    end
+    
+    subgraph AddressSpaces["Address Spaces"]
+        NOC["NOC Address Space<br/>0x00000000"]
+        PRIV["Private Address Space<br/>0x00000000"]
+        BAR0["BAR0 Address Space<br/>(not accessible)"]
+    end
+    
+    subgraph IntervalTrees["Interval Trees in MemoryMap"]
+        NOC_TREE["_noc_addresses<br/>[0x00000000, 0x0017FFFF]"]
+        PRIV_TREE["_private_addresses<br/>[0x00000000, 0x0017FFFF]"]
+        BAR0_TREE["_bar0_addresses<br/>(empty)"]
+    end
+    
+    L1 --> |"noc_address=0x00000000"| NOC
+    L1 --> |"private_address=0x00000000"| PRIV
+    
+    NOC --> NOC_TREE
+    PRIV --> PRIV_TREE
+```
+
+**Address Space Usage by Access Method:**
+
+| Access Method | Address Space | Use Case |
+|---------------|---------------|----------|
+| NOC read/write | noc_address | General-purpose memory access across the chip |
+| RISC debug memory access | private_address | Accessing memory from a RISC core's perspective |
+| PCIe BAR0 | bar0_address | Direct host access (limited regions) |
+
+Some memory regions are intentionally accessible only through specific address spaces. For example, Tensix register files may only have private addresses.
+
+Sources: [ttexalens/hardware/blackhole/functional_worker_block.py:66-68](), [ttexalens/memory_map.py:40-69]()
+```
+
+
+#### Access Path Selection
+
+
+```mermaid
+graph LR
+    subgraph "Memory Regions"
+        L1["L1 Memory<br/>(NOC accessible)"]
+        DATAPRIV["Data Private Memory<br/>(May be NOC-inaccessible)"]
+        CODEPRIV["Code Private Memory<br/>(May be NOC-inaccessible)"]
+    end
+    
+    subgraph "write_block() Logic"
+        CHECKADDR["Check target address"]
+        ISPRIV["Inside private memory<br/>AND no NOC address?"]
+    end
+    
+    subgraph "Access Methods"
+        NOCPATH["NOC Path<br/>OnChipCoordinate.noc_write()"]
+        DEBUGPATH["Debug Path<br/>MemoryAccess.write()"]
+    end
+    
+    L1 --> CHECKADDR
+    DATAPRIV --> CHECKADDR
+    CODEPRIV --> CHECKADDR
+    
+    CHECKADDR --> ISPRIV
+    ISPRIV -->|Yes| DEBUGPATH
+    ISPRIV -->|No| NOCPATH
+```
+
+
+### Module Structure
+
+
+```mermaid
+graph TD
+    A["ttexalens/elf/__init__.py"] --> B["parsed.py\
+ParsedElfFile, read_elf"]
+    A --> C["die.py\
+ElfDie"]
+    A --> D["variable.py\
+ElfVariable"]
+    A --> E["frame.py\
+FrameInfoProvider, FrameInspection"]
+    A --> F["cu.py\
+ElfCompileUnit"]
+    A --> G["dwarf.py\
+ElfDwarf"]
+    B --> G
+    B --> F
+    B --> C
+    B --> D
+    B --> E
+    C --> F
+    F --> G
+    G -->|"uses pyelftools"| H["elftools.elf.elffile.ELFFile"]
+    G -->|"uses pyelftools"| I["elftools.dwarf.dwarfinfo.DWARFInfo"]
+```
+
+Sources: [ttexalens/elf/__init__.py:1-21](), [ttexalens/elf/parsed.py:1-30](), [ttexalens/elf/die.py:1-25]()
+
+---
+```
+
+
+### Handling Inlined Functions
+
+
+```mermaid
+graph TD
+    subgraph "Physical Frame at PC=0x1234"
+        PhysicalFunc["outer_function()"]
+        InlineFunc1["inline_function1() [inlined]"]
+        InlineFunc2["inline_function2() [inlined]"]
+    end
+    
+    subgraph "Logical Callstack"
+        Entry1["CallstackEntry<br/>pc=0x1234, func=inline_function2<br/>file:line from PC"]
+        Entry2["CallstackEntry<br/>pc=None, func=inline_function1<br/>file:line from call_file_info"]
+        Entry3["CallstackEntry<br/>pc=0x1234, func=outer_function<br/>file:line from call_file_info"]
+    end
+    
+    InlineFunc2 -.->|"Virtual frame"| Entry1
+    InlineFunc1 -.->|"Virtual frame"| Entry2
+    PhysicalFunc -.->|"Physical frame"| Entry3
+```
+
+
+### Indirect Register File Access
+
+
+```mermaid
+graph TB
+    Start["read_regfile_data()"]
+    EnableRead["Enable Array Read<br/>DBG_ARRAY_RD_EN = 1"]
+    LoopRows["Loop: 64 Rows"]
+    
+    subgraph "Per Row Processing"
+        PrepareRow["Prepare Row<br/>(inject instructions if SRCA)"]
+        LoopCols["Loop: 8 Columns"]
+        SetCmd["Set DBG_ARRAY_RD_CMD<br/>row + (regfile<<16) + (col<<12)"]
+        ReadData["Read DBG_ARRAY_RD_DATA<br/>32-bit word"]
+        AppendData["Append 4 bytes to buffer"]
+    end
+    
+    DisableRead["Disable Array Read<br/>DBG_ARRAY_RD_EN = 0"]
+    Unpack["Unpack Data<br/>unpack_data()"]
+    
+    Start --> EnableRead
+    EnableRead --> LoopRows
+    LoopRows --> PrepareRow
+    PrepareRow --> LoopCols
+    LoopCols --> SetCmd
+    SetCmd --> ReadData
+    ReadData --> AppendData
+    AppendData --> LoopCols
+    LoopRows --> DisableRead
+    DisableRead --> Unpack
+```
+
+**Diagram: Indirect Access Flow**
+```
+
+
+### Direct Register File Access (Blackhole Only)
+
+
+```mermaid
+graph TB
+    Check["Check if direct access enabled<br/>_direct_dest_access_enabled()"]
+    GetBase["Get base address<br/>noc_block.dest.address.private_address"]
+    CalcSize["Calculate size<br/>num_tiles * TILE_SIZE * 4"]
+    ReadMem["Read via MemoryAccess<br/>mem_access.read()"]
+    ConvertWords["Convert bytes to 32-bit words"]
+    
+    Check --> GetBase
+    GetBase --> CalcSize
+    CalcSize --> ReadMem
+    ReadMem --> ConvertWords
+```
+
+**Diagram: Direct Access Read Flow**
+```
+
