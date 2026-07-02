@@ -1,55 +1,70 @@
 # TT-Metal Analysis — Tenstorrent DeepWiki Archive
 
-> 📚 Archived documentation + diagrams from [DeepWiki](https://deepwiki.com/tenstorrent)
+> 📚 Archived documentation from [DeepWiki](https://deepwiki.com/tenstorrent) covering **91 Tenstorrent open-source projects**.
 >
 > Auto-crawled: 2026-07-02
 
-## Contents
+## Stats
 
-| Type | Count | Description |
-|------|-------|-------------|
-| 📄 Markdown docs | 54 pages | DeepWiki documentation across 6 projects |
-| 🎨 Mermaid diagrams | 329 `.mmd` files | Architecture, data flow, CI/CD pipeline diagrams |
-| 🖼️ SVG renders | 30+ `.svg` files | Pre-rendered diagrams for direct GitHub viewing |
+| Type | Count |
+|------|-------|
+| 📄 Projects | **91** (6 core + 85 additional) |
+| 📝 Markdown files | 54 detailed + 85 README |
+| 🎨 Mermaid diagrams | ~1,000 embedded inline |
 
-## Projects Covered
+## Core Projects (detailed docs + diagrams)
 
-| Project | GitHub | Docs | Diagrams |
-|---------|--------|------|----------|
-| **tt-metal** | [tenstorrent/tt-metal](https://github.com/tenstorrent/tt-metal) (1.5k⭐) | 26 pages | 81 diagrams |
-| **tt-mlir** | [tenstorrent/tt-mlir](https://github.com/tenstorrent/tt-mlir) (290⭐) | 11 pages | 36 diagrams |
-| **tt-xla** | [tenstorrent/tt-xla](https://github.com/tenstorrent/tt-xla) | 6 pages | 51 diagrams |
-| **tt-forge** | [tenstorrent/tt-forge](https://github.com/tenstorrent/tt-forge) (311⭐) | 4 pages | 50 diagrams |
-| **tt-exalens** | [tenstorrent/tt-exalens](https://github.com/tenstorrent/tt-exalens) | 3 pages | 102 diagrams |
-| **tt-lang** | [tenstorrent/tt-lang](https://github.com/tenstorrent/tt-lang) | 4 pages | 33 diagrams |
+| Project | GitHub | Description |
+|---------|--------|-------------|
+| **[tt-metal](./docs/tt-metal/)** | [repo](https://github.com/tenstorrent/tt-metal) (1.5k⭐) | Core runtime: TT-NN + TT-Metalium (26 pages, 220 diagrams) |
+| **[tt-mlir](./docs/tt-mlir/)** | [repo](https://github.com/tenstorrent/tt-mlir) (290⭐) | MLIR-based AI compiler (11 pages, 118 diagrams) |
+| **[tt-xla](./docs/tt-xla/)** | [repo](https://github.com/tenstorrent/tt-xla) | PJRT plugin: JAX/PyTorch/vLLM (6 pages, 155 diagrams) |
+| **[tt-forge](./docs/tt-forge/)** | [repo](https://github.com/tenstorrent/tt-forge) (311⭐) | Compiler hub + AI-assisted dev (4 pages, 132 diagrams) |
+| **[tt-exalens](./docs/tt-exalens/)** | [repo](https://github.com/tenstorrent/tt-exalens) | Hardware debugger (3 pages, 196 diagrams) |
+| **[tt-lang](./docs/tt-lang/)** | [repo](https://github.com/tenstorrent/tt-lang) | Python kernel DSL (4 pages, 188 diagrams) |
 
-## How to View Diagrams
+## Additional Projects (overview docs)
 
-### Option 1: Pre-rendered SVG (easiest)
-Browse `docs/{project}/diagrams/*.svg` — GitHub renders SVG natively.
+### Compiler & Runtime
+[tt-forge-onnx](./docs/tt-forge-onnx/) (25KB) · [tt-tvm](./docs/tt-tvm/) (24KB) · [pytorch2.0_ttnn](./docs/pytorch2.0_ttnn/) (21KB) · [tt-torch](./docs/tt-torch/) (16KB) · [tt-buda](./docs/tt-buda/) (14KB)
 
-### Option 2: Mermaid source (.mmd)
-Paste `.mmd` file content into [mermaid.live](https://mermaid.live) for interactive editing.
+### Kernel & Hardware
+[tt-llk](./docs/tt-llk/) (21KB) · [tt-isa-documentation](./docs/tt-isa-documentation/) (16KB) · [sfpi](./docs/sfpi/) (10KB) · [sfpi-gcc](./docs/sfpi-gcc/) (8KB) · [tensix-isa-simulator](./docs/tensix-isa-simulator/) (4KB)
 
-### Option 3: VS Code
-Install the "Mermaid Preview" extension and open any `.mmd` file.
+### Drivers & Firmware
+[tt-system-firmware](./docs/tt-system-firmware/) (18KB) · [tt-flash](./docs/tt-flash/) (11KB) · [tt-umd](./docs/tt-umd/) (10KB) · [tt-kmd](./docs/tt-kmd/) (7KB) · [tt-firmware](./docs/tt-firmware/) (7KB)
 
-## Key Concepts
+### Tools & Utils
+[tt-smi](./docs/tt-smi/) (14KB) · [tt-tools-common](./docs/tt-tools-common/) (12KB) · [tt-perf-report](./docs/tt-perf-report/) (7KB) · [luwen](./docs/luwen/) (6KB) · [tt-installer](./docs/tt-installer/) (6KB) · [tt-burnin](./docs/tt-burnin/) (6KB) · [tt-topology](./docs/tt-topology/) (5KB) · [tt-toplike](./docs/tt-toplike/) (4KB)
 
-| Concept | Description |
-|---------|-------------|
-| **Tensix Core** | Fundamental compute unit, 1.5 MB SRAM |
-| **Tile** | Native 32x32 data format |
-| **NOC** | Network-on-Chip, 2D mesh interconnect |
-| **Wormhole** | Current-gen architecture (N150/N300/T3000/Galaxy) |
-| **Blackhole** | Next-gen architecture (P100/P150) |
-| **TTNN** | High-level neural network library |
-| **TT-Metalium** | Low-level kernel runtime |
-| **StableHLO** | Portable ML operation IR |
+### Simulation & Emulation
+[whisper](./docs/whisper/) (14KB) · [tt-npe](./docs/tt-npe/) (13KB) · [ttsim](./docs/ttsim/) (9KB) · [riscv-ocelot](./docs/riscv-ocelot/) (9KB) · [tt-emule](./docs/tt-emule/) (8KB)
+
+### Dev & Debug
+[ttnn-visualizer](./docs/ttnn-visualizer/) (8KB) · [tt-awesome](./docs/tt-awesome/) (7KB) · [model-explorer](./docs/model-explorer/) (7KB) · [tt-studio](./docs/tt-studio/) (6KB) · [tt-tutorial](./docs/tt-tutorial/) (4KB)
+
+### Models & Inference
+[vllm](./docs/vllm/) (17KB) · [tt-inference-server](./docs/tt-inference-server/) (12KB) · [tt-forge-models](./docs/tt-forge-models/) (10KB) · [tt-blacksmith](./docs/tt-blacksmith/) (7KB)
+
+### RISC-V
+[riescue](./docs/riescue/) (11KB) · [riscv-coretp](./docs/riscv-coretp/) (9KB) · [riscv_arch_tests](./docs/riscv_arch_tests/) (7KB) · [cosim-arch-checker](./docs/cosim-arch-checker/) (4KB)
+
+### CI/CD & Infra
+[tenstorrent.github.io](./docs/tenstorrent.github.io/) (9KB) · [tt-low-level-documentation](./docs/tt-low-level-documentation/) (10KB) · [tt-github-actions](./docs/tt-github-actions/) (5KB)
+
+### Other
+[tracy](./docs/tracy/) (8KB) · [polaris](./docs/polaris/) (7KB) · [tt-common_verification](./docs/tt-common_verification/) · [tt-axi](./docs/tt-axi/) · [tutorial-assets](./docs/tutorial-assets/) (3KB)
+
+...and **30+ more** (RTL IP blocks, build tools, etc.) — see [docs/](./docs/)
+
+## How to View
+
+- **Markdown docs**: GitHub renders `.md` natively
+- **Mermaid diagrams**: GitHub renders ` ```mermaid ` blocks inline in markdown
+- **Raw .mmd files**: `docs/{project}/diagrams/*.mmd` — paste into [mermaid.live](https://mermaid.live)
 
 ## Disclaimer
 
-- 📄 Content source: [deepwiki.com/tenstorrent](https://deepwiki.com/tenstorrent)
-- 🤖 Generated by: Devin/Cognition AI (DeepWiki)
-- Diagras extracted from Next.js RSC payload, rendered via mermaid.ink
-- ⚠️ Unofficial archive. All content belongs to DeepWiki / Cognition AI.
+- 📄 Content: [deepwiki.com/tenstorrent](https://deepwiki.com/tenstorrent)
+- 🤖 Generated by Devin/Cognition AI (DeepWiki)
+- ⚠️ Unofficial archive — content belongs to DeepWiki / Cognition AI
