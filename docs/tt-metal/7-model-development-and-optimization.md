@@ -82,6 +82,42 @@ The model development workflow follows a systematic bring-up process that valida
 
 ### Component Validation and Integration Pipeline
 
+```mermaid
+graph TD
+    HF["HuggingFace Model<br/>(Reference PyTorch)"]
+    
+    subgraph "Component-Level Validation"
+        Norm["RMSNorm/LayerNorm<br/>(PCC > 0.99)"]
+        Attn["Attention Components<br/>(QKV, RoPE, SDPA)"]
+        MLP["MLP Blocks<br/>(FF1, FF2, FF3)"]
+    end
+    
+    subgraph "Stage Integration"
+        Decoder["TransformerBlock<br/>(Single Layer)"]
+        Decode["Decode Stage<br/>(batch=32, seq=1)"]
+        Prefill["Prefill Stage<br/>(batch=1, long seq)"]
+    end
+    
+    subgraph "Accuracy Validation"
+        TF["Teacher Forcing<br/>(512 prefill + 511 gen)"]
+        Acc["Top-1/Top-5 Accuracy<br/>(Compare vs PERF.md)"]
+    end
+    
+    HF --> Norm & Attn & MLP
+    Norm & Attn & MLP --> Decoder
+    Decoder --> Decode & Prefill
+    Decode & Prefill --> TF --> Acc
+```
+
+**Component Validation Process**:
+1. **Component Isolation**: Building blocks like `RMSNorm` [models/tt_transformers/tt/model.py:11-11]() and `TransformerBlock` [models/tt_transformers/tt/decoder.py:15-15]() are validated independently against PyTorch reference outputs using Pearson Correlation Coefficient (PCC).
+2. **Stage Validation**: The model is tested in `Mode.DECODE` (autoregressive generation) and `Mode.PREFILL` (prompt processing) [models/tt_transformers/tt/common.py:31-31]().
+3. **Accuracy Testing**: Final validation uses `TokenAccuracy` [models/tt_transformers/demo/simple_text_demo.py:38-74]() to compare generated tokens against reference outputs, measuring Top-1 and Top-5 accuracy against thresholds defined in `PERF.md` [models/tt_transformers/demo/simple_text_demo.py:77-125]().
+
+For detailed workflow and Bring-Up process, see [Model Development Workflow](#7.1).
+```
+
+
 **Component Validation Process**:
 
 1.   **Component Isolation**: Building blocks like `RMSNorm`[models/tt_transformers/tt/model.py 11](https://github.com/tenstorrent/tt-metal/blob/f30f8df0/models/tt_transformers/tt/model.py#L11-L11) and `TransformerBlock`[models/tt_transformers/tt/decoder.py 15](https://github.com/tenstorrent/tt-metal/blob/f30f8df0/models/tt_transformers/tt/decoder.py#L15-L15) are validated independently against PyTorch reference outputs using Pearson Correlation Coefficient (PCC).
@@ -97,6 +133,39 @@ For detailed workflow and Bring-Up process, see [Model Development Workflow](htt
 ## LLM Inference and Transformers
 
 ### Generator Architecture
+
+```mermaid
+graph LR
+    subgraph "Python Logic Space"
+        G["Generator Class<br/>(generator.py)"]
+        MA["ModelArgs<br/>(model_config.py)"]
+        SP["SamplingParams<br/>(generator.py)"]
+    end
+
+    subgraph "Code Entity Space"
+        T["Transformer Class<br/>(model.py)"]
+        TB["TransformerBlock<br/>(decoder.py)"]
+        ATT["Attention<br/>(attention.py)"]
+        MLP["MLP<br/>(mlp.py)"]
+        CCL["TT_CCL<br/>(ccl.py)"]
+    end
+
+    G --> MA
+    G --> T
+    G --> SP
+    T --> TB
+    T --> CCL
+    TB --> ATT
+    TB --> MLP
+```
+
+**Key Execution Phases**:
+- **Prefill Phase**: Processes input prompts and populates KV cache. Supports batching and chunking for long sequences to fit hardware constraints. Managed via `warmup_model_prefill()` [models/tt_transformers/tt/generator.py:145-145]().
+- **Decode Phase**: Autoregressive token generation, often optimized through Metal Trace caching mechanisms minimizing host-device interaction [models/tt_transformers/tt/generator.py:101-103]().
+
+For detailed LLM inference mechanisms, see [LLM Inference and Transformers](#7.2).
+```
+
 
 The `Generator` class orchestrates model inference, managing the lifecycle of multiple `Transformer` instances across a `MeshDevice`. It supports prefill and decode phases, maintains KV cache state, and enables advanced features like split sampling.
 
@@ -162,6 +231,35 @@ Models scale across Tenstorrent hardware clusters using several parallelism and 
 *   **Fabric Configurations**: Define inter-device fabric topologies and routing, e.g. `FABRIC_1D_RING` for ring-allreduce style communication [models/demos/deepseek_v3/utils/config_helpers.py 33-60](https://github.com/tenstorrent/tt-metal/blob/f30f8df0/models/demos/deepseek_v3/utils/config_helpers.py#L33-L60)
 
 ### Distributed Model Execution and Communication Diagram
+
+```mermaid
+graph TD
+    subgraph "MeshDevice Context"
+        MD["MeshDevice<br/>(e.g. 16x8 Grid)"]
+        FW["FabricConfig<br/>(FABRIC_1D_RING)"]
+    end
+
+    subgraph "Distributed Layers"
+        D_NORM["DistributedNorm<br/>(distributed_norm.py)"]
+        D_MLA["MLA1D / MLA2D<br/>(mla1d.py / mla2d.py)"]
+        D_MOE["MoE Layers<br/>(moe.py)"]
+    end
+
+    subgraph "Communication Primitives"
+        CCL["TT_CCL<br/>(ccl.py)"]
+        AG["All-Gather"]
+        RS["Reduce-Scatter"]
+    end
+
+    MD --> D_NORM & D_MLA & D_MOE
+    D_NORM & D_MLA & D_MOE --> CCL
+    CCL --> AG & RS
+    FW -.-> CCL
+```
+
+For in-depth distributed execution strategies, see [Multi-Device and Distributed Execution](#7.5).
+```
+
 
 For in-depth distributed execution strategies, see [Multi-Device and Distributed Execution](https://deepwiki.com/tenstorrent/tt-metal/7.5-multi-device-and-distributed-execution).
 

@@ -59,6 +59,53 @@ This page provides a high-level overview of the debugging and profiling tools an
 
 ## Debugging Infrastructure Overview
 
+```mermaid
+graph TB
+  subgraph "User Interface and Config"
+    EnvVars["Environment Variables"]
+    RunTimeOptions["RunTimeOptions (llrt/rtoptions.hpp)"]
+    PythonAPI["Python API (e.g. via ttnn)"]
+  end
+  
+  subgraph "Host Runtime (MetalContext)"
+    MetalContext[/"MetalContext Singleton\
+(impl/context/metal_context.cpp)"/]
+    WatcherServer["WatcherServer (impl/debug/watcher_server.cpp)"]
+    DPrintServer["DPrintServer (impl/debug/dprint_server.cpp)"]
+    ProfilerStateManager["ProfilerStateManager (impl/profiler/profiler_state_manager.hpp)"]
+  end
+  
+  subgraph "Device Layer"
+    RISC_V_Kernels["RISC-V Kernels (hw/firmware)"]
+    L1_Debug_Buffers["L1 Debug Buffers (device memory)"]
+    WatcherMsg["dev_msgs::watcher_msg_t"]
+  end
+  
+  subgraph "Outputs and Analysis"
+    WatcherLog["Watcher Log (watcher.log)"]
+    StdoutLog["DPRINT Output (stdout/logfile)"]
+    TracyGUI["Tracy Profiler GUI"]
+  end
+  
+  EnvVars --> RunTimeOptions
+  RunTimeOptions --> MetalContext
+  MetalContext --> WatcherServer
+  MetalContext --> DPrintServer
+  MetalContext --> ProfilerStateManager
+  
+  RISC_V_Kernels --> L1_Debug_Buffers
+  RISC_V_Kernels --> WatcherMsg
+  
+  WatcherServer <--> WatcherMsg
+  DPrintServer <-- L1_Debug_Buffers
+  ProfilerStateManager <-- L1_Debug_Buffers
+  
+  WatcherServer --> WatcherLog
+  DPrintServer --> StdoutLog
+  ProfilerStateManager --> TracyGUI
+```
+
+
 The debugging infrastructure is tightly integrated with the core runtime system and configured via environment variables parsed into the `RunTimeOptions` interface [tt_metal/llrt/rtoptions.hpp 43](https://github.com/tenstorrent/tt-metal/blob/f30f8df0/tt_metal/llrt/rtoptions.hpp#L43-L43) The centerpiece is the `MetalContext` singleton which coordinates debugging state across devices [tt_metal/impl/context/metal_context.cpp 35-46](https://github.com/tenstorrent/tt-metal/blob/f30f8df0/tt_metal/impl/context/metal_context.cpp#L35-L46)
 
 Debugging targets can be specified granularly via the `TargetSelection` mechanism to enable debugging features on select chips, cores, or RISC-V processors. This enables focused debugging minimizing overhead and data noise.
@@ -127,6 +174,39 @@ The profiling subsystem provides detailed performance metrics and timing informa
 
 ### Profiler Components and Data Flow
 
+```mermaid
+graph LR
+  subgraph "Host Space"
+    HostApp["Host Application"]
+    TTMProfilerCpp["tt_metal_profiler.cpp (impl/profiler/tt_metal_profiler.cpp)"]
+    ProfilerStateMgr["ProfilerStateManager (profiler_state_manager.hpp)"]
+  end
+
+  subgraph "Profiling Subsystem"
+    DeviceProfiler["DeviceProfiler (profiler.hpp, profiler.cpp)"]
+    TracyMarkers["tracy::TTDeviceMarker"]
+    ControlBuffer["kernel_profiler::ControlBuffer"]
+  end
+
+  subgraph "Device Layer"
+    KernelProfilerMacros["kernel_profiler::mark_time_* (kernel_profiler.hpp)"]
+    ProfilerDataBuffer["profiler_data_buffer (L1 memory)"]
+    DramProfilerBuffer["DRAM_PROFILER_ADDRESS (DRAM buffer)"]
+  end
+
+  HostApp --> TTMProfilerCpp
+  TTMProfilerCpp --> ProfilerStateMgr
+  ProfilerStateMgr --> DeviceProfiler
+  DeviceProfiler --> TracyMarkers
+
+  KernelProfilerMacros --> ProfilerDataBuffer
+  ProfilerDataBuffer --> DramProfilerBuffer
+  DramProfilerBuffer --> DeviceProfiler
+
+  DeviceProfiler --> TracyMarkers --> "Tracy Profiler GUI"
+```
+
+
 ### Key Features
 
 *   **Host-Device Synchronization:** A dedicated sync kernel (`sync_kernel.cpp`) ensures host CPU and device RISC-V timers are aligned for accurate time correlation [tt_metal/impl/profiler/tt_metal_profiler.cpp 102-140](https://github.com/tenstorrent/tt-metal/blob/f30f8df0/tt_metal/impl/profiler/tt_metal_profiler.cpp#L102-L140)
@@ -169,6 +249,32 @@ For more information, see the dedicated child page: [Triage Tools and Post-Morte
 * * *
 
 ## Debug Environment Variables
+
+```mermaid
+graph TD
+  Debugging["Debugging"] --> Watcher["Watcher Debug System"]
+  Debugging --> DPrint["Kernel Debugging Tools (DPRINT)"]
+  Debugging --> EnvVars["Debug Environment Variables"]
+
+  Profiling["Profiling"] --> DeviceProfiler["Device Profiler"]
+  Profiling --> TracyProfiler["Tracy Integration"]
+
+  Triage["Triage/Post-Mortem"] --> TriageTool["triage.py & TTExaLens"]
+  Triage --> AutoTriage["Auto-Triage CI Tooling"]
+
+  Watcher -->|logs & asserts| LogFiles["Watcher Logs (watcher.log)"]
+  DPrint -->|debug output| Console["Host Console/Log"]
+  DeviceProfiler -->|metrics & events| TracyProfiler
+  TriageTool -->|fault & state info| Logs
+
+  MetalContext["MetalContext Singleton"] -->|configures & manages| Watcher
+  MetalContext -->|configures & manages| DPrint
+  MetalContext -->|configures & manages| DeviceProfiler
+```
+
+---
+```
+
 
 The runtime behavior of the debugging infrastructure is controlled extensively through a set of `TT_METAL_*` environment variables. These allow selective enabling/disabling of subsystems and configuration of debugging modes.
 

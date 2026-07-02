@@ -38,6 +38,49 @@ TT-XLA serves as an integration layer between machine learning frameworks and Te
 
 ### High-Level Architecture
 
+```mermaid
+graph TB
+    subgraph "Framework Layer"
+        JAX["JAX Models<br/>@jit decorated functions"]
+        PyTorch["PyTorch Models<br/>torch.compile"]
+        vLLM["vLLM Engine<br/>LLM Inference"]
+    end
+    
+    subgraph "TT-XLA Frontend"
+        JAXPlugin["jax_plugin_tt<br/>python_package/jax_plugin_tt/"]
+        TorchPlugin["torch_plugin_tt<br/>python_package/torch_plugin_tt/"]
+        vLLMPlugin["vllm_tt plugin<br/>integrations/vllm_plugin/"]
+        PJRT["PJRT Plugin<br/>pjrt_plugin_tt.so<br/>pjrt_implementation/src/"]
+    end
+    
+    subgraph "Compilation Layer"
+        StableHLO["StableHLO/SHLO IR<br/>Intermediate Representation"]
+        TTMLIR["TT-MLIR Compiler<br/>third_party/tt-mlir/<br/>TTIR → TTNN Dialects"]
+    end
+    
+    subgraph "Runtime Layer"
+        TTMetal["TT-Metal Runtime<br/>Device Kernels<br/>tt-metal libraries"]
+    end
+    
+    subgraph "Hardware Layer"
+        TTDevice["Tenstorrent Devices<br/>n150, p150, n300, llmbox"]
+    end
+    
+    JAX --> JAXPlugin
+    PyTorch --> TorchPlugin
+    vLLM --> vLLMPlugin
+    
+    JAXPlugin --> PJRT
+    TorchPlugin --> PJRT
+    vLLMPlugin --> PJRT
+    
+    PJRT --> StableHLO
+    StableHLO --> TTMLIR
+    TTMLIR --> TTMetal
+    TTMetal --> TTDevice
+```
+
+
 **Sources:**[README.md 19](https://github.com/tenstorrent/tt-xla/blob/c77995f6/README.md?plain=1#L19-L19)[README.md 26-33](https://github.com/tenstorrent/tt-xla/blob/c77995f6/README.md?plain=1#L26-L33)[CMakeLists.txt 10-23](https://github.com/tenstorrent/tt-xla/blob/c77995f6/CMakeLists.txt#L10-L23)
 
 ## Core Components
@@ -57,6 +100,40 @@ These plugins are packaged together in the Python wheel distribution alongside t
 **Sources:**[docs/src/getting_started_build_from_source.md 174-185](https://github.com/tenstorrent/tt-xla/blob/c77995f6/docs/src/getting_started_build_from_source.md?plain=1#L174-L185)
 
 ### PJRT Plugin (`pjrt_plugin_tt.so`)
+
+```mermaid
+graph TB
+    subgraph "PJRT Plugin Structure"
+        PJRTDylib["pjrt_plugin_tt.so<br/>Main Plugin Binary"]
+        
+        subgraph "Implementation Layers"
+            Bindings["TTPJRTBindings<br/>pjrt_implementation/src/"]
+            API["TTPJRTApi<br/>pjrt_implementation/src/api/"]
+            Utils["TTPJRTUtils<br/>pjrt_implementation/src/utils/"]
+        end
+        
+        subgraph "External Dependencies"
+            TTMLIRCompiler["TTMLIRCompiler<br/>libTTMLIRCompiler.so"]
+            TTMLIRRuntime["TTMLIRRuntime<br/>libTTMLIRRuntime.so"]
+            Loguru["loguru<br/>Logging Library"]
+        end
+    end
+    
+    PJRTDylib --> Bindings
+    Bindings --> API
+    API --> TTMLIRCompiler
+    API --> TTMLIRRuntime
+    API --> Utils
+    Utils --> Loguru
+```
+
+**Key Responsibilities:**
+- **Device Management**: Enumerates and manages Tenstorrent devices
+- **Graph Compilation**: Accepts StableHLO graphs and invokes TT-MLIR compiler
+- **Execution**: Schedules compiled programs on devices and manages buffers
+- **Memory Management**: Allocates and tracks device memory
+```
+
 
 The PJRT plugin is the central integration point with an importance score of 462.77, making it the most critical component in the system. It implements the standard PJRT C API, providing a uniform device interface that frameworks can target without TT-specific modifications.
 
@@ -112,6 +189,44 @@ TT-Metal provides the low-level runtime services for executing compiled code on 
 **Sources:**[third_party/CMakeLists.txt 38-39](https://github.com/tenstorrent/tt-xla/blob/c77995f6/third_party/CMakeLists.txt#L38-L39)
 
 ## Component Dependency Graph
+
+```mermaid
+graph TD
+    subgraph "Build Outputs"
+        Wheel["pjrt_plugin_tt-*.whl<br/>Python Distribution"]
+        PJRTPlugin["pjrt_plugin_tt.so<br/>PJRT Plugin Binary"]
+    end
+    
+    subgraph "Source Components"
+        SrcCommon["pjrt_implementation/src/common/<br/>Core PJRT Implementation"]
+        SrcTT["pjrt_implementation/src/tt/<br/>TT-specific Code"]
+        Integrations["integrations/<br/>vllm_plugin/"]
+        PythonPkg["python_package/<br/>jax/torch/vllm wrappers"]
+    end
+    
+    subgraph "External Dependencies"
+        TTMLIR["tt-mlir<br/>ExternalProject<br/>Pinned to SHA"]
+        TTMetal["tt-metal<br/>Transitive Dependency"]
+        Loguru["loguru<br/>Logging Library"]
+        PJRTCAPI["third_party/pjrt_c_api/<br/>Standard PJRT Headers"]
+    end
+    
+    SrcCommon --> PJRTPlugin
+    SrcTT --> PJRTPlugin
+    PJRTCAPI --> PJRTPlugin
+    
+    TTMLIR --> PJRTPlugin
+    TTMetal --> TTMLIR
+    Loguru --> PJRTPlugin
+    
+    PJRTPlugin --> Wheel
+    TTMLIR --> Wheel
+    TTMetal --> Wheel
+    Loguru --> Wheel
+    Integrations --> Wheel
+    PythonPkg --> Wheel
+```
+
 
 The following diagram shows the build-time dependencies between major components:
 

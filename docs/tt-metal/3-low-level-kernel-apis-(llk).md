@@ -100,6 +100,52 @@ This is a **PARENT** page providing a high-level overview. For deep technical de
 
 ## LLK Architecture Overview
 
+```mermaid
+graph TB
+    subgraph "CB_Space[Circular Buffer (L1 Memory)]"
+        "CB0[CB Index 0<br/>(Input A)]"
+        "CB1[CB Index 1<br/>(Input B)]"
+        "CB16[CB Index 16<br/>(Output)]"
+    end
+    
+    subgraph "LLK_Pipeline[Tensix/Blackhole Pipeline]"
+        direction TB
+        
+        subgraph "Unpack_Proc[UNPACK Processor (TRISC0)]"
+            "UnpackOp[llk_unpack_A<br/>llk_unpack_AB]"
+        end
+        
+        subgraph "Registers[Internal Registers]"
+            "SrcA[SrcA Register]"
+            "SrcB[SrcB Register]"
+        end
+        
+        subgraph "Math_Proc[MATH Processor (TRISC1)]"
+            "MathOp[llk_math_eltwise_binary<br/>llk_math_matmul]"
+        end
+        
+        subgraph "Dest_Reg[Accumulator]"
+            "Dest[DEST[0..15]]"
+        end
+        
+        subgraph "Pack_Proc[PACK Processor (TRISC2)]"
+            "PackOp[llk_pack<br/>llk_pack_untilize]"
+        end
+        
+        "UnpackOp" --> "SrcA"
+        "UnpackOp" --> "SrcB"
+        "SrcA" --> "MathOp"
+        "SrcB" --> "MathOp"
+        "MathOp" --> "Dest"
+        "Dest" --> "PackOp"
+    end
+    
+    "CB0" --> "UnpackOp"
+    "CB1" --> "UnpackOp"
+    "PackOp" --> "CB16"
+```
+
+
 The LLK system operates on a decoupled pipeline where three distinct hardware processors (Unpack, Math, Pack) work in parallel on tile-based data. On architectures like Wormhole and Blackhole, these correspond to the TRISC0, TRISC1, and TRISC2 RISC-V processors [tt_metal/hw/inc/api/compute/compute_kernel_api.h 19-64](https://github.com/tenstorrent/tt-metal/blob/f30f8df0/tt_metal/hw/inc/api/compute/compute_kernel_api.h#L19-L64) The system is managed by the Hardware Abstraction Layer (HAL), which defines core types and processor classes.
 
 **Diagram: LLK Three-Phase Execution Model**
@@ -112,6 +158,26 @@ The LLK system operates on a decoupled pipeline where three distinct hardware pr
 * * *
 
 ## API Organization
+
+```mermaid
+graph LR
+    subgraph "LLK_API_Space[LLK API Entry Points]"
+        "CKA[compute_kernel_api.h]"
+        "DFA[dataflow_api.h]"
+    end
+
+    subgraph "Code_Entity_Space[Architecture Implementation]"
+        "BH[tt_metal/hw/ckernels/blackhole]"
+        "WH[tt_metal/hw/ckernels/wormhole_b0]"
+        "QA[tt_metal/hw/inc/internal/tt-2xx/quasar]"
+    end
+
+    "CKA" --> "BH"
+    "CKA" --> "WH"
+    "DFA" --> "QA"
+    "DFA" --> "WH"
+```
+
 
 The LLK APIs are organized into header files located in architecture-specific directories (e.g., `wormhole_b0`, `blackhole`, or `quasar`). The `compute_kernel_api.h` header acts as the primary entry point for compute kernels, conditionally including the correct math, pack, and unpack headers based on the processor type (`TRISC_MATH`, `TRISC_PACK`, `TRISC_UNPACK`) [tt_metal/hw/inc/api/compute/compute_kernel_api.h 19-64](https://github.com/tenstorrent/tt-metal/blob/f30f8df0/tt_metal/hw/inc/api/compute/compute_kernel_api.h#L19-L64)
 

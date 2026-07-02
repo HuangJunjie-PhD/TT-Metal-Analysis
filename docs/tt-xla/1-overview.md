@@ -45,6 +45,57 @@ Sources: [README.md 19-28](https://github.com/tenstorrent/tt-xla/blob/c77995f6/R
 
 ## Position in the Tenstorrent Software Stack
 
+```mermaid
+graph TB
+    subgraph "ML Frameworks"
+        JAX["JAX Models"]
+        PyTorch["PyTorch Models"]
+        vLLM["vLLM Engine"]
+    end
+    
+    subgraph "TT-XLA Frontend Layer"
+        PJRT["pjrt_plugin_tt.so<br/>PJRT Plugin"]
+        JAXPlugin["jax_plugin_tt"]
+        TorchPlugin["torch_plugin_tt<br/>xla_backend"]
+        vLLMPlugin["vllm_tt plugin<br/>TTModelRunner"]
+    end
+    
+    subgraph "Intermediate Representation"
+        StableHLO["StableHLO/SHLO<br/>Graph Representation"]
+    end
+    
+    subgraph "Compiler Layer"
+        TTMLIR["TT-MLIR Compiler<br/>TTIR → TTNN<br/>External Dependency"]
+    end
+    
+    subgraph "Runtime Layer"
+        TTMetal["TT-Metal Runtime<br/>tt-metal libraries"]
+    end
+    
+    subgraph "Hardware"
+        TTHardware["Tenstorrent Devices<br/>n150, p150, n300, llmbox"]
+    end
+    
+    JAX -->|"jit compile"| JAXPlugin
+    PyTorch -->|"torch.compile"| TorchPlugin
+    vLLM -->|"LLM inference"| vLLMPlugin
+    
+    JAXPlugin --> PJRT
+    TorchPlugin --> PJRT
+    vLLMPlugin --> PJRT
+    
+    PJRT --> StableHLO
+    StableHLO --> TTMLIR
+    TTMLIR --> TTMetal
+    TTMetal --> TTHardware
+```
+
+Sources: [README.md:19-28](), [README.md:44-51](), [docs/src/getting_started.md:1-3]()
+
+---
+```
+
+
 **Diagram: Overall System Architecture**
 
 Sources: [README.md 19-28](https://github.com/tenstorrent/tt-xla/blob/c77995f6/README.md?plain=1#L19-L28)[README.md 44-51](https://github.com/tenstorrent/tt-xla/blob/c77995f6/README.md?plain=1#L44-L51)[docs/src/getting_started.md 1-3](https://github.com/tenstorrent/tt-xla/blob/c77995f6/docs/src/getting_started.md?plain=1#L1-L3)
@@ -54,6 +105,59 @@ Sources: [README.md 19-28](https://github.com/tenstorrent/tt-xla/blob/c77995f6/R
 ## Major Subsystems
 
 ### 1. PJRT Plugin (`pjrt_plugin_tt.so`)
+
+```mermaid
+graph TB
+    subgraph "C API Entry Points"
+        CC["PJRT_Client_Create"]
+        COMP["PJRT_Client_Compile"]
+        EXEC["PJRT_LoadedExecutable_Execute"]
+        BUF["PJRT_Client_BufferFromHostBuffer"]
+    end
+
+    subgraph "Core Classes"
+        CI["ClientInstance"]
+        DEV["DeviceInstance"]
+        MEM["MemoryInstance"]
+        MB["ModuleBuilder"]
+        EI["ExecutableImage"]
+        LEI["LoadedExecutableInstance"]
+        BI["BufferInstance"]
+        PT["PjrtTensor"]
+    end
+
+    subgraph "Compilation Pipeline"
+        SHLO["StableHLO Module"]
+        TTIR["TTIR Dialect"]
+        TTNN["TTNN Dialect"]
+        FB["Flatbuffer / .so"]
+    end
+
+    CC --> CI
+    CI --> DEV
+    CI --> MEM
+    
+    COMP --> MB
+    MB --> SHLO
+    SHLO --> TTIR
+    TTIR --> TTNN
+    TTNN --> FB
+    FB --> EI
+    EI --> LEI
+    
+    EXEC --> LEI
+    
+    BUF --> BI
+    BI --> PT
+```
+
+The plugin is distributed as part of the `pjrt_plugin_tt` Python wheel, which includes the `.so` binary, TT-MLIR compiler libraries in `lib/`, and TT-Metal runtime assets in `tt-metal/`. See [PJRT Plugin System](#4.2) for implementation details.
+
+Sources: [README.md:19-28](), [docs/src/getting_started_build_from_source.md:174-187]()
+
+---
+```
+
 
 The PJRT plugin is the central hub (importance: 462.77) connecting ML frameworks to Tenstorrent hardware. Built via CMake in [CMakeLists.txt](https://github.com/tenstorrent/tt-xla/blob/c77995f6/CMakeLists.txt) it implements the PJRT C API specification and manages the complete compilation and execution lifecycle.
 
@@ -66,6 +170,62 @@ Sources: [README.md 19-28](https://github.com/tenstorrent/tt-xla/blob/c77995f6/R
 * * *
 
 ### 2. Compilation Pipeline
+
+```mermaid
+graph LR
+    subgraph "Framework Tracing"
+        USER["User Code"]
+        TRACE["JAX Tracing / PyTorch FX"]
+    end
+
+    subgraph "PJRT Interface"
+        PJRTAPI["PJRT_Client_Compile"]
+    end
+
+    subgraph "Graph Transformation"
+        PASSES["Fusion, Decompositions,<br/>Composite Ops"]
+        SHLO["StableHLO Generation"]
+    end
+
+    subgraph "TT-MLIR Multi-Stage Lowering"
+        IMPORT["MLIR Import"]
+        TTIR["TTIR Dialect<br/>ttir.rms_norm, etc."]
+        TTNN["TTNN Dialect<br/>ttnn.add, etc."]
+        CODEGEN["Code Generation"]
+    end
+
+    subgraph "Runtime Execution"
+        METAL["TT-Metal Runtime"]
+        DEVICE["TT Device"]
+    end
+
+    USER --> TRACE
+    TRACE --> PJRTAPI
+    PJRTAPI --> PASSES
+    PASSES --> SHLO
+    SHLO --> IMPORT
+    IMPORT --> TTIR
+    TTIR --> TTNN
+    TTNN --> CODEGEN
+    CODEGEN --> METAL
+    METAL --> DEVICE
+```
+
+The compilation pipeline transforms user code through multiple stages:
+
+1. **Framework tracing**: JAX's `jit` or PyTorch's `torch.compile` produces a computation graph
+2. **Graph passes**: Apply optimization passes including fusion, decompositions, and composite op formation
+3. **StableHLO**: Emit StableHLO representation with metadata
+4. **TT-MLIR lowering**: Progressive lowering through TTIR → TTNN dialects (external dependency: [tt-mlir](https://github.com/tenstorrent/tt-mlir))
+5. **Code generation**: Produce Flatbuffer binary or compiled `.so` consumed by TT-Metal
+
+Compilation behavior is controlled by `CompileOptions` including `optimization_level`, `math_fidelity`, `enable_bfp8_conversion`, and `backend` selection. For detailed treatment, see [Compilation Pipeline](#4.1).
+
+Sources: [README.md:19-28](), [tests/filecheck/rms_norm.ttir.mlir:1-2](), [tests/filecheck/add.ttnn.mlir:1-2]()
+
+---
+```
+
 
 **Diagram: Data Flow Through Compilation**
 
@@ -127,6 +287,95 @@ Sources: [README.md 19-28](https://github.com/tenstorrent/tt-xla/blob/c77995f6/R
 
 ### 4. Build System
 
+```mermaid
+graph TB
+    subgraph "Source Code"
+        SRC_COMMON["src/common/<br/>PJRT implementation"]
+        SRC_TT["src/tt/<br/>TT-specific code"]
+        INTEGRATIONS["integrations/<br/>vllm_plugin"]
+        PY_PKG["python_package/<br/>jax/torch plugins"]
+    end
+    
+    subgraph "Build Configuration"
+        ROOT_CMAKE["CMakeLists.txt<br/>Main project config"]
+        COMMON_CMAKE["src/common/CMakeLists.txt"]
+        THIRD_CMAKE["third_party/CMakeLists.txt<br/>External deps"]
+    end
+    
+    subgraph "External Dependencies"
+        TTMLIR["tt-mlir<br/>ExternalProject<br/>TT_MLIR_VERSION SHA"]
+        LOGURU["loguru<br/>Logging library"]
+        TTMETAL["tt-metal<br/>Runtime libraries"]
+    end
+    
+    subgraph "Build Artifacts"
+        PJRT_SO["pjrt_plugin_tt.so<br/>Core PJRT plugin"]
+        TTMLIR_LIB["libTTMLIRCompiler.so<br/>libTTMLIRRuntime.so"]
+        WHEEL["pjrt_plugin_tt-*.whl<br/>Distributable package"]
+    end
+    
+    ROOT_CMAKE --> COMMON_CMAKE
+    ROOT_CMAKE --> THIRD_CMAKE
+    
+    THIRD_CMAKE --> TTMLIR
+    THIRD_CMAKE --> LOGURU
+    TTMLIR --> TTMETAL
+    
+    SRC_COMMON --> COMMON_CMAKE
+    SRC_TT --> COMMON_CMAKE
+    
+    COMMON_CMAKE --> PJRT_SO
+    TTMLIR --> TTMLIR_LIB
+    
+    PJRT_SO --> WHEEL
+    TTMLIR_LIB --> WHEEL
+    LOGURU --> WHEEL
+    TTMETAL --> WHEEL
+    PY_PKG --> WHEEL
+    INTEGRATIONS --> WHEEL
+```
+
+**Build Process:**
+
+1. **CMake configuration** in [CMakeLists.txt]() defines library targets:
+   - `TTPJRTUtils` (utilities and logging)
+   - `TTPJRTApi` (PJRT C API implementation)
+   - `TTPJRTBindings` (C++ bindings)
+   - `TTPJRTTTDylib` (final `pjrt_plugin_tt.so`)
+
+2. **External dependencies**:
+   - `tt-mlir` fetched as `ExternalProject` at version pinned by `TT_MLIR_VERSION` SHA
+   - `loguru` for logging infrastructure
+   - `tt-metal` runtime automatically included via tt-mlir
+
+3. **Python wheel** built via [python_package/setup.py]():
+   ```
+   pjrt_plugin_tt/
+       pjrt_plugin_tt.so        # PJRT plugin binary
+       tt-metal/                # TT Metal runtime assets
+       lib/                     # tt-mlir and tt-metal .so files
+   jax_plugin_tt/
+       __init__.py              # JAX integration
+   torch_plugin_tt/
+       __init__.py              # PyTorch integration
+   vllm_tt/
+       platform.py              # vLLM integration
+   ```
+
+4. **CI/CD** (importance: 166.78):
+   - Docker images: base, CI, IRD variants in [.github/workflows/]()
+   - Manylinux wheel builds for portability
+   - Artifact caching by SHA for efficiency
+   - Multi-stage builds for different configurations (Release/Explorer/Debug)
+
+For complete build instructions, see [Build System](#3).
+
+Sources: [docs/src/getting_started_build_from_source.md:114-188](), [.gitignore:1-46]()
+
+---
+```
+
+
 The build system (importance: 462.77) uses CMake with external dependency management and Python wheel packaging.
 
 **Diagram: Build Dependency Chain**
@@ -174,6 +423,72 @@ Sources: [docs/src/getting_started_build_from_source.md 114-188](https://github.
 * * *
 
 ### 5. Testing Infrastructure
+
+```mermaid
+graph TB
+    subgraph "Test Definition - YAML Configs"
+        YAML["Test Config YAML<br/>torch/jax configs"]
+        MATRIX["Test Matrix JSON<br/>model-test-passing.json<br/>model-test-experimental.json"]
+        STATUS["Test Status Tracking<br/>EXPECTED_PASSING<br/>KNOWN_FAILURE_XFAIL<br/>NOT_SUPPORTED_SKIP"]
+    end
+    
+    subgraph "Test Discovery & Execution"
+        LOADER["DynamicLoader<br/>Discovers tt_forge_models"]
+        RUNNER["test_models.py<br/>test_all_models_torch<br/>test_all_models_jax"]
+        UTILS["test_utils.py<br/>ModelTestConfig<br/>record_properties"]
+    end
+    
+    subgraph "Test Infrastructure"
+        OP["OpTester<br/>Single ops"]
+        GRAPH["GraphTester<br/>Multi-op graphs"]
+        MODEL["ModelTester<br/>Full models"]
+        EVAL["Comparison<br/>PCC/ATOL checks"]
+    end
+    
+    subgraph "CI Integration"
+        GH["call-test.yml<br/>Matrix execution<br/>Parallel workers"]
+        REPORTS["Test Reports<br/>JUnit XML<br/>Performance data"]
+        DURATION[".test_durations<br/>Smart splitting"]
+    end
+    
+    YAML --> LOADER
+    MATRIX --> GH
+    STATUS --> YAML
+    
+    LOADER --> RUNNER
+    UTILS --> RUNNER
+    
+    RUNNER --> OP
+    RUNNER --> GRAPH
+    RUNNER --> MODEL
+    
+    MODEL --> EVAL
+    
+    GH --> RUNNER
+    RUNNER --> REPORTS
+    REPORTS --> DURATION
+```
+
+**Test Organization:**
+
+| Category | Location | Primary Classes |
+|---|---|---|
+| JAX ops/graphs | [tests/jax/single_chip/]() | `OpTester`, `GraphTester` |
+| JAX models | [tests/jax/models/]() | `JaxModelTester`, `DynamicJaxModelTester` |
+| PyTorch ops | [tests/torch/]() | `TorchWorkload`, `TorchDeviceRunner` |
+| Multi-chip | [tests/jax/multi_chip/n300/](), [tests/jax/multi_chip/llmbox/]() | `JaxMultichipWorkload` |
+| IR validation | [tests/filecheck/]() | `pytest.mark.filecheck` decorator |
+| vLLM sampling | [tests/vllm/]() | Sampling correctness tests (importance: 35.42) |
+
+Tests compare device outputs against CPU reference using PCC (Pearson Correlation Coefficient) and ATOL thresholds defined in YAML configs. The test matrix JSON files drive CI execution across n150, p150, n300, and llmbox hardware targets.
+
+For the complete testing framework, see [Testing Infrastructure](#6).
+
+Sources: [docs/src/getting_started_build_from_source.md:188-194](), [docs/src/test_infra.md:1-155]()
+
+---
+```
+
 
 The testing system (importance: 322.28 for test configs, 71.91 for test runner, 93.48 for CI orchestration) validates model correctness and tracks bringup status across multiple hardware configurations.
 

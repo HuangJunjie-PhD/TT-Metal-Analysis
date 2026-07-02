@@ -62,6 +62,38 @@ The compilation flow transitions through several levels of abstraction, from har
 
 ### Compilation Path Abstractions
 
+```mermaid
+graph TB
+    StableHLO["StableHLO Dialect<br/>(ML Framework Input)"]
+    TTIR["TTIR Dialect<br/>ttir.add, ttir.matmul<br/>Hardware-agnostic tensor IR"]
+    TTNN["TTNN Dialect<br/>ttnn.add, ttnn.matmul<br/>Device-specific runtime API"]
+    D2M["D2M Dialect<br/>d2m.generic, d2m.dma<br/>Device-to-Metal operations"]
+    TTKernel["TTKernel Dialect<br/>ttkernel.pack_tile<br/>Low-level kernel operations"]
+    
+    StableHLO -->|"StableHLOToTTIR"| TTIR
+    TTIR -->|"TTIRToTTNN"| TTNN
+    TTIR -->|"TTIRToD2M"| D2M
+    D2M -->|"D2MToTTKernel"| TTKernel
+    TTNN -. alternative path .-> TTKernel
+    
+    style TTIR stroke-dasharray: 5 5
+    style TTNN stroke-width:2px
+    style D2M stroke-width:2px
+    style TTKernel stroke-width:2px
+```
+
+**Dialect Abstraction Levels:**
+- **TTIR (Tenstorrent Intermediate Representation)**: A high-level, hardware-agnostic dialect for mathematical tensor operations, supporting destination-passing style (DPS) via `TTIR_DPSOp` [include/ttmlir/Dialect/TTIR/IR/TTIROps.td:24-30]().
+- **TTNN (Tenstorrent Neural Network)**: Maps directly to the `ttnn` C++ runtime library. It introduces device awareness, memory configurations (L1 vs DRAM), and sharding [include/ttmlir/Dialect/TTNN/IR/TTNNOps.td:39-49]().
+- **D2M (Data-to-Metal)**: A mid-level dialect that bridges tensors to hardware-specific memory layouts and compute grids, using `d2m.generic` regions for compute [lib/Conversion/TTIRToD2M/TTIRToD2M.cpp:9-13]().
+- **TTKernel**: The lowest level of abstraction, representing the compute and data movement operations executed directly on Tensix cores (e.g., Circular Buffer management, DST register locking) [include/ttmlir/Dialect/TTKernel/IR/TTKernelOps.td:26-40]().
+
+Sources: [include/ttmlir/Dialect/TTIR/IR/TTIROps.td:24-30](), [include/ttmlir/Dialect/TTNN/IR/TTNNOps.td:39-49](), [include/ttmlir/Dialect/TTKernel/IR/TTKernelOps.td:26-40](), [lib/Conversion/TTIRToD2M/TTIRToD2M.cpp:9-13]()
+
+---
+```
+
+
 **Dialect Abstraction Levels:**
 
 *   **TTIR (Tenstorrent Intermediate Representation)**: A high-level, hardware-agnostic dialect for mathematical tensor operations, supporting destination-passing style (DPS) via `TTIR_DPSOp`[include/ttmlir/Dialect/TTIR/IR/TTIROps.td 24-30](https://github.com/tenstorrent/tt-mlir/blob/c7d92e92/include/ttmlir/Dialect/TTIR/IR/TTIROps.td#L24-L30)
@@ -98,6 +130,33 @@ TTKernel provides hardware-level primitives for authoring kernels. It manages Ci
 All dialects leverage a common foundation defined in the `TTCore` dialect and specialized attributes.
 
 ### Mapping Code Entities to System Concepts
+
+```mermaid
+graph LR
+    subgraph "Code Entity Space"
+        DataType["ttcore::DataType<br/>(Float32, BFloat16, BFP8)"]
+        GridAttr["ttcore::GridAttr<br/>(2D core range)"]
+        MemSpace["ttcore::MemorySpace<br/>(L1, DRAM, System)"]
+        TTNNLayout["ttnn::TTNNLayoutAttr<br/>(Sharding, BufferType)"]
+        MetalLayout["ttcore::MetalLayoutAttr<br/>(Physical layout)"]
+    end
+
+    subgraph "Hardware Concept Space"
+        Tensix["Tensix Core Grid"]
+        SRAM["On-chip L1 SRAM"]
+        DRAM["Off-chip DRAM"]
+        Host["Host System Memory"]
+    end
+
+    DataType --> SRAM
+    GridAttr --> Tensix
+    MemSpace -- "DeviceL1" --> SRAM
+    MemSpace -- "DeviceDRAM" --> DRAM
+    MemSpace -- "System" --> Host
+    TTNNLayout --> MemSpace
+    MetalLayout --> GridAttr
+```
+
 
 The following diagram associates MLIR code entities (Attributes/Types) with their physical hardware and logical counterparts.
 

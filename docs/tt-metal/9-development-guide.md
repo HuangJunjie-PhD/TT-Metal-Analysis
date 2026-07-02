@@ -108,9 +108,78 @@ Then run your build or tests.
 
 ## Development Workflow Overview
 
+```mermaid
+graph TB
+    Select["1. Model Selection"]
+    Setup["2. Environment Setup"]
+    ComponentVal["3. Component Validation"]
+    Integration["4. Stage Integration"]
+    AccuracyVal["5. Accuracy Validation"]
+    PerfOpt["6. Performance Optimization"]
+    
+    Select --> Setup
+    Setup --> ComponentVal
+    ComponentVal --> Integration
+    Integration --> AccuracyVal
+    AccuracyVal --> PerfOpt
+    AccuracyVal -->|"Accuracy failures re-iterate"| ComponentVal
+    Integration -->|"Stage failures re-iterate"| ComponentVal
+    
+    ComponentVal --> RMS["DistributedNorm<br/>models/tt_transformers/tt/distributed_norm.py"]
+    ComponentVal --> Attn["Attention<br/>models/tt_transformers/tt/attention.py"]
+    ComponentVal --> MLP["TransformerBlock<br/>models/tt_transformers/tt/decoder.py"]
+    
+    Integration --> Decode["Decode Stage<br/>decode_forward function"]
+    Integration --> Prefill["Prefill Stage<br/>prefill_forward function"]
+    
+    AccuracyVal --> PCC["comp_pcc metric<br/>models/common/utility_functions.py"]
+    AccuracyVal --> TokenAccuracy["TokenAccuracy class<br/>models/tt_transformers/demo/simple_text_demo.py"]
+    
+    PerfOpt --> Trace["ttnn.trace<br/>Hardware Trace system"]
+    PerfOpt --> Prefetch["Prefetcher<br/>models/tt_transformers/tt/prefetcher.py"]
+```
+
+This flow enforces thorough validation before advancing stages, ensuring correctness, memory layout compatibility, arithmetic fidelity, and runtime performance [models/docs/model_bring_up.md:1-50](), [tech_reports/LLMs/vLLM_integration.md:27-34]().
+
+Sources:  
+[README.md:24-65](), [models/docs/model_bring_up.md:1-50](), [tech_reports/LLMs/vLLM_integration.md:27-34]()
+
+---
+```
+
+
 This section bridges the conceptual developer tasks to specific code entities and directories within the repository.
 
 ### Developer Tasks and Corresponding Code Areas
+
+```mermaid
+graph TB
+    subgraph "Developer_Tasks"
+        A[Develop Feature]
+        B[Verify Changes]
+        C[Submit Contribution]
+    end
+
+    subgraph "Code_Entities"
+        D["Kernels - tt_metal/hw/ckernels/"]
+        E["TTNN Operations - ttnn/cpp/ttnn/operations/"]
+        F["Test Scripts - tests/"]
+        G["CI Configurations - .github/workflows/"]
+        H["CODEOWNERS File - .github/CODEOWNERS"]
+    end
+
+    A --> D
+    A --> E
+    B --> F
+    B --> G
+    C --> H
+```
+
+This diagram shows how developer tasks map to specific codebase components, making it easier for new developers to locate relevant files.
+
+---
+```
+
 
 This diagram shows how developer tasks map to specific codebase components, making it easier for new developers to locate relevant files.
 
@@ -136,6 +205,39 @@ Model tests are categorized by hardware and complexity. Developers typically use
 ## Code Development Areas
 
 ### Repository Layering and Relations
+
+```mermaid
+graph LR
+    subgraph "User Layer"
+        Models["models/demos/"]
+    end
+    
+    subgraph "TTNN Operation Layer"
+        TTNNOps["ttnn/cpp/ttnn/operations/"]
+    end
+    
+    subgraph "Runtime Layer - TT-Metalium"
+        DeviceImpl["tt_metal/impl/device/device.cpp"]
+        FastDispatch["tt_metal/impl/dispatch/"]
+        LLRT["tt_metal/llrt/"]
+    end
+    
+    subgraph "Hardware Layer"
+        Firmware["tt_metal/hw/firmware/"]
+        Kernels["tt_metal/hw/ckernels/"]
+    end
+    
+    Models --> TTNNOps
+    TTNNOps --> DeviceImpl
+    DeviceImpl --> FastDispatch
+    FastDispatch --> LLRT
+    LLRT --> Firmware
+    LLRT --> Kernels
+```
+
+This shows the relationship between high-level model demos, neural network operation implementations, low-level device runtime, and hardware-specific kernels and firmware.
+```
+
 
 This shows the relationship between high-level model demos, neural network operation implementations, low-level device runtime, and hardware-specific kernels and firmware.
 
@@ -202,6 +304,47 @@ For in-depth guidance on individual topics and workflows, refer to the following
 * * *
 
 # Summary Diagram: Natural Language Concepts to Code Entities
+
+```mermaid
+graph LR
+    subgraph "Natural Language Concepts"
+        DevSetup["Development Environment Setup"]
+        KernelDev["Custom Kernel Development"]
+        TTNNOpsDev["TTNN Operations Development"]
+        MultiDevProg["Multi-Device Programming"]
+        Contribute["Contribution Process & Guidelines"]
+        ScaleOutTools["Scale-Out Tools & Cluster Mgmt"]
+        ModelTracer["Model Tracer Tool Usage"]
+    end
+
+    subgraph "Key Code Entities and Locations"
+        EnvScripts["install_dependencies.sh\
+build_metal.sh\
+CONTRIBUTING.md"]
+        KernelsDir["tt_metal/hw/ckernels/"]
+        TTNNOpsDir["ttnn/cpp/ttnn/operations/"]
+        MultiDevDocs["tt_metal/impl/device/mesh_device.cpp\
+CCL Operations"]
+        ContribDocs[".github/CODEOWNERS\
+CONTRIBUTING.md\
+tt_stl utilities"]
+        ScaleOutToolsDir["tools/scaleout/\
+cluster_validation/"]
+        ModelTracerTool["tools/model_tracer/"]
+    end
+
+    DevSetup --> EnvScripts
+    KernelDev --> KernelsDir
+    TTNNOpsDev --> TTNNOpsDir
+    MultiDevProg --> MultiDevDocs
+    Contribute --> ContribDocs
+    ScaleOutTools --> ScaleOutToolsDir
+    ModelTracer --> ModelTracerTool
+```
+
+---
+```
+
 
 * * *
 

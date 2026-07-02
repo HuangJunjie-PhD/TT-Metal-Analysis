@@ -42,6 +42,45 @@ TT-Forge functions as a meta-repository that orchestrates the development, testi
 
 ### Code Entity Space Mapping
 
+```mermaid
+graph TB
+    subgraph "TT-Forge Root Structure"
+        Root["/"]
+        
+        subgraph "Documentation & Guides"
+            CLAUDE_MD["CLAUDE.md<br/>AI Agent Instructions"]
+            README_MD["README.md<br/>Main Hub Docs"]
+            CONTRIBUTING_MD["CONTRIBUTING.md<br/>Coding Guidelines"]
+        end
+        
+        subgraph "Frontend Entry Points"
+            Demos["demos/"]
+            TTXLA_Demos["demos/tt-xla/<br/>PyTorch & JAX examples"]
+            ONNX_Demos["demos/tt-forge-onnx/<br/>ONNX & TVM examples"]
+        end
+        
+        subgraph "Testing & Benchmarking"
+            BenchDir["benchmark/"]
+            XLABench["benchmark/tt-xla/<br/>test_llms.py, test_vision.py"]
+            BasicTests["basic_tests/"]
+            XLABasic["basic_tests/tt-xla/demo_test.py"]
+        end
+        
+        subgraph "CI/CD Automation"
+            Workflows[".github/workflows/"]
+            PerfBench["perf-benchmark.yml"]
+            ClaudeWF["claude.yml"]
+            DailyRel["daily-releaser.yml"]
+        end
+        
+        Root --> Documentation
+        Root --> Demos
+        Root --> Testing
+        Root --> CI/CD
+    end
+```
+
+
 The following diagram maps high-level system components to their specific code entities and directory structures within the TT-Forge ecosystem.
 
 **Sources:**[README.md 23-32](https://github.com/tenstorrent/tt-forge/blob/6f2d9645/README.md?plain=1#L23-L32)[CLAUDE.md 15-55](https://github.com/tenstorrent/tt-forge/blob/6f2d9645/CLAUDE.md?plain=1#L15-L55)[demos/README.md 1-21](https://github.com/tenstorrent/tt-forge/blob/6f2d9645/demos/README.md?plain=1#L1-L21)
@@ -49,6 +88,50 @@ The following diagram maps high-level system components to their specific code e
 ## Software Stack Overview
 
 ### Multi-Layer Architecture
+
+```mermaid
+graph TB
+    subgraph "Framework Layer"
+        JAX["JAX"]
+        PyTorch["PyTorch"]
+        ONNX["ONNX"]
+        TF["TensorFlow"]
+    end
+    
+    subgraph "Frontend Layer"
+        TTXLA["TT-XLA<br/>(PJRT / StableHLO)"]
+        TTForgeONNX["TT-Forge-ONNX<br/>(TVM / TT-TVM)"]
+    end
+    
+    subgraph "TT-MLIR Compiler"
+        TTIR["TTIR Dialect<br/>(Common IR)"]
+        Passes["Graph Passes<br/>(Fusion, Sharding, Layout)"]
+        TTNN_IR["TTNN Dialect<br/>(High-level Ops)"]
+        TTMetal_IR["TTMetal Dialect<br/>(Low-level Kernels)"]
+    end
+    
+    subgraph "Runtime & Hardware"
+        TTMetalium["TT-Metalium<br/>(TTNN + TTMetal SDK)"]
+        Hardware["Tenstorrent Hardware<br/>(Wormhole, Blackhole)"]
+    end
+    
+    JAX --> TTXLA
+    PyTorch --> TTXLA
+    ONNX --> TTForgeONNX
+    TF --> TTForgeONNX
+    
+    TTXLA --> TTIR
+    TTForgeONNX --> TTIR
+    
+    TTIR --> Passes
+    Passes --> TTNN_IR
+    Passes --> TTMetal_IR
+    
+    TTNN_IR --> TTMetalium
+    TTMetal_IR --> TTMetalium
+    TTMetalium --> Hardware
+```
+
 
 TT-Forge implements a compiler stack architecture that lowers high-level framework code into hardware-specific instructions:
 

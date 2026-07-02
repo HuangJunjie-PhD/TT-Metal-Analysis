@@ -39,6 +39,26 @@ For deep technical details on specific integration topics, refer to the followin
 
 ### TTNN Execution Flow
 
+```mermaid
+graph TB
+    subgraph "Host_Space_(Python/PyTorch)"
+        [torch_Tensor] -- "ttnn.from_torch" --> [ttnn_Tensor]
+    end
+    
+    subgraph "TT-Lang_Compilation_Space"
+        [ttnn_Tensor] -- "TTLGenericCompiler" --> [CompiledTTNNKernel]
+    end
+    
+    subgraph "TTNN_Runtime_Space"
+        [CompiledTTNNKernel] -- "run_kernel_on_device" --> [ttnn_generic_op]
+    end
+    
+    subgraph "Hardware_Space_(Device)"
+        [ttnn_generic_op] -- "Metal_Runtime" --> [BRISC_NCRISC_TRISC]
+    end
+```
+
+
 The following diagram maps the flow from host PyTorch tensors to device execution using `tt-lang` and TTNN entities.
 
 **Diagram: Host-to-Device Execution Flow**
@@ -69,6 +89,16 @@ For details on memory setups, see **[Tensor Creation and Memory Configuration](h
 When a kernel decorated with `@ttl.kernel` is called with `ttnn.Tensor` arguments, the `tt-lang` infrastructure manages the transition from Python DSL to hardware execution.
 
 ### Compilation and Caching
+
+```mermaid
+graph LR
+    [ttl_kernel_decorator] -- "check_cache" --> [make_cache_key]
+    [make_cache_key] -- "cache_miss" --> [TTLGenericCompiler]
+    [TTLGenericCompiler] -- "returns" --> [CompiledTTNNKernel]
+    [CompiledTTNNKernel] -- "dispatch" --> [run_kernel_on_device]
+    [run_kernel_on_device] -- "post_execution" --> [run_profiling_pipeline]
+```
+
 
 The system uses a caching mechanism to avoid redundant compilations. The `_make_cache_key` function generates a key from tensor properties (shape, dtype, memory space, layout), mesh configuration, and runtime compute config parameters like `fp32_dest_acc_en`[python/ttl/ttl_api.py 133-158](https://github.com/tenstorrent/tt-lang/blob/d76e6233/python/ttl/ttl_api.py#L133-L158)
 

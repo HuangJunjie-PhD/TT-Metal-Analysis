@@ -140,6 +140,35 @@ Sources: [include/ttmlir/Dialect/TTIR/IR/TTIROps.td 24-107](https://github.com/t
 
 ### Data Flow: From Frontend to Binary
 
+```mermaid
+graph TD
+    subgraph "Natural_Language_Space"
+        Input["StableHLO Add"]
+        Intermediate["Intermediate Representation"]
+        Backend["TTNN Dialect"]
+        Output["Flatbuffer Binary"]
+    end
+
+    subgraph "Code_Entity_Space"
+        InputOp["stablehlo::AddOp"]
+        TTIROp["ttir::AddOp"]
+        TTNNOp["ttnn::AddOp"]
+        Serialize["TTNNToFlatbuffer"]
+        
+        InputOp -- "StableHLOToTTIROpDefaultConversionPattern" --> TTIROp
+        TTIROp -- "TTIRToTTNN.cpp" --> TTNNOp
+        TTNNOp -- "TTNNToFlatbuffer.cpp" --> Serialize
+    end
+
+    Input -.-> InputOp
+    Intermediate -.-> TTIROp
+    Backend -.-> TTNNOp
+    Output -.-> Serialize
+```
+Sources: [lib/Conversion/StableHLOToTTIR/StableHLOToTTIRPatterns.cpp:187-198](), [lib/Conversion/TTIRToTTNN/TTIRToTTNN.cpp:5-18](), [lib/Target/TTNN/TTNNToFlatbuffer.cpp:17-25]()
+```
+
+
 The following diagram illustrates how a high-level operation flows through the compiler stages into a serialized Flatbuffer.
 
 Title: "Compilation Pipeline Entity Mapping"
@@ -147,6 +176,34 @@ Title: "Compilation Pipeline Entity Mapping"
 Sources: [lib/Conversion/StableHLOToTTIR/StableHLOToTTIRPatterns.cpp 187-198](https://github.com/tenstorrent/tt-mlir/blob/c7d92e92/lib/Conversion/StableHLOToTTIR/StableHLOToTTIRPatterns.cpp#L187-L198)[lib/Conversion/TTIRToTTNN/TTIRToTTNN.cpp 5-18](https://github.com/tenstorrent/tt-mlir/blob/c7d92e92/lib/Conversion/TTIRToTTNN/TTIRToTTNN.cpp#L5-L18)[lib/Target/TTNN/TTNNToFlatbuffer.cpp 17-25](https://github.com/tenstorrent/tt-mlir/blob/c7d92e92/lib/Target/TTNN/TTNNToFlatbuffer.cpp#L17-L25)
 
 ### Runtime and Memory Management
+
+```mermaid
+graph LR
+    subgraph "Host_Memory"
+        UserTensor["User Data"]
+        RuntimeTensor["tt::runtime::Tensor"]
+    end
+
+    subgraph "Runtime_Logic"
+        Converter["createOwnedTTNNTensor"]
+        Executor["program_executor.cpp"]
+    end
+
+    subgraph "Device_Mesh"
+        DRAM["Device DRAM"]
+        L1["Core L1"]
+    end
+
+    UserTensor --> RuntimeTensor
+    RuntimeTensor -- "runtime/lib/ttnn/runtime.cpp" --> Converter
+    Converter -- "ttnn::to_device" --> DRAM
+    Executor -- "record_mesh_event" --> L1
+```
+Sources: [runtime/lib/ttnn/runtime.cpp:43-46](), [runtime/lib/ttnn/runtime.cpp:128-135](), [runtime/lib/ttnn/runtime.cpp:164-166]()
+
+---
+```
+
 
 This diagram shows how the Runtime system manages tensors and dispatches programs to the hardware.
 

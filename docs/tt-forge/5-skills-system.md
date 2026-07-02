@@ -26,11 +26,102 @@ The CI/CD system is built on GitHub Actions and consists of three layers: orches
 
 ### Orchestration Layer
 
+```mermaid
+graph TB
+    subgraph "Triggers"
+        Cron["Cron Trigger<br/>04:00 UTC daily"]
+        Manual["Manual Trigger<br/>workflow_dispatch"]
+    end
+    
+    subgraph "daily-releaser.yml"
+        GetRepos["get-repos<br/>Query all managed repositories"]
+        GetBranches["get-release-branches<br/>Find branches with new commits"]
+        
+        NightlyPath["Nightly Path<br/>Build from main branch"]
+        RCStablePath["RC/Stable Path<br/>Build from release branches"]
+    end
+    
+    subgraph "Version Management Workflows"
+        CreateBranch["create-version-branches.yml<br/>Create release-X.Y branch + RC1"]
+        BumpVersion["bump-version.yml<br/>Increment RC or patch version"]
+        PromoteStable["promote-stable.yml<br/>Promote RC to stable"]
+        UpdateReleases["update-releases.yml<br/>Auto-increment versions"]
+    end
+    
+    Release["release.yml<br/>Core build-test-publish pipeline"]
+    
+    Cron --> GetRepos
+    Manual --> CreateBranch
+    Manual --> BumpVersion
+    Manual --> PromoteStable
+    
+    GetRepos --> NightlyPath
+    GetRepos --> GetBranches
+    GetBranches --> RCStablePath
+    
+    RCStablePath --> UpdateReleases
+    UpdateReleases --> Release
+    NightlyPath --> Release
+    CreateBranch --> Release
+    BumpVersion --> Release
+    PromoteStable --> Release
+```
+
+
 **Sources:**[.github/workflows/daily-releaser.yml](https://github.com/tenstorrent/tt-forge/blob/6f2d9645/.github/workflows/daily-releaser.yml)[.github/workflows/release.yml](https://github.com/tenstorrent/tt-forge/blob/6f2d9645/.github/workflows/release.yml)[.github/workflows/create-version-branches.yml](https://github.com/tenstorrent/tt-forge/blob/6f2d9645/.github/workflows/create-version-branches.yml)[.github/workflows/bump-version.yml](https://github.com/tenstorrent/tt-forge/blob/6f2d9645/.github/workflows/bump-version.yml)[.github/workflows/promote-stable.yml](https://github.com/tenstorrent/tt-forge/blob/6f2d9645/.github/workflows/promote-stable.yml)[.github/workflows/update-releases.yml](https://github.com/tenstorrent/tt-forge/blob/6f2d9645/.github/workflows/update-releases.yml)
 
 The `daily-releaser.yml` workflow serves as the central orchestrator, running on a cron schedule at 04:00 UTC. It spawns two parallel paths: the nightly path builds development releases from the main branch of each repository, while the RC/Stable path checks all release branches for new commits and triggers version bumps when detected. Manual workflows provide control points for creating release branches, bumping versions, and promoting releases to stable.
 
 ### Core Release Pipeline
+
+```mermaid
+graph TB
+    subgraph "Build Phase"
+        SetFacts["set-release-facts<br/>Determine version, config"]
+        CheckExists["Check existing release<br/>Skip if exists"]
+        
+        subgraph "Artifact Creation"
+            UpliftWait["uplift-artifacts or<br/>wait-on-tt-pypi-wheels"]
+            BuildWheel["build-release-wheel<br/>Re-version Python packages"]
+            BuildDocker["docker-build-push<br/>Create container images"]
+            TTForge["tt-forge-wheel<br/>Build meta-package"]
+        end
+    end
+    
+    subgraph "Test Phase"
+        BasicTests["basic-tests.yml<br/>Smoke tests"]
+        DemoTests["demo-tests.yml<br/>Model validation"]
+        PerfTests["perf-benchmark.yml<br/>Performance regression"]
+    end
+    
+    subgraph "Publish Phase"
+        DocsGen["docs-generator<br/>Changelog + README"]
+        PyPI["publish-tenstorrent-pypi<br/>Upload to S3-backed PyPI"]
+        DockerTag["Tag latest if stable"]
+        GitTag["push-annotated-git-tag<br/>GPG signed"]
+        GHRelease["publish-github-release<br/>Create release page"]
+    end
+    
+    SetFacts --> CheckExists
+    CheckExists -->|proceed| UpliftWait
+    UpliftWait --> BuildWheel
+    BuildWheel --> BuildDocker
+    BuildWheel --> TTForge
+    
+    BuildDocker --> BasicTests
+    BuildDocker --> DemoTests
+    
+    BasicTests --> DocsGen
+    DemoTests --> DocsGen
+    
+    DocsGen --> PyPI
+    PyPI --> DockerTag
+    DockerTag --> GitTag
+    GitTag --> GHRelease
+    
+    GHRelease --> PerfTests
+```
+
 
 **Sources:**[.github/workflows/release.yml](https://github.com/tenstorrent/tt-forge/blob/6f2d9645/.github/workflows/release.yml)[.github/actions/set-release-facts/action.yaml](https://github.com/tenstorrent/tt-forge/blob/6f2d9645/.github/actions/set-release-facts/action.yaml)[.github/actions/build-release-wheel/action.yml](https://github.com/tenstorrent/tt-forge/blob/6f2d9645/.github/actions/build-release-wheel/action.yml)[.github/actions/docker-build-push/action.yml](https://github.com/tenstorrent/tt-forge/blob/6f2d9645/.github/actions/docker-build-push/action.yml)
 
@@ -63,11 +154,122 @@ The `set-release-facts` action serves as the central configuration authority for
 
 ### Configuration Resolution Flow
 
+```mermaid
+graph TB
+    Input["Inputs:<br/>repo, release_type, draft,<br/>new_version_tag, branch"]
+    
+    ReadVersion["Read .version file<br/>Extract MAJOR, MINOR"]
+    
+    AllDefaults["Set All Repo Defaults<br/>workflow_allow_failed=false<br/>prerelease=true<br/>make_latest=false"]
+    
+    TypeDefaults["Apply Release Type Defaults"]
+    
+    subgraph "Release Type Logic"
+        Stable["stable:<br/>prerelease=false<br/>make_latest=true"]
+        Nightly["nightly:<br/>new_version_tag=X.Y.Z.devYYYYMMDD<br/>workflow_allow_failed=true<br/>build_release_find_workflow_branch=main"]
+        RC["rc:<br/>Use all repo defaults"]
+    end
+    
+    RepoSpecific["Apply Repo-Specific Config"]
+    
+    subgraph "Repository Configs"
+        ForgeFE["tt-forge-fe:<br/>workflow=On nightly<br/>pip_wheel_names=tt_forge_fe tt_tvm<br/>artifact_download_glob=*wheel*"]
+        
+        MLIR["tt-mlir:<br/>workflow=schedule-nightly.yml<br/>pip_wheel_names=ttmlir<br/>skip_docker_build=true"]
+        
+        XLA["tt-xla:<br/>workflow=On nightly<br/>pip_wheel_names=pjrt-plugin-tt<br/>test_perf=true<br/>uplift_artifacts_by_commit=true"]
+        
+        Forge["tt-forge:<br/>workflow=Daily Releaser<br/>pip_wheel_deps_names=pjrt-plugin-tt<br/>skip_model_compatible_table=true"]
+    end
+    
+    DraftOverrides["Apply Draft Mode Overrides<br/>test_demo_filter=bge_m3<br/>test_perf_filter=resnet<br/>basic_tests_runner_filter=n150"]
+    
+    Outputs["Outputs:<br/>new_version_tag, gh_new_version_tag,<br/>pip_wheel_names, workflow,<br/>artifact_download_glob, prerelease,<br/>make_latest, skip_docker_build,<br/>test_demo_filter, test_perf, etc."]
+    
+    Input --> ReadVersion
+    ReadVersion --> AllDefaults
+    AllDefaults --> TypeDefaults
+    TypeDefaults --> Stable
+    TypeDefaults --> Nightly
+    TypeDefaults --> RC
+    Stable --> RepoSpecific
+    Nightly --> RepoSpecific
+    RC --> RepoSpecific
+    RepoSpecific --> ForgeFE
+    RepoSpecific --> MLIR
+    RepoSpecific --> XLA
+    RepoSpecific --> Forge
+    ForgeFE --> DraftOverrides
+    MLIR --> DraftOverrides
+    XLA --> DraftOverrides
+    Forge --> DraftOverrides
+    DraftOverrides --> Outputs
+```
+
+
 **Sources:**[.github/actions/set-release-facts/action.yaml](https://github.com/tenstorrent/tt-forge/blob/6f2d9645/.github/actions/set-release-facts/action.yaml)
 
 The action implements a layered configuration system: it reads the `.version` file to get the major and minor version numbers, applies all-repo defaults, applies release-type-specific defaults based on the `release_type` input, applies repository-specific configuration based on the `repo` input, and finally applies draft mode overrides if `draft=true`. Each layer can override values from previous layers.
 
 ## Multi-Repository Artifact Flow
+
+```mermaid
+graph TB
+    subgraph "Independent Build Repos"
+        XLARepo["tenstorrent/tt-xla"]
+        MLIRRepo["tenstorrent/tt-mlir"]
+        FERepo["tenstorrent/tt-forge-fe"]
+    end
+    
+    subgraph "Build Workflows"
+        XLAWorkflow["On push workflow<br/>Builds pjrt-plugin-tt"]
+        MLIRWorkflow["schedule-nightly.yml<br/>Builds ttmlir"]
+        FEWorkflow["On nightly workflow<br/>Builds tt_forge_fe, tt_tvm"]
+    end
+    
+    subgraph "GitHub Artifacts"
+        XLAArtifacts["xla-whl-release artifacts"]
+        MLIRArtifacts["ttmlir-wheel artifacts"]
+        FEArtifacts["wheel artifacts"]
+    end
+    
+    subgraph "Artifact Uplift"
+        UpliftXLA["uplift-artifacts<br/>by commit or run-id"]
+        UpliftMLIR["uplift-artifacts<br/>by commit or run-id"]
+        UpliftFE["uplift-artifacts<br/>by commit or run-id"]
+    end
+    
+    TTAPI["tt-pypi.eng.aws.tenstorrent.com<br/>S3-backed PyPI server"]
+    
+    subgraph "tt-forge Meta-package Build"
+        ForgeRepo["tenstorrent/tt-forge"]
+        WaitScript["wait-on-tt-pypi-wheels.sh<br/>Poll for pjrt-plugin-tt"]
+        TemplateSetup["template-setup.py<br/>Inject version + dependency"]
+        BuildForge["Build tt-forge wheel<br/>with direct URL dependency"]
+    end
+    
+    XLARepo --> XLAWorkflow
+    MLIRRepo --> MLIRWorkflow
+    FERepo --> FEWorkflow
+    
+    XLAWorkflow --> XLAArtifacts
+    MLIRWorkflow --> MLIRArtifacts
+    FEWorkflow --> FEArtifacts
+    
+    XLAArtifacts --> UpliftXLA
+    MLIRArtifacts --> UpliftMLIR
+    FEArtifacts --> UpliftFE
+    
+    UpliftXLA --> TTAPI
+    UpliftMLIR --> TTAPI
+    UpliftFE --> TTAPI
+    
+    TTAPI --> WaitScript
+    WaitScript -->|All deps available| TemplateSetup
+    TemplateSetup --> BuildForge
+    BuildForge --> TTAPI
+```
+
 
 The release system coordinates artifact dependencies across four repositories: tt-xla, tt-mlir, tt-forge-fe, and tt-forge.
 
@@ -101,6 +303,48 @@ The repository automates the uplift of internal dependencies. For example, the `
 After artifacts are built and tested, the system generates documentation and publishes through multiple channels.
 
 ### Publication Channels
+
+```mermaid
+graph TB
+    Artifacts["Release Artifacts<br/>Wheels, Docker images, docs"]
+    
+    subgraph "publish-tenstorrent-pypi"
+        AssumeRole["Assume AWS IAM role"]
+        UploadS3["Upload wheels to S3 bucket"]
+        VerifyIndex["Verify wheels in PyPI index"]
+    end
+    
+    subgraph "push-annotated-git-tag"
+        SignTag["Create GPG-signed tag"]
+        PushTag["Push tag to repository"]
+    end
+    
+    subgraph "publish-github-release"
+        UploadAssets["Upload artifact files"]
+        SetMetadata["Set release metadata<br/>prerelease, latest, draft"]
+        CreateRelease["Create GitHub release page"]
+    end
+    
+    TTAPI2["tt-pypi.eng.aws.tenstorrent.com<br/>Users: pip install"]
+    
+    GHCR2["GitHub Container Registry<br/>Users: docker pull"]
+    
+    GHRelease["GitHub Releases<br/>Users: Download archives"]
+    
+    Artifacts --> AssumeRole
+    AssumeRole --> UploadS3
+    UploadS3 --> VerifyIndex
+    VerifyIndex --> TTAPI2
+    
+    Artifacts --> SignTag
+    SignTag --> PushTag
+    
+    Artifacts --> UploadAssets
+    UploadAssets --> SetMetadata
+    SetMetadata --> CreateRelease
+    CreateRelease --> GHRelease
+```
+
 
 **Sources:**[.github/actions/publish-tenstorrent-pypi/action.yml](https://github.com/tenstorrent/tt-forge/blob/6f2d9645/.github/actions/publish-tenstorrent-pypi/action.yml)[.github/actions/push-annotated-git-tag/action.yml](https://github.com/tenstorrent/tt-forge/blob/6f2d9645/.github/actions/push-annotated-git-tag/action.yml)[.github/actions/publish-github-release/action.yml](https://github.com/tenstorrent/tt-forge/blob/6f2d9645/.github/actions/publish-github-release/action.yml)
 

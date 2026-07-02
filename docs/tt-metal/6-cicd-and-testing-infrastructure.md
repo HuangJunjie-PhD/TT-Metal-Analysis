@@ -129,6 +129,55 @@ The CI/CD system uses a hub-and-spoke architecture where orchestrator workflows 
 
 ### CI/CD Workflow Hierarchy
 
+```mermaid
+graph TD
+    subgraph "Entry Points (Orchestrators)"
+        PR["pr-gate.yaml<br/>(pull_request)"]
+        MQ["merge-gate.yaml<br/>(merge_group)"]
+        Nightly["tt-metal-l2-nightly.yaml<br/>(Scheduled)"]
+    end
+    
+    subgraph "Build & Docker Layer"
+        DockerBuild["build-docker-artifact.yaml<br/>(Docker Multi-stage)"]
+        ArtBuild["build-artifact.yaml<br/>(CMake + ccache)"]
+    end
+    
+    subgraph "Test Implementation Layer"
+        SmokeTests["smoke.yaml<br/>(Validation Smoke)"]
+        T3K_Impl["t3000-demo-tests-impl.yaml<br/>(T3000 Demos)"]
+        BH_Impl["blackhole-post-commit.yaml<br/>(Blackhole Tests)"]
+        TTSim["ttsim.yaml<br/>(Simulator Integration)"]
+        PerfModels["perf-device-models-impl.yaml<br/>(Perf Regressions)"]
+        NightlyFD["fast-dispatch-full-regressions-and-models-impl.yaml<br/>(Nightly FD)"]
+    end
+    
+    PR --> DockerBuild
+    MQ --> DockerBuild
+    Nightly --> DockerBuild
+    
+    DockerBuild --> ArtBuild
+    
+    ArtBuild --> SmokeTests
+    ArtBuild --> T3K_Impl
+    ArtBuild --> BH_Impl
+    ArtBuild --> TTSim
+    ArtBuild --> PerfModels
+    ArtBuild --> NightlyFD
+```
+
+**Key architectural patterns:**
+1. **Build Once, Test Many**: Docker images are built once in `build-docker-images` and passed to multiple build/test jobs via tags [.github/workflows/pr-gate.yaml:89-105]().
+2. **Progressive Validation**: The `PR Gate` provides fast feedback (<5 mins) [.github/workflows/pr-gate.yaml:9](), while the `Merge Gate` runs more intensive checks like `TSan` [.github/workflows/merge-gate.yaml:137-153]().
+3. **Hardware-Specific Runners**: Self-hosted runners are selected based on SKU requirements, such as `tt-ubuntu-2204-n300-stable` or `tt-ubuntu-2204-p150b-stable` [.github/workflows/perf-device-models-impl.yaml:144-146]().
+
+Sources: [.github/workflows/pr-gate.yaml:89-125](), [.github/workflows/merge-gate.yaml:137-160](), [.github/workflows/perf-device-models-impl.yaml:142-147]()
+
+For details, see [CI/CD Architecture Overview](#6.1).
+
+---
+```
+
+
 Title: CI/CD Workflow Orchestration
 
 **Key architectural patterns:**
@@ -183,6 +232,37 @@ Tests are organized into categories with dedicated execution scripts and pattern
 *   **Simulator Integration**: Validates software changes against `TTSim` to ensure compatibility without requiring physical hardware [.github/workflows/ttsim.yaml 39-146](https://github.com/tenstorrent/tt-metal/blob/f30f8df0/.github/workflows/ttsim.yaml#L39-L146)
 
 ### Test Entity Mapping
+
+```mermaid
+graph LR
+    subgraph "Test Execution Scripts"
+        T3K_SH["run_t3000_unit_tests.sh"]
+        DEMO_SH["run_single_card_demo_tests.sh"]
+    end
+
+    subgraph "C++ Test Binaries"
+        DIST_UNIT["distributed_unit_tests"]
+        TTNN_UNIT["unit_tests_ttnn"]
+    end
+
+    subgraph "Python Model Demos"
+        RESNET_PY["models/demos/vision/.../demo.py"]
+        BERT_PY["models/demos/metal_BERT_large_11/demo/demo.py"]
+    end
+
+    T3K_SH --> DIST_UNIT
+    T3K_SH --> TTNN_UNIT
+    DEMO_SH --> RESNET_PY
+    DEMO_SH --> BERT_PY
+```
+
+Sources: [.github/workflows/smoke.yaml:1-50](), [tests/scripts/t3000/run_t3000_unit_tests.sh:12-117](), [.github/workflows/single-card-demo-tests-impl.yaml:40-89](), [tests/scripts/single_card/run_single_card_demo_tests.sh:110-114]()
+
+For details, see [Test Suite Organization and Execution](#6.4).
+
+---
+```
+
 
 Title: Mapping Test Scripts to Code Entities
 

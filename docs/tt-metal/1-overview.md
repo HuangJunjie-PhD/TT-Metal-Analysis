@@ -132,6 +132,72 @@ TT-NN provides the high-level interface for model developers:
 
 ### High-Level Stack Diagram
 
+```mermaid
+graph TD
+    subgraph "User_Space"
+        PyAPI["Python API<br/>'import ttnn'<br/>'import tt_metal'"]
+        Models["Model Demos<br/>'models/demos/'<br/>Llama, Qwen, DeepSeek"]
+    end
+    
+    subgraph "TT-NN_Library_Layer"
+        TensorOps["Tensor Operations<br/>'ttnn::matmul'<br/>'ttnn::conv2d'"]
+        CCL["Collective Communication<br/>'all_gather', 'reduce_scatter'"]
+    end
+    
+    subgraph "TT-Metalium_Core_Runtime"
+        ProgramMgmt["Program Management<br/>'tt::tt_metal::Program'<br/>'tt::tt_metal::Kernel'"]
+        DeviceMgmt["Device Abstraction<br/>'IDevice', 'Device', 'MeshDevice'"]
+        MemMgmt["Memory Management<br/>'Allocator'"]
+        CommandQueue["Command Queue<br/>'HWCommandQueue'<br/>'FastDispatch'"]
+    end
+    
+    subgraph "Low-Level_Runtime_(LLRT)"
+        ClusterMgmt["Cluster Management<br/>'tt::Cluster'<br/>'tt::umd::Cluster'"]
+        FabricCP["Fabric Control Plane<br/>'tt::tt_fabric::ControlPlane'"]
+        JITBuild["JIT Build System<br/>'tt::tt_metal::JitBuildEnv'<br/>'tt::tt_metal::BuildEnvManager'"]
+        HAL["Hardware Abstraction<br/>'tt::tt_metal::Hal'"]
+    end
+    
+    subgraph "Hardware_&_Driver"
+        UMD["UMD Driver<br/>'tt::umd::Cluster'"]
+        Firmware["Device Firmware<br/>'BRISC', 'NCRISC', 'TRISC', 'ERISC'"]
+    end
+    
+    PyAPI --> Models
+    Models --> TensorOps
+    TensorOps --> ProgramMgmt
+    CCL --> ProgramMgmt
+    
+    ProgramMgmt --> DeviceMgmt
+    ProgramMgmt --> MemMgmt
+    DeviceMgmt --> CommandQueue
+    
+    CommandQueue --> ClusterMgmt
+    DeviceMgmt --> FabricCP
+    ProgramMgmt --> JITBuild
+    ClusterMgmt --> HAL
+    
+    JITBuild --> UMD
+    HAL --> UMD
+    FabricCP --> UMD
+    ClusterMgmt --> UMD
+    UMD --> Firmware
+```
+
+**Architecture Summary**
+
+The stack is strictly layered to provide both high-level productivity and low-level performance:
+
+| Layer | Purpose | Key Code Entities |
+|-------|---------|-------------------|
+| **User Space** | Model implementation | `models/demos/` [README.md:18]() |
+| **TT-NN Library** | High-level primitives | `ttnn` [README.md:14]() |
+| **TT-Metalium** | Programming model | `tt_metal` |
+| **LLRT** | HW Abstraction | `llrt` |
+| **Hardware** | Execution | `umd`, `Firmware` |
+```
+
+
 **Architecture Summary**
 
 The stack is strictly layered to provide both high-level productivity and low-level performance:
@@ -151,6 +217,45 @@ The stack is strictly layered to provide both high-level productivity and low-le
 ## Core Runtime Flow
 
 ### Component Initialization and Execution
+
+```mermaid
+graph LR
+    subgraph "Initialization"
+        MetalCtx["'tt::tt_metal::MetalContext' Singleton"]
+        MetalEnv["'tt::tt_metal::MetalEnv' / 'tt::llrt::RunTimeOptions'"]
+        HalInit["'tt::tt_metal::Hal' Initialization"]
+    end
+    
+    subgraph "Device_Setup"
+        DevMgr["'tt::tt_metal::DeviceManager'"]
+        DevObj["'tt::tt_metal::Device' / 'tt::tt_metal::distributed::MeshDevice'"]
+        Alloc["'tt::tt_metal::Allocator' System"]
+    end
+    
+    subgraph "Execution"
+        Prog["'tt::tt_metal::Program'"]
+        Kern["'tt::tt_metal::Kernel'"]
+        CQ["'tt::tt_metal::HWCommandQueue'"]
+    end
+    
+    MetalCtx --> MetalEnv
+    MetalEnv --> HalInit
+    MetalCtx --> DevMgr
+    DevMgr --> DevObj
+    DevObj --> Alloc
+    
+    Prog --> Kern
+    Kern --> CQ
+    CQ --> DevObj
+```
+
+**Component Responsibilities**
+
+- **MetalContext**: Manages global state, including `DeviceManager` and `Cluster` discovery. The `MetalContext::instance()` method provides access to the singleton. [tt_metal/impl/context/metal_context.hpp:65]()
+- **JIT Build System**: Configures the compiler toolchain, including the RISC-V SFPI compiler path (`riscv-tt-elf-g++`). This is handled by `JitBuildEnv::init`. [tt_metal/jit_build/build.cpp:125-140]()
+- **HAL**: Provides architecture-specific memory maps and core configurations for Tensix and Ethernet cores. The `Hal` object is accessed via `MetalContext::hal()`. [tt_metal/impl/context/metal_context.hpp:88]()
+```
+
 
 **Component Responsibilities**
 

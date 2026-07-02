@@ -82,6 +82,47 @@ This page covers the runtime system architecture, initialization flows, and core
 
 ## System Architecture
 
+```mermaid
+graph TB
+    subgraph "Application Layer"
+        UserCode["User Application<br/>(Python/C++)"]
+    end
+    
+    subgraph "TT-Metal Core Runtime"
+        MetalContext["MetalContext<br/>• Singleton instance<br/>• Manages global state<br/>• Coordinates subsystems"]
+        DeviceManager["DeviceManager<br/>• Device lifecycle<br/>• Active device tracking<br/>• Initialization/teardown"]
+        Program["Program<br/>• Kernel compilation<br/>• Binary management<br/>• Execution scheduling"]
+        HWCommandQueue["HWCommandQueue<br/>• Fast dispatch<br/>• Command buffer<br/>• Device communication"]
+    end
+    
+    subgraph "Low-Level Runtime (LLRT)"
+        Cluster["tt::Cluster<br/>• Device discovery<br/>• SOC descriptors<br/>• Memory topology"]
+        ControlPlane["tt_fabric::ControlPlane<br/>• Multi-device routing<br/>• Fabric topology<br/>• Mesh coordination"]
+        JitBuildEnv["JitBuildEnv<br/>• Compiler toolchain<br/>• Build cache<br/>• Binary generation"]
+    end
+    
+    subgraph "Hardware Abstraction Layer"
+        HAL["Hal<br/>• Architecture-specific<br/>• Memory maps<br/>• Core types"]
+        UMD["UMD Driver<br/>• Device I/O<br/>• NOC access<br/>• Firmware upload"]
+    end
+    
+    UserCode --> MetalContext
+    MetalContext --> DeviceManager
+    MetalContext --> Program
+    MetalContext --> HWCommandQueue
+    MetalContext --> Cluster
+    MetalContext --> ControlPlane
+    
+    DeviceManager --> Cluster
+    Program --> JitBuildEnv
+    HWCommandQueue --> UMD
+    
+    Cluster --> HAL
+    Cluster --> UMD
+    JitBuildEnv --> HAL
+```
+
+
 The Core Runtime System consists of several layers that abstract hardware and provide execution primitives:
 
 Title: TT-Metalium Architecture Layers
@@ -89,6 +130,31 @@ Title: TT-Metalium Architecture Layers
 **Sources**: [tt_metal/impl/context/metal_context.cpp 137-149](https://github.com/tenstorrent/tt-metal/blob/f30f8df0/tt_metal/impl/context/metal_context.cpp#L137-L149)[tt_metal/impl/device/device.cpp 77-94](https://github.com/tenstorrent/tt-metal/blob/f30f8df0/tt_metal/impl/device/device.cpp#L77-L94)
 
 ## MetalContext: Global Runtime State
+
+```mermaid
+graph LR
+    subgraph "MetalContext Lifecycle"
+        Create["MetalContext::instance()<br/>• Creates singleton<br/>• Initializes MetalEnv<br/>• Registers handlers"]
+        Init["initialize()<br/>• HAL initialization<br/>• Dispatch core config<br/>• Firmware compilation<br/>• Debug tools setup"]
+        Teardown["teardown()<br/>• Cleanup firmware<br/>• Reset debug tools<br/>• Free resources"]
+    end
+    
+    Create --> Init
+    Init --> Teardown
+    
+    subgraph "Managed Subsystems"
+        HAL_Ref["hal()<br/>• Architecture abstraction<br/>• Memory layouts<br/>• Core types"]
+        Cluster_Ref["get_cluster()<br/>• Device topology<br/>• SOC descriptors<br/>• UMD driver access"]
+        DispatchMgr["get_dispatch_core_manager()<br/>• Core allocation<br/>• Dispatch topology"]
+        ControlPlaneRef["get_control_plane()<br/>• Fabric routing<br/>• Multi-device mesh"]
+    end
+    
+    Init --> HAL_Ref
+    Init --> Cluster_Ref
+    Init --> DispatchMgr
+    Init --> ControlPlaneRef
+```
+
 
 `MetalContext` is the singleton that manages all global runtime state and coordinates subsystems. Applications interact with the runtime through this context. It handles the transition from a "Cluster-aware" state to a "Dispatch-ready" state. For details, see [MetalContext and System Initialization](https://deepwiki.com/tenstorrent/tt-metal/2.1-metalcontext-and-system-initialization).
 
@@ -141,6 +207,24 @@ Title: JIT Compilation Pipeline
 Fast Dispatch uses dedicated dispatch cores (prefetcher and dispatcher) to process commands from the host. `HWCommandQueue` manages the host-device command queue interface. For details, see [Fast Dispatch and Command Queue System](https://deepwiki.com/tenstorrent/tt-metal/2.5-fast-dispatch-and-command-queue-system).
 
 ### Command Queue Architecture
+
+```mermaid
+graph TB
+    subgraph "Host Side"
+        SysMem["SystemMemoryManager<br/>• Issue queue<br/>• Completion queue"]
+        HWCmdQ["HWCommandQueue<br/>• EnqueueWriteBuffer<br/>• EnqueueProgram"]
+    end
+    
+    subgraph "Device Side"
+        Prefetch["PREFETCH_HD<br/>• Read commands from host"]
+        Dispatch["DISPATCH_HD<br/>• Decode commands<br/>• Write to workers"]
+    end
+    
+    HWCmdQ -->|"DMA"| Prefetch
+    Prefetch --> Dispatch
+    Dispatch -->|"NOC"| Workers["Worker Cores"]
+```
+
 
 Title: Fast Dispatch Topology
 

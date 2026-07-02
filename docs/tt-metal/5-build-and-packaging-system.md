@@ -85,6 +85,31 @@ The build system is structured around CMake as the primary build generator, with
 
 ### Build System Architecture
 
+```mermaid
+graph TB
+    subgraph "Host_Build_Logic"
+        Root_CMake["CMakeLists.txt (Root)"]
+        Metal_Common["metal_common_libs (Interface)"]
+    end
+
+    subgraph "CI_Automation"
+        Build_Artifact["build-artifact.yaml"]
+        Code_Analysis["code-analysis.yaml"]
+    end
+
+    subgraph "Docker_Infrastructure"
+        Bake["docker-bake.hcl"]
+        DF["Dockerfile"]
+    end
+
+    Root_CMake --> Metal_Common
+    Build_Artifact --> Root_CMake
+    Code_Analysis --> Build_Artifact
+    Build_Artifact --> Bake
+    Bake --> DF
+```
+
+
 **Sources:**[CMakeLists.txt 1-180](https://github.com/tenstorrent/tt-metal/blob/f30f8df0/CMakeLists.txt#L1-L180)[tt_metal/CMakeLists.txt 5-217](https://github.com/tenstorrent/tt-metal/blob/f30f8df0/tt_metal/CMakeLists.txt#L5-L217)[build_metal.sh 1-200](https://github.com/tenstorrent/tt-metal/blob/f30f8df0/build_metal.sh#L1-L200)[tt_metal/hw/CMakeLists.txt 123](https://github.com/tenstorrent/tt-metal/blob/f30f8df0/tt_metal/hw/CMakeLists.txt#L123-L123)[dockerfile/Dockerfile 136](https://github.com/tenstorrent/tt-metal/blob/f30f8df0/dockerfile/Dockerfile#L136-L136)[CMakeLists.txt 115](https://github.com/tenstorrent/tt-metal/blob/f30f8df0/CMakeLists.txt#L115-L115)
 
 * * *

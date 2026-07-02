@@ -251,6 +251,24 @@ Concepts related to how code is compiled for and executed on the Tenstorrent Ten
 
 ### Kernel Compilation and Caching Workflow
 
+```mermaid
+graph TD
+    subgraph "Natural Language Space"
+        A["Request: 'Compile my kernel'"]
+        B["Query: 'Is kernel cached?'"]
+    end
+
+    subgraph "Code Entity Space"
+        A --> C["JitBuildEnv::init() [build.cpp]"]
+        C --> D["KernelCompileDescriptor [program.cpp]"]
+        D --> E{"RemoteCompileCoordinator::get_binaries() [program.cpp]"}
+        E -- "Cache Miss" --> F["generate_kernel_source_files() [program.cpp]"]
+        F --> G["riscv-tt-elf-g++ (SFPI Toolchain)"]
+        E -- "Cache Hit" --> H["Load cached kernel binaries"]
+    end
+```
+
+
 **Sources:**[tt_metal/impl/program/program.cpp 156-185](https://github.com/tenstorrent/tt-metal/blob/f30f8df0/tt_metal/impl/program/program.cpp#L156-L185)[tt_metal/jit_build/build.cpp 58-140](https://github.com/tenstorrent/tt-metal/blob/f30f8df0/tt_metal/jit_build/build.cpp#L58-L140)
 
 * * *
@@ -281,6 +299,26 @@ Technical terms relating to runtime debugging and profiling subsystems available
 | **Inspector** | A system that captures detailed snapshots of device states and runtime information for post-mortem debugging and detailed analysis. | [tt_metal/impl/context/metal_context.cpp 34](https://github.com/tenstorrent/tt-metal/blob/f30f8df0/tt_metal/impl/context/metal_context.cpp#L34-L34) |
 
 ### Debug Infrastructure Mapping
+
+```mermaid
+graph LR
+    subgraph "Developer Intent"
+        Log["'Want kernel debug output (DPRINT)'"]
+        Hang["'Why is device hanging?'"]
+        Perf["'Identify performance bottlenecks'"]
+    end
+
+    subgraph "Implementation Components"
+        Log --> DP["DPrintServer [metal_context.cpp]"]
+        Hang --> WS["WatcherServer [metal_context.cpp]"]
+        Perf --> TR["Tracy Profiler [metal_context.cpp]"]
+        
+        DP --> MC_INIT["Managed by MetalContext::initialize()"]
+        WS --> MC_INIT
+        TR --> MC_INIT
+    end
+```
+
 
 **Sources:**[tt_metal/impl/context/metal_context.cpp 17-43](https://github.com/tenstorrent/tt-metal/blob/f30f8df0/tt_metal/impl/context/metal_context.cpp#L17-L43)[tt_metal/jit_build/build.cpp 58-140](https://github.com/tenstorrent/tt-metal/blob/f30f8df0/tt_metal/jit_build/build.cpp#L58-L140)
 

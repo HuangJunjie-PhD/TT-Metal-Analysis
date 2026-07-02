@@ -54,6 +54,30 @@ The runtime supports both local execution and distributed multi-process coordina
 
 ## Library Organization
 
+```mermaid
+graph TB
+    subgraph ["TTMLIRRuntime.so"]
+        RT_CPP_FILE["runtime/lib/runtime.cpp"] -- "DISPATCH_TO_CURRENT_RUNTIME" --> RT_CPP["TTMLIRRuntime"]
+    end
+    subgraph ["TTRuntimeTTNN.a"]
+        TTNN_RT_FILE["runtime/lib/ttnn/runtime.cpp"] --> TTNN_RT["tt::runtime::ttnn"]
+        TTNN_EXEC_FILE["runtime/lib/ttnn/program_executor.cpp"] --> TTNN_EXEC["ProgramExecutor::ProgramExecutor"]
+    end
+    subgraph ["TTRuntimeTTMetal.a"]
+        METAL_RT_FILE["runtime/lib/ttmetal/runtime.cpp"] --> METAL_RT["tt::runtime::ttmetal"]
+    end
+    subgraph ["Common Utilities"]
+        BINARY_FILE["runtime/lib/binary.cpp"] --> BINARY["TTBinary"]
+        CTX_FILE["runtime/include/tt/runtime/detail/common/runtime_context.h"] --> CTX["RuntimeContext"]
+    end
+    RT_CPP --> TTNN_RT
+    RT_CPP --> METAL_RT
+    TTNN_RT --> TTNN_EXEC
+    RT_CPP --> BINARY
+    RT_CPP --> CTX
+```
+
+
 The runtime is built as a shared library (`TTMLIRRuntime`) that links in backend-specific static libraries. Presence of each backend is gated by CMake flags such as `TT_RUNTIME_ENABLE_TTNN` and `TT_RUNTIME_ENABLE_TTMETAL`[runtime/lib/runtime.cpp 17-47](https://github.com/tenstorrent/tt-mlir/blob/c7d92e92/runtime/lib/runtime.cpp#L17-L47)[runtime/lib/CMakeLists.txt 1-54](https://github.com/tenstorrent/tt-mlir/blob/c7d92e92/runtime/lib/CMakeLists.txt#L1-L54)
 
 | CMake Target | Source Location | Description |
@@ -73,6 +97,15 @@ The runtime is built as a shared library (`TTMLIRRuntime`) that links in backend
 The runtime decouples the public API from backend implementations using a dispatch layer. The system tracks both `HostRuntime` (Local vs Distributed) and `DeviceRuntime` (TTNN vs TTMetal) [runtime/lib/runtime.cpp 71-90](https://github.com/tenstorrent/tt-mlir/blob/c7d92e92/runtime/lib/runtime.cpp#L71-L90)
 
 ### Backend Runtime Selection
+
+```mermaid
+graph LR
+    API["Public API<br/>'createOwnedHostTensor'"] --> DISPATCH["'DISPATCH_TO_CURRENT_RUNTIME'"]
+    DISPATCH --> |"DeviceRuntime::TTNN"| TTNN_IMPL["'tt::runtime::ttnn::createOwnedHostTensor'"]
+    DISPATCH --> |"DeviceRuntime::TTMetal"| METAL_IMPL["'tt::runtime::ttmetal::createOwnedHostTensor'"]
+    DISPATCH --> |"HostRuntime::Distributed"| DIST_IMPL["'tt::runtime::distributed'"]
+```
+
 
 Selection occurs through three primary mechanisms:
 
@@ -106,6 +139,21 @@ Tensors are managed as type-erased handles (`tt::runtime::Tensor`) that wrap bac
 **Sources:**[runtime/lib/ttnn/runtime.cpp 43-170](https://github.com/tenstorrent/tt-mlir/blob/c7d92e92/runtime/lib/ttnn/runtime.cpp#L43-L170)[runtime/lib/ttmetal/runtime.cpp 130-147](https://github.com/tenstorrent/tt-mlir/blob/c7d92e92/runtime/lib/ttmetal/runtime.cpp#L130-L147)[runtime/include/tt/runtime/runtime.h 55-102](https://github.com/tenstorrent/tt-mlir/blob/c7d92e92/runtime/include/tt/runtime/runtime.h#L55-L102)
 
 ## Program Execution and Binary Loading
+
+```mermaid
+graph TB
+    subgraph ["Execution Pipeline"]
+        LOAD["'Binary' constructor"] --> SUBMIT["'tt::runtime::submit'"]
+        SUBMIT --> EXEC["'tt::runtime::ttnn::submit'"]
+        EXEC --> PROG_EXEC["'ProgramExecutor'"]
+        PROG_EXEC --> OP_DISPATCH["'ttnn::operations' handlers"]
+    end
+    subgraph ["Data Context"]
+        INPUTS["'getProgramInputs'"] --> EXEC
+        BIN_ID["'Binary::id'"] --> EXEC
+    end
+```
+
 
 Programs are executed by loading a `Binary` Flatbuffer and submitting it to the active device.
 

@@ -43,6 +43,30 @@ This page provides a high-level system overview. For detailed information, see: 
 
 ## Purpose and Position in the Ecosystem
 
+```mermaid
+graph TB
+    subgraph "Natural Language Space"
+        ["High-Level Ops"]
+        ["Custom Fused Kernels"]
+        ["Hardware Primitives"]
+    end
+
+    subgraph "Code Entity Space"
+        ["TT-NN"]
+        ["tt-lang"]
+        ["TT-Metalium"]
+    end
+    
+    ["High-Level Ops"] --- ["TT-NN"]
+    ["Custom Fused Kernels"] --- ["tt-lang"]
+    ["Hardware Primitives"] --- ["TT-Metalium"]
+
+    ["TT-NN"] -->|"Fusion / Custom Patterns"| ["tt-lang"]
+    ["tt-lang"] -->|"Lowering / CodeGen"| ["TT-Metalium"]
+    ["tt-lang"] -->|"Functional Validation"| ["ttlang-sim"]
+```
+
+
 tt-lang joins the Tenstorrent software ecosystem to provide a unified entrypoint with integrated simulation, performance analysis, and AI-assisted development [README.md 29-30](https://github.com/tenstorrent/tt-lang/blob/d76e6233/README.md?plain=1#L29-L30)
 
 *   **TT-NN Layer**: Provides high-level operations that are straightforward to use but lack the expressivity needed for custom kernels [README.md 37](https://github.com/tenstorrent/tt-lang/blob/d76e6233/README.md?plain=1#L37-L37)
@@ -55,6 +79,40 @@ tt-lang joins the Tenstorrent software ecosystem to provide a unified entrypoint
 
 ## System Architecture
 
+```mermaid
+graph TB
+    subgraph "User Interface Layer"
+        ["Python_DSL"]
+        ["ttl.operation"]
+        ["ttl.compute"]
+        ["ttl.datamovement"]
+    end
+    
+    subgraph "Compilation Infrastructure"
+        ["TTL_Dialect"]
+        ["TTKernel_Dialect"]
+        ["MLIR_Pass_Pipeline"]
+        ["EmitC_Lowering"]
+    end
+    
+    subgraph "Execution Backends"
+        ["Hardware_Tensix_Cores"]
+        ["ttlang-sim_Simulator"]
+    end
+    
+    ["Python_DSL"] -->|"AST Parsing"| ["TTL_Dialect"]
+    ["TTL_Dialect"] -->|"Transforms"| ["MLIR_Pass_Pipeline"]
+    ["MLIR_Pass_Pipeline"] -->|"Lowering"| ["TTKernel_Dialect"]
+    ["TTKernel_Dialect"] -->|"CodeGen"| ["EmitC_Lowering"]
+    
+    ["EmitC_Lowering"] -->|"Binary Execution"| ["Hardware_Tensix_Cores"]
+    ["Python_DSL"] -->|"Direct Execution"| ["ttlang-sim_Simulator"]
+```
+
+The compilation infrastructure transforms Python AST to initial MLIR via `TTCompilerBase` [python/pykernel/_src/kernel_ast.py:61-62](), applies optimization passes such as `TTLInsertIntermediateDFBsPass` [lib/Dialect/TTL/Transforms/TTLInsertIntermediateDFBs.cpp:39-41](), and generates C++ code via `EmitC` [python/CMakeLists.txt:11-12](). Execution backends support both functional simulation for rapid development and hardware compilation for deployment [README.md:76-78]().
+```
+
+
 tt-lang consists of a Python-based frontend, an MLIR-based compilation pipeline, and dual execution backends (Hardware and Simulator).
 
 **Diagram: System Layers and Components**
@@ -64,6 +122,25 @@ The compilation infrastructure transforms Python AST to initial MLIR via `TTComp
 **Sources:**[README.md 27-40](https://github.com/tenstorrent/tt-lang/blob/d76e6233/README.md?plain=1#L27-L40)[python/pykernel/_src/kernel_ast.py 61-157](https://github.com/tenstorrent/tt-lang/blob/d76e6233/python/pykernel/_src/kernel_ast.py#L61-L157)[lib/Dialect/TTL/Transforms/TTLInsertIntermediateDFBs.cpp 32-114](https://github.com/tenstorrent/tt-lang/blob/d76e6233/lib/Dialect/TTL/Transforms/TTLInsertIntermediateDFBs.cpp#L32-L114)
 
 ## Key Components and Code Entities
+
+```mermaid
+graph TD
+    subgraph "Operation: @ttl.operation"
+        subgraph "Thread 1: @ttl.compute"
+            ["Math_Ops_FPU_SFPU"]
+        end
+        subgraph "Thread 2: @ttl.datamovement"
+            ["NCRISC_NOC_Read"]
+        end
+        subgraph "Thread 3: @ttl.datamovement"
+            ["BRISC_NOC_Write"]
+        end
+    end
+    
+    ["NCRISC_NOC_Read"] -->|"Sync via DataflowBuffer"| ["Math_Ops_FPU_SFPU"]
+    ["Math_Ops_FPU_SFPU"] -->|"Sync via DataflowBuffer"| ["BRISC_NOC_Write"]
+```
+
 
 The tt-lang API centers on decorators and specialized functions that define the kernel structure and data movement:
 

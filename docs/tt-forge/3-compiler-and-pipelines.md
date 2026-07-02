@@ -29,6 +29,59 @@ The benchmarking system is built on a three-tier architecture: workflow orchestr
 
 ### Overall Architecture
 
+```mermaid
+graph TB
+    subgraph "Workflow Orchestration"
+        perfBench["perf-benchmark.yml<br/>Main orchestrator"]
+        demoTests["demo-tests.yml<br/>Demo validation"]
+        basicTests["basic-tests.yml<br/>Smoke tests"]
+    end
+    
+    subgraph "Configuration Layer"
+        perfMatrix["perf-bench-matrix.json<br/>Test configurations"]
+        modelsMatrix["models-matrix.json<br/>Demo configurations"]
+        filterScript["filter-test-matrix.py<br/>Dynamic test selection"]
+    end
+    
+    subgraph "Execution Engine"
+        benchmarkPy["benchmark.py<br/>Dynamic module loader"]
+        basicDemoTest["basic_tests/.../demo_test.py<br/>Frontend smoke tests"]
+        modelModules["Model Benchmark Modules<br/>tt-xla/resnet.py<br/>tt-forge-fe/unet.py"]
+    end
+    
+    subgraph "Hardware Architecture"
+        n150["n150 Wormhole Runners<br/>tt-ubuntu-2204-n150-stable"]
+        p150["p150 Blackhole Runners<br/>tt-ubuntu-2204-p150-stable"]
+    end
+    
+    subgraph "Reporting"
+        slackNotify["Slack Notifications<br/>Failure alerts"]
+        produceData["produce_data.yml<br/>Metrics collection"]
+    end
+    
+    perfBench --> perfMatrix
+    demoTests --> modelsMatrix
+    
+    perfMatrix --> filterScript
+    modelsMatrix --> filterScript
+    
+    filterScript --> n150
+    filterScript --> p150
+    
+    n150 --> benchmarkPy
+    p150 --> benchmarkPy
+    
+    benchmarkPy --> modelModules
+    basicTests --> basicDemoTest
+    
+    n150 --> produceData
+    p150 --> produceData
+```
+
+Sources: [.github/workflows/demo-tests.yml:54-104](), [.github/workflows/basic-tests.yml:58-100](), [.github/workflows/filter-test-matrix.py:10-24]()
+```
+
+
 Sources: [.github/workflows/demo-tests.yml 54-104](https://github.com/tenstorrent/tt-forge/blob/6f2d9645/.github/workflows/demo-tests.yml#L54-L104)[.github/workflows/basic-tests.yml 58-100](https://github.com/tenstorrent/tt-forge/blob/6f2d9645/.github/workflows/basic-tests.yml#L58-L100)[.github/workflows/filter-test-matrix.py 10-24](https://github.com/tenstorrent/tt-forge/blob/6f2d9645/.github/workflows/filter-test-matrix.py#L10-L24)
 
 ## Workflow Orchestration
@@ -50,6 +103,18 @@ For details, see [Benchmark Infrastructure and Workflows](https://deepwiki.com/t
 The benchmarking system uses JSON-based matrix files to define test configurations. The `filter-test-matrix.py` script parses these matrices and generates filtered test configurations based on project, test name, and hardware requirements.
 
 ### Matrix Filtering Logic
+
+```mermaid
+graph LR
+    JSON["models-matrix.json"] --> Filter["filter-test-matrix.py"]
+    ProjIn["project-filter"] --> Filter
+    TestIn["test-filter"] --> Filter
+    Filter --> Out["GitHub Actions Matrix"]
+```
+
+For details, see [Test Matrix Configuration](#3.2).
+```
+
 
 The script `filter-test-matrix.py` performs the following operations:
 

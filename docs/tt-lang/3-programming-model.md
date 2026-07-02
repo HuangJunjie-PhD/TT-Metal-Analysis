@@ -32,6 +32,40 @@ The tt-lang compilation pipeline operates in distinct stages, each responsible f
 
 ### System Architecture to Code Entity Mapping
 
+```mermaid
+graph TD
+    subgraph "Python Frontend"
+        Decorator["@ttl.kernel<br/>ttl_api.py"]
+        ASTCompiler["TTLGenericCompiler<br/>python/ttl/_src/ttl_ast.py"]
+    end
+
+    subgraph "MLIR TTL Dialect (High-Level)"
+        TTLIR["TTL Dialect Ops<br/>ttl.compute, ttl.copy<br/>ttl.bind_cb"]
+        Pipeline["createTTLToTTKernelPipeline<br/>TTLPipelines.cpp"]
+    end
+
+    subgraph "MLIR TTKernel Dialect (Hardware-Mapped)"
+        TTKIR["TTKernel Dialect Ops<br/>ttk.NocAsyncReadTile<br/>ttk.AddBinaryTiles"]
+        Inits["TTKernelInsertInits<br/>TTKernelInsertInits.cpp"]
+        Packer["TTKernelCombinePackTiles<br/>TTKernelCombinePackTiles.cpp"]
+    end
+
+    subgraph "C++ Backend"
+        EmitC["TTKernelToEmitC<br/>TTKernelToEmitC.cpp"]
+        CPP["Final C++ Source<br/>(noc_async_read, etc)"]
+    end
+
+    Decorator --> ASTCompiler
+    ASTCompiler --> TTLIR
+    TTLIR --> Pipeline
+    Pipeline --> TTKIR
+    TTKIR --> Inits
+    Inits --> Packer
+    Packer --> EmitC
+    EmitC --> CPP
+```
+
+
 The following diagram associates the logical stages of the compilation pipeline with the specific code entities that implement them.
 
 **Sources:**[python/ttl/ttl_api.py 39-68](https://github.com/tenstorrent/tt-lang/blob/d76e6233/python/ttl/ttl_api.py#L39-L68)[lib/Dialect/TTL/Pipelines/TTLPipelines.cpp 19-75](https://github.com/tenstorrent/tt-lang/blob/d76e6233/lib/Dialect/TTL/Pipelines/TTLPipelines.cpp#L19-L75)[python/ttl/_src/ttl_ast.py 128-168](https://github.com/tenstorrent/tt-lang/blob/d76e6233/python/ttl/_src/ttl_ast.py#L128-L168)
@@ -48,6 +82,23 @@ The following diagram associates the logical stages of the compilation pipeline 
 **Sources:**[lib/Dialect/TTL/Pipelines/TTLPipelines.cpp 19-75](https://github.com/tenstorrent/tt-lang/blob/d76e6233/lib/Dialect/TTL/Pipelines/TTLPipelines.cpp#L19-L75)[python/ttl/_src/ttl_ast.py 128-168](https://github.com/tenstorrent/tt-lang/blob/d76e6233/python/ttl/_src/ttl_ast.py#L128-L168)[include/ttlang/Dialect/TTL/Passes.td 120-141](https://github.com/tenstorrent/tt-lang/blob/d76e6233/include/ttlang/Dialect/TTL/Passes.td#L120-L141)
 
 ## Python AST to MLIR TTL
+
+```mermaid
+graph TB
+    subgraph "TTLGenericCompiler Entity"
+        Visitor["visit_Call / visit_Assign<br/>python/ttl/_src/ttl_ast.py"]
+        Ctx["CompilerContext<br/>(grid, memory_space)"]
+    end
+    
+    subgraph "MLIR Generation"
+        TensorType["_build_tensor_type<br/>python/ttl/_src/ttl_ast.py"]
+        Layout["LayoutAttr<br/>include/ttlang/Dialect/TTL/IR/TTLOps.td"]
+    end
+    
+    Visitor --> TensorType
+    TensorType --> Layout
+```
+
 
 The `TTLGenericCompiler` class implements an AST visitor pattern to transform Python kernel functions into MLIR TTL dialect operations. For details, see [Python AST to Initial TTL MLIR](https://deepwiki.com/tenstorrent/tt-lang/3.2-python-ast-to-initial-ttl-mlir).
 

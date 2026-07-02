@@ -62,6 +62,22 @@ Each architecture has platform-specific implementations that handle architectura
 
 ### Memory Operations
 
+```mermaid
+graph LR
+    User["User Code"] --> API["read/write API<br/>(tt_exalens_lib.py)"]
+    API --> Coord["OnChipCoordinate<br/>(coordinate.py)"]
+    Coord --> NOC["noc_read/noc_write<br/>(coordinate.py)"]
+    NOC --> UMD["UmdDevice<br/>(umd_device.py)"]
+    UMD --> Hardware["Hardware via<br/>PCIe/JTAG"]
+```
+
+**Core Functions:**
+- `read_word_from_device()` / `read_words_from_device()` / `read_from_device()` - memory reads
+- `write_words_to_device()` / `write_to_device()` - memory writes
+- `read_register()` / `write_register()` - configuration and debug register access
+```
+
+
 TTExaLens provides byte-level access to on-chip memory through the Network-on-Chip (NOC):
 
 **Core Functions:**
@@ -87,6 +103,24 @@ Direct control and debugging of Baby RISC cores (BRISC, TRISC0-2, NCRISC, ERISC)
 **Sources:**[ttexalens/hardware/risc_debug.py](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/ttexalens/hardware/risc_debug.py)[ttexalens/hardware/baby_risc_debug.py](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/ttexalens/hardware/baby_risc_debug.py)
 
 ### ELF Firmware Management
+
+```mermaid
+graph TB
+    ElfFile["ELF File<br/>.elf binary"] --> ParsedElf["ParsedElfFile<br/>(parsed.py)"]
+    ParsedElf --> ElfLoader["ElfLoader<br/>(elf_loader.py)"]
+    ElfLoader --> Sections["Section Loading<br/>.text, .init, .data"]
+    Sections --> Verify["Write Verification<br/>read-back check"]
+    Verify --> PC["Set PC to<br/>.init address"]
+    PC --> Reset["Reset Control<br/>RiscDebug"]
+    Reset --> Execute["Execution"]
+```
+
+**Core Functions:**
+- `load_elf()` - load firmware with core in reset
+- `run_elf()` - load and execute firmware
+- `parse_elf()` - parse ELF with DWARF symbols
+```
+
 
 Complete pipeline for loading and executing firmware on RISC-V cores:
 
@@ -181,6 +215,24 @@ Standard GDB remote protocol server for RISC-V debugging:
 
 ### Context - Session Management
 
+```mermaid
+graph TB
+    InitLocal["init_ttexalens()"] --> Context["Context Object"]
+    InitRemote["init_ttexalens_remote()"] --> Context
+    Context --> Devices["devices: dict[int, Device]"]
+    Context --> FileAPI["file_api: FileApi"]
+    Context --> Config["Configuration<br/>use_noc1, safe_mode, etc."]
+    Context --> GlobalState["Global State<br/>GLOBAL_CONTEXT"]
+```
+
+**Responsibilities:**
+- Device discovery and initialization
+- Session configuration (NOC selection, safe mode, etc.)
+- File API for ELF and symbol management
+- Global context management for library functions
+```
+
+
 The `Context` object manages the TTExaLens session lifecycle:
 
 **Responsibilities:**
@@ -193,6 +245,28 @@ The `Context` object manages the TTExaLens session lifecycle:
 **Sources:**[ttexalens/context.py](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/ttexalens/context.py)[ttexalens/tt_exalens_init.py 50-63](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/ttexalens/tt_exalens_init.py#L50-L63)
 
 ### Device - Hardware Abstraction
+
+```mermaid
+graph TB
+    Device["Device (Abstract)"] --> WH["WormholeDevice"]
+    Device --> BH["BlackholeDevice"]
+    Device --> Q["QuasarDevice"]
+    
+    Device --> Methods["Common Methods"]
+    Methods --> BlockLoc["get_block_locations()"]
+    Methods --> GetBlock["get_block()"]
+    Methods --> CoordConv["to_noc0(), from_noc0()"]
+    Methods --> ARC["arc_msg(), arc_block"]
+```
+
+**Key Responsibilities:**
+- Coordinate system conversions
+- Block location queries
+- Platform-specific behavior
+- Memory map management
+- ARC communication
+```
+
 
 The `Device` class abstracts architecture-specific details:
 
@@ -251,6 +325,27 @@ Each block provides:
 
 ### Local Mode
 
+```mermaid
+graph LR
+    TTExaLens["TTExaLens<br/>Library/CLI"] --> Context["Context<br/>(local_init)"]
+    Context --> UmdApi["UmdApi<br/>(umd_api.py)"]
+    UmdApi --> UmdDevice["UmdDevice<br/>(umd_device.py)"]
+    UmdDevice --> TTUMD["tt-umd Library<br/>(C++ binding)"]
+    TTUMD --> PCIe["PCIe BAR0<br/>MMIO"]
+    TTUMD --> Ethernet["Ethernet Tunneling<br/>Remote chips"]
+    PCIe --> Chip["Local Chip"]
+    Ethernet --> RemoteChip["Remote Chips<br/>in Cluster"]
+```
+
+**Capabilities:**
+- Direct MMIO access for local chips via PCIe
+- Ethernet NOC tunneling for remote chips in cluster
+- Full speed, no network overhead
+
+**Initialization:** `init_ttexalens()`
+```
+
+
 Direct hardware access via PCIe and the `tt-umd` library:
 
 **Capabilities:**
@@ -264,6 +359,27 @@ Direct hardware access via PCIe and the `tt-umd` library:
 **Sources:**[ttexalens/tt_exalens_init.py 1-118](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/ttexalens/tt_exalens_init.py#L1-L118)[ttexalens/umd_api.py](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/ttexalens/umd_api.py)[ttexalens/umd_device.py](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/ttexalens/umd_device.py)
 
 ### Remote Mode
+
+```mermaid
+graph LR
+    Client["Remote Client<br/>Library/CLI"] --> Proxy["Pyro5 Proxy<br/>RPC Client"]
+    Proxy -->|TCP/IP| Server["TTExaLensServer<br/>(server.py)"]
+    Server --> Wrapper["UmdApiWrapper<br/>Auto-serialization"]
+    Wrapper --> Local["Local UmdApi<br/>on Server"]
+    Local --> Hardware["Hardware Access<br/>PCIe/Ethernet"]
+```
+
+**Capabilities:**
+- Access hardware from any network location
+- Multiple concurrent clients
+- Automatic object serialization via Pyro5
+- Same API as local mode
+
+**Initialization:** 
+- Server: `tt-exalens --server` or programmatic via `TTExaLensServer`
+- Client: `init_ttexalens_remote(ip_address, port)`
+```
+
 
 Network-based access to hardware via TTExaLens server:
 
@@ -306,6 +422,71 @@ Automatic retry on alternate NOC for timeout resilience:
 **Sources:**[ttexalens/umd_device.py](https://github.com/tenstorrent/tt-exalens/blob/046c35eb/ttexalens/umd_device.py)
 
 ## Architecture Overview
+
+```mermaid
+graph TB
+    subgraph "User Interfaces"
+        CLI["CLI Application<br/>tt-exalens"]
+        PythonAPI["Python Library API<br/>ttexalens module"]
+        GDB["GDB Client<br/>riscv-tt-elf-gdb"]
+    end
+    
+    subgraph "Core API Layer"
+        LibAPI["tt_exalens_lib.py<br/>Public Functions"]
+        Context["Context<br/>Session Management"]
+    end
+    
+    subgraph "Hardware Abstraction"
+        Device["Device<br/>Architecture Abstraction"]
+        Coordinate["OnChipCoordinate<br/>5 Coordinate Systems"]
+        NocBlock["NocBlock<br/>Chip Blocks"]
+    end
+    
+    subgraph "Debugging Systems"
+        RiscDebug["RiscDebug<br/>RISC-V Control"]
+        TensixDebug["TensixDebug<br/>Instruction Injection"]
+        ElfLoader["ElfLoader<br/>Firmware Loading"]
+        GDBServer["GDB Server<br/>Remote Protocol"]
+        ParsedElf["ParsedElfFile<br/>DWARF Parsing"]
+    end
+    
+    subgraph "Hardware Access"
+        UmdDevice["UmdDevice<br/>Device Operations"]
+        Server["TTExaLensServer<br/>Remote Access"]
+        TTUMD["tt-umd Library<br/>PCIe/JTAG"]
+    end
+    
+    CLI --> LibAPI
+    PythonAPI --> LibAPI
+    GDB --> GDBServer
+    
+    LibAPI --> Context
+    Context --> Device
+    Device --> Coordinate
+    Device --> NocBlock
+    
+    LibAPI --> RiscDebug
+    LibAPI --> TensixDebug
+    LibAPI --> ElfLoader
+    GDBServer --> RiscDebug
+    
+    RiscDebug --> ParsedElf
+    ElfLoader --> ParsedElf
+    
+    Device --> UmdDevice
+    Context --> Server
+    Server --> UmdDevice
+    UmdDevice --> TTUMD
+```
+
+This architecture enables:
+- **Multiple interfaces** (CLI, API, GDB) sharing common implementation
+- **Clean abstraction layers** from user interface down to hardware
+- **Flexible deployment** (local or remote access)
+- **Platform independence** through Device abstraction
+- **Comprehensive debugging** via multiple subsystems
+```
+
 
 The following diagram shows how the major system components relate:
 

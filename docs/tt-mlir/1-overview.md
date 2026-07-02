@@ -88,6 +88,47 @@ Sources: [docs/src/SUMMARY.md 1-56](https://github.com/tenstorrent/tt-mlir/blob/
 
 ## High-Level System Architecture
 
+```mermaid
+graph TB
+    subgraph Frontends ["Natural Language Space: Model Input"]
+        PyTorch["PyTorch / JAX / StableHLO"]
+    end
+
+    subgraph Dialects ["Code Entity Space: MLIR Dialects"]
+        StableHLO["mlir::stablehlo::StablehloDialect"]
+        Sdy["mlir::sdy::SdyDialect"]
+        TTIR["mlir::tt::ttir::TTIRDialect"]
+        D2M["mlir::tt::d2m::D2MDialect"]
+        TTNN["mlir::tt::ttnn::TTNNDialect"]
+    end
+
+    subgraph Tools ["Code Entity Space: Compiler Tools"]
+        Opt["ttmlir-opt"]
+        Translate["ttmlir-translate"]
+    end
+
+    subgraph Targets ["Code Entity Space: Serialization"]
+        FB["Flatbuffer Target"]
+        EC["mlir::emitc::EmitCDialect"]
+    end
+
+    PyTorch --> StableHLO
+    StableHLO --> Sdy
+    Sdy --> ["ConvertStableHLOToTTIR"] TTIR
+    TTIR --> ["TTIRToD2M"] D2M
+    TTIR --> ["ConvertTTIRToTTNN"] TTNN
+    
+    TTNN --> ["TTNNToFlatbuffer"] FB
+    TTNN --> ["TTNNToEmitC"] EC
+    
+    Opt -.-> Dialects
+    Translate -.-> Targets
+```
+
+Sources: [include/ttmlir/Conversion/Passes.td:11-20](), [include/ttmlir/Conversion/Passes.td:65-108](), [lib/RegisterAll.cpp:85-106](), [lib/Conversion/TTNNToEmitC/CMakeLists.txt:1-19]()
+```
+
+
 The following diagram bridges the natural language concepts of the compilation flow to the specific code entities and dialects used in the repository.
 
 **Overall System Data Flow**
@@ -95,6 +136,45 @@ The following diagram bridges the natural language concepts of the compilation f
 Sources: [include/ttmlir/Conversion/Passes.td 11-20](https://github.com/tenstorrent/tt-mlir/blob/c7d92e92/include/ttmlir/Conversion/Passes.td#L11-L20)[include/ttmlir/Conversion/Passes.td 65-108](https://github.com/tenstorrent/tt-mlir/blob/c7d92e92/include/ttmlir/Conversion/Passes.td#L65-L108)[lib/RegisterAll.cpp 85-106](https://github.com/tenstorrent/tt-mlir/blob/c7d92e92/lib/RegisterAll.cpp#L85-L106)[lib/Conversion/TTNNToEmitC/CMakeLists.txt 1-19](https://github.com/tenstorrent/tt-mlir/blob/c7d92e92/lib/Conversion/TTNNToEmitC/CMakeLists.txt#L1-L19)
 
 ## Compilation Pipeline Hierarchy
+
+```mermaid
+graph LR
+    subgraph Level0 ["Source"]
+        S["StableHLO / TOSA / Shardy"]
+    end
+    subgraph Level1 ["Generic"]
+        I["TTIR"]
+    end
+    subgraph Level2 ["Physical"]
+        D["D2M"]
+    end
+    subgraph Level3 ["Backend"]
+        N["TTNN"]
+        M["TTMetal"]
+        K["TTKernel"]
+    end
+
+    S --> I
+    I --> D
+    I --> N
+    D --> N
+    D --> M
+    D --> K
+```
+
+**Primary Conversion Passes**
+
+| Pass | Purpose |
+|------|---------|
+| `ConvertStableHLOToTTIR` | Ingest models from StableHLO into TTIR [include/ttmlir/Conversion/Passes.td:11-20]() |
+| `LegalizeStableHLOCompositeToTTIR` | Legalize StableHLO composite operations directly to TTIR [include/ttmlir/Conversion/Passes.td:26-36]() |
+| `TTIRToTTIRDecomposition` | Break complex operations into hardware-friendly primitives [include/ttmlir/Conversion/Passes.td:45-62]() |
+| `TTIRToD2M` | Lower generic TTIR operations to the physical D2M dialect [include/ttmlir/Conversion/Passes.td:65-124]() |
+| `ConvertTosaToTTIR` | Convert TOSA dialect inputs to TTIR [include/ttmlir/Conversion/Passes.td:39-43]() |
+
+Sources: [include/ttmlir/Conversion/Passes.td:11-124](), [lib/RegisterAll.cpp:145-150]()
+```
+
 
 The compilation process follows a multi-level abstraction hierarchy. For details on how these relate, see [Architecture Overview](https://deepwiki.com/tenstorrent/tt-mlir/1.1-architecture-overview).
 

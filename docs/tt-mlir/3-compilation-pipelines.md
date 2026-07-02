@@ -68,6 +68,81 @@ Compilation pipelines in tt-mlir follow a structured flow from frontend preparat
 
 ### Pipeline Organization
 
+```mermaid
+graph TB
+    subgraph "Input Dialects"
+        StableHLO["StableHLO<br/>ML Framework Input"]
+        TTIR["TTIR<br/>Hardware-Agnostic IR"]
+        TTNN_IN["TTNN<br/>Already Lowered IR"]
+    end
+    
+    subgraph "TTNN Pipeline Family"
+        TTIR_TTNN["createTTIRToTTNNDevicePipeline<br/>Frontend + Analysis + Lowering"]
+        TTNN_EmitC["createTTNNToEmitCDevicePipeline<br/>C++ Code Generation"]
+        TTNN_EmitPy["createTTNNToEmitPyDevicePipeline<br/>Python Code Generation"]
+        TTIR_TTNN_Backend["createTTIRToTTNNBackendPipeline<br/>End-to-End TTNN Target"]
+        TTIR_EmitC["createTTIRToEmitCPipeline<br/>End-to-End C++ Generation"]
+        TTIR_EmitPy["createTTIRToEmitPyPipeline<br/>End-to-End Python Generation"]
+    end
+    
+    subgraph "TTMetal Pipeline Family"
+        TTIR_Frontend["createTTIRToTTMetalFrontendPipeline<br/>D2M Lowering + Grid Selection"]
+        TTIR_Middleend["createTTIRToTTMetalMiddleendPipeline<br/>Fusion + Allocation + Scheduling"]
+        TTIR_Backend["createTTIRToTTMetalBackendPipeline<br/>TTKernel + EmitC Generation"]
+        TTIR_TTMetal["createTTIRToTTMetalPipeline<br/>End-to-End TTMetal Target"]
+    end
+    
+    subgraph "Output Formats"
+        TTNN_Dialect["TTNN Dialect<br/>For Runtime Execution"]
+        EmitC_Code["EmitC → C++ Code"]
+        EmitPy_Code["EmitPy → Python Code"]
+        Flatbuffer["Flatbuffer Binary"]
+    end
+    
+    StableHLO -->|StableHLOToTTIR| TTIR
+    TTIR --> TTIR_TTNN
+    TTIR --> TTIR_TTNN_Backend
+    TTIR --> TTIR_EmitC
+    TTIR --> TTIR_EmitPy
+    TTIR --> TTIR_Frontend
+    TTIR --> TTIR_TTMetal
+    
+    TTNN_IN --> TTNN_EmitC
+    TTNN_IN --> TTNN_EmitPy
+    
+    TTIR_TTNN --> TTNN_Dialect
+    TTIR_TTNN_Backend --> TTNN_Dialect
+    
+    TTNN_EmitC --> EmitC_Code
+    TTIR_EmitC --> EmitC_Code
+    
+    TTNN_EmitPy --> EmitPy_Code
+    TTIR_EmitPy --> EmitPy_Code
+    
+    TTIR_Frontend --> TTIR_Middleend
+    TTIR_Middleend --> TTIR_Backend
+    TTIR_Backend --> EmitC_Code
+    
+    TTIR_TTMetal --> EmitC_Code
+    
+    TTNN_Dialect --> Flatbuffer
+```
+
+**Pipeline Categories**
+
+Pipelines are categorized by their input/output and internal structure:
+
+| Pipeline Type | Input | Output | Purpose |
+|--------------|-------|--------|---------|
+| Device Pipelines | TTIR or TTNN | Device Module (TTNN/TTMetal) | Transform operations within `DeviceModuleOp` |
+| Backend Pipelines | TTIR | TTNN Dialect + CPU LLVM | End-to-end compilation to TTNN backend |
+| Code Generation Pipelines | TTNN | EmitC/EmitPy | Convert TTNN operations to executable code |
+| End-to-End Pipelines | TTIR | C++/Python/Flatbuffer | Complete compilation flow to final artifacts |
+
+Sources: [lib/Dialect/TTNN/Pipelines/TTNNPipelines.cpp:216-647](), [include/ttmlir/Dialect/TTNN/Pipelines/TTNNPipelines.h:25-38]()
+```
+
+
 **Pipeline Categories**
 
 Pipelines are categorized by their input/output and internal structure:
@@ -97,6 +172,76 @@ For details, see [Frontend: StableHLO to TTIR](https://deepwiki.com/tenstorrent/
 The TTNN pipeline family targets neural network workloads with device placement, memory configuration, and hardware-specific operations. These pipelines produce TTNN dialect output suitable for the TTNN runtime.
 
 ### TTIR to TTNN Device Pipeline
+
+```mermaid
+graph TB
+    subgraph "TTIR Preparation [createTTNNPipelineTTIRPasses]"
+        RegisterDevice["TTCoreRegisterDevicePass<br/>Device registration & mesh setup"]
+        PopulateArgs["TTPopulateArgumentTypes<br/>Set argument type map"]
+        Fusing1["TTIRFusing<br/>Initial fusion"]
+        QuantDequant["TTIRQuantDequantConversion<br/>Quantization handling"]
+        Decomposition["TTIRToTTIRDecomposition<br/>Op decomposition"]
+        FlattenSW["TTIRFlattenSlidingWindow<br/>Conv2d compatibility"]
+        EraseInverse["TTIREraseInverseOps<br/>TM optimization"]
+        ImplicitBCast["TTIRImplicitBroadcastFold<br/>Broadcast folding"]
+    end
+    
+    subgraph "Lowering [createTTNNPipelineLoweringPasses]"
+        TTNNLayout["TTNNLayout<br/>Add layout information"]
+        ConvertTTNN["ConvertTTIRToTTNN<br/>Dialect conversion"]
+        RemoveDead["RemoveDeadValues<br/>Optional cleanup"]
+    end
+    
+    subgraph "Analysis [createTTNNPipelineAnalysisPasses]"
+        UniqueLocations["TTNNUniqueLocations<br/>Location validation"]
+        DeviceWrapper["DevicePassesWrapper<br/>Device lifecycle management"]
+        RowMajor["TTNNRowMajorLayoutPropagation<br/>Layout propagation"]
+        Optimizer["TTNNOptimizer<br/>Grid & layout optimization"]
+        Validation["TTNNOperationValidationAndFallback<br/>Hardware constraint checks"]
+        PrepareConv["TTNNPrepareConv2dWeightsAndBias<br/>Conv2d optimization"]
+    end
+    
+    subgraph "Finalization"
+        Workarounds["TTNNWorkarounds<br/>Hardware workarounds"]
+        BFP8["TTNNWeightBFP8Conversion<br/>Weight conversion"]
+        SetKernelCfg["TTNNSetComputeKernelConfig<br/>Compute config"]
+        D2MFusing["TTNND2MFusing<br/>Optional D2M fusion"]
+        DecomposeLayout["TTNNDecomposeLayouts<br/>Layout decomposition"]
+        Deallocate["TTNNDeallocate<br/>Memory deallocation"]
+    end
+    
+    RegisterDevice --> PopulateArgs
+    PopulateArgs --> Fusing1
+    Fusing1 --> QuantDequant
+    QuantDequant --> Decomposition
+    Decomposition --> FlattenSW
+    FlattenSW --> EraseInverse
+    EraseInverse --> ImplicitBCast
+    
+    ImplicitBCast --> TTNNLayout
+    TTNNLayout --> ConvertTTNN
+    ConvertTTNN --> RemoveDead
+    
+    RemoveDead --> UniqueLocations
+    UniqueLocations --> DeviceWrapper
+    DeviceWrapper --> RowMajor
+    RowMajor --> Optimizer
+    Optimizer --> Validation
+    Validation --> PrepareConv
+    
+    PrepareConv --> Workarounds
+    Workarounds --> BFP8
+    BFP8 --> SetKernelCfg
+    SetKernelCfg --> D2MFusing
+    D2MFusing --> DecomposeLayout
+    DecomposeLayout --> Deallocate
+```
+
+Sources: [lib/Dialect/TTNN/Pipelines/TTNNPipelines.cpp:32-95](), [lib/Dialect/TTNN/Pipelines/TTNNPipelines.cpp:97-137](), [lib/Dialect/TTNN/Pipelines/TTNNPipelines.cpp:139-149]()
+
+For details, see [TTIR to TTNN Backend Pipeline](#3.2).
+```
+
 
 The `createTTIRToTTNNDevicePipeline` function implements the core TTIR-to-TTNN transformation. It operates on the Device module nested within a `DeviceModuleOp`.
 

@@ -50,6 +50,51 @@ The `tt-mlir` toolchain consists of several command-line utilities that operate 
 
 ### Natural Language to Code Entity Mapping: Toolchain Flow
 
+```mermaid
+graph TB
+    subgraph "InputSpace"
+        ["MLIR Source (.mlir files)"]
+        ["System Descriptor (.ttsys files)"]
+    end
+    
+    subgraph "CompilerEntities"
+        Opt["ttmlir-opt"]
+        Translate["ttmlir-translate"]
+        Alchemist["tt-alchemist"]
+    end
+    
+    subgraph "OutputArtifacts"
+        Flatbuffer["Flatbuffer Binary (.ttnn / .ttm)"]
+        CppCode["C++ Source (EmitC)"]
+        PyCode["Python Source (EmitPy)"]
+    end
+    
+    subgraph "RuntimeAndDebug"
+        TTRT["ttrt (Python package)"]
+        Explorer["tt-explorer"]
+        Standalone["ttnn-standalone"]
+        Profiler["profiler.py"]
+    end
+    
+    ["MLIR Source (.mlir files)"] --> Opt
+    ["System Descriptor (.ttsys files)"] --> Opt
+    
+    Opt --> Translate
+    Translate --> Flatbuffer
+    Translate --> CppCode
+    Translate --> PyCode
+    
+    Flatbuffer --> TTRT
+    CppCode --> Standalone
+    ["MLIR Source (.mlir files)"] --> Explorer
+    Standalone --> Profiler
+```
+Sources: [docs/src/tools.md:3-10](), [tools/CMakeLists.txt:1-43](), [docs/src/emitc-testing.md:28-53]()
+
+---
+```
+
+
 The following diagram maps high-level system concepts to the specific code entities and tools that implement them.
 
 Sources: [docs/src/tools.md 3-10](https://github.com/tenstorrent/tt-mlir/blob/c7d92e92/docs/src/tools.md?plain=1#L3-L10)[tools/CMakeLists.txt 1-43](https://github.com/tenstorrent/tt-mlir/blob/c7d92e92/tools/CMakeLists.txt#L1-L43)[docs/src/emitc-testing.md 28-53](https://github.com/tenstorrent/tt-mlir/blob/c7d92e92/docs/src/emitc-testing.md?plain=1#L28-L53)
@@ -111,6 +156,33 @@ The compiler requires a System Descriptor (`.ttsys`) to understand the target ha
 For details, see [System Description and Hardware Query Tools](https://deepwiki.com/tenstorrent/tt-mlir/8.4-system-description-and-hardware-query-tools).
 
 ### Mapping: Hardware Discovery to Runtime
+
+```mermaid
+graph LR
+    subgraph "Discovery"
+        TTRT_Q["ttrt query"]
+        SysDesc["system_desc.ttsys"]
+    end
+    
+    subgraph "Compiler"
+        Opt["ttmlir-opt"]
+        Translate["ttmlir-translate"]
+    end
+    
+    subgraph "Runtime"
+        TTRT_R["ttrt run"]
+        FB["Flatbuffer (.ttnn)"]
+    end
+    
+    TTRT_Q --> SysDesc
+    SysDesc --> Opt
+    Opt --> Translate
+    Translate --> FB
+    FB --> TTRT_R
+```
+Sources: [docs/src/emitc-testing.md:15-19](), [docs/src/tools.md:5-7]()
+```
+
 
 This diagram shows how hardware discovery tools relate to the runtime libraries and execution.
 

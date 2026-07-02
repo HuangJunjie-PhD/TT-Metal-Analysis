@@ -45,6 +45,48 @@ For details on how these systems integrate into compilation pipelines, see [Comp
 
 ## Overview of Optimization Systems
 
+```mermaid
+graph TB
+    subgraph "Analysis_Phase"
+        OPMODEL["op_model_namespace<br/>lib/OpModel/TTNN/TTNNOpModel.cpp"]
+        CONSTRAINTS["ttnn::graph::query_op_constraints"]
+        RUNTIME["ttnn::graph::query_op_runtime"]
+    end
+    
+    subgraph "Optimization_Phase"
+        OPTIMIZER["TTNNOptimizer<br/>lib/Dialect/TTNN/Transforms/OptimizerPasses/Optimizer.cpp"]
+        GREEDY["TTNNGreedyMemoryLayoutPropagation<br/>lib/Dialect/TTNN/Transforms/OptimizerPasses/GreedyMemoryLayoutPropagation.cpp"]
+        FALLBACK["TTNNOperationValidationAndFallback<br/>lib/Dialect/TTNN/Transforms/OptimizerPasses/OperationValidationAndFallback.cpp"]
+    end
+    
+    subgraph "Memory_Management"
+        ANALYSIS["TTNNRowMajorLayoutPropagation<br/>lib/Dialect/TTNN/Transforms/OptimizerPasses/RowMajorLayoutPropagation.cpp"]
+        SPILL["TTNNGreedyL1SpillManagement<br/>lib/Dialect/TTNN/Transforms/OptimizerPasses/GreedyL1SpillManagement.cpp"]
+        DEALLOC["TTNNDeallocate<br/>lib/Dialect/TTNN/Transforms/Passes.cpp"]
+    end
+    
+    subgraph "Hardware_Adaptation"
+        WORKAROUNDS["TTNNWorkaroundsPatterns<br/>lib/Dialect/TTNN/Transforms/Workarounds/TTNNWorkaroundsPatterns.cpp"]
+        INTERFACE["OpModelInterface<br/>lib/Dialect/TTNN/Interfaces/TTNNOpModelInterface.cpp"]
+    end
+    
+    OPMODEL --> CONSTRAINTS
+    OPMODEL --> RUNTIME
+    
+    CONSTRAINTS --> INTERFACE
+    RUNTIME --> INTERFACE
+    
+    INTERFACE --> ANALYSIS
+    ANALYSIS --> OPTIMIZER
+    OPTIMIZER --> GREEDY
+    GREEDY --> SPILL
+    SPILL --> FALLBACK
+    FALLBACK --> DEALLOC
+    
+    DEALLOC --> WORKAROUNDS
+```
+
+
 The tt-mlir compiler employs multiple optimization systems that work together during compilation. The pipeline transitions from high-level TTNN operation analysis to low-level hardware adaptation.
 
 **Diagram: Optimization System Components**
@@ -63,6 +105,48 @@ The tt-mlir compiler employs multiple optimization systems that work together du
 The OpModel system provides compile-time analysis of operations without executing them on hardware. It queries operation constraints (memory requirements, resource usage) and runtime predictions through the `tt-metal` library.
 
 ### OpModel Architecture
+
+```mermaid
+graph TB
+    subgraph "MLIR_Operation_Layer"
+        TTNNOP["TTNN_Operations<br/>ttnn::ReluOp, ttnn::MatmulOp"]
+        OPMODEL_IF["OpModelInterface<br/>getOpConstraints()<br/>getOpRuntime()"]
+    end
+    
+    subgraph "OpModel_Template_Layer"
+        UNARY["op_model::UnaryEltwiseOpModel<OpT>"]
+        UNARY_FAST["op_model::UnaryEltwiseWithFastApproxModeOpModel<OpT>"]
+        OP_MODEL_STRUCT["op_model::OpModel<OpT>"]
+    end
+    
+    subgraph "Query_Execution_Layer"
+        QUERY_EXEC["operation::executeConstraintQuery()"]
+        DEVICE_CTX["op_model::SingletonDeviceContext"]
+        PC_STATE["op_model::ProgramCacheState"]
+    end
+    
+    subgraph "tt-metal_Integration"
+        METAL_QUERY["ttnn::graph::query_op_constraints"]
+        METAL_RUNTIME["ttnn::graph::query_op_runtime"]
+        METAL_DEVICE["tt::tt_metal::distributed::MeshDevice"]
+    end
+    
+    TTNNOP --> OPMODEL_IF
+    OPMODEL_IF --> OP_MODEL_STRUCT
+    OP_MODEL_STRUCT --> UNARY
+    OP_MODEL_STRUCT --> UNARY_FAST
+    
+    UNARY --> QUERY_EXEC
+    UNARY_FAST --> QUERY_EXEC
+    
+    QUERY_EXEC --> DEVICE_CTX
+    QUERY_EXEC --> PC_STATE
+    DEVICE_CTX --> METAL_DEVICE
+    
+    QUERY_EXEC --> METAL_QUERY
+    QUERY_EXEC --> METAL_RUNTIME
+```
+
 
 **Diagram: OpModel System Architecture**
 

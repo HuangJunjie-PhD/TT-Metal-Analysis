@@ -58,6 +58,48 @@ Sources: [docs/src/getting_started_build_from_source.md 174-187](https://github.
 
 ## How the Plugin Fits Into the Stack
 
+```mermaid
+graph TD
+    USER["User Code<br/>(model.py)"]
+    
+    subgraph "Framework Layer"
+        JAX["JAX<br/>jax.jit"]
+        PT["PyTorch/XLA<br/>torch.compile(backend='tt')"]
+        VLLM["vLLM<br/>LLM.generate()"]
+    end
+    
+    subgraph "Plugin Registration"
+        JAXPKG["jax_plugin_tt/__init__.py<br/>xla_client.register_plugin()"]
+        PTPKG["torch_plugin_tt/__init__.py<br/>torch_xla plugin registration"]
+        VLLMPKG["vllm_tt.TTWorker"]
+    end
+    
+    subgraph "Core PJRT Plugin"
+        PJRTSO["pjrt_plugin_tt.so<br/>PJRT_Plugin_Initialize<br/>PJRT_Client_Create"]
+    end
+    
+    subgraph "Compilation"
+        TTMLIR["TT-MLIR Compiler<br/>libTTMLIRCompiler.so<br/>StableHLO → TTIR → TTNN"]
+    end
+    
+    subgraph "Runtime"
+        TTMETAL["tt-metal libraries<br/>Device kernels<br/>Memory management"]
+    end
+    
+    HW["Tenstorrent Hardware<br/>n150 / p150 / n300 / llmbox"]
+
+    USER --> JAX --> JAXPKG --> PJRTSO
+    USER --> PT --> PTPKG --> PJRTSO
+    USER --> VLLM --> VLLMPKG --> PJRTSO
+    PJRTSO --> TTMLIR --> TTMETAL --> HW
+```
+
+Sources: [README.md:19-19](), [docs/src/getting_started_build_from_source.md:174-187]()
+
+---
+```
+
+
 **Diagram: Component interaction from user code to hardware**
 
 Sources: [README.md 19](https://github.com/tenstorrent/tt-xla/blob/c77995f6/README.md?plain=1#L19-L19)[docs/src/getting_started_build_from_source.md 174-187](https://github.com/tenstorrent/tt-xla/blob/c77995f6/docs/src/getting_started_build_from_source.md?plain=1#L174-L187)
@@ -140,6 +182,60 @@ Sources: [docs/src/getting_started.md 51-88](https://github.com/tenstorrent/tt-x
 * * *
 
 ## Key Files and Entry Points
+
+```mermaid
+graph TB
+    subgraph "Python Package (installed via pip)"
+        WHL["pjrt-plugin-tt<br/>(Python wheel)"]
+        
+        subgraph "JAX Integration"
+            JAXPKG["jax_plugin_tt/__init__.py"]
+            JAXREG["Calls xla_client.register_plugin<br/>with 'tt' as platform name"]
+        end
+        
+        subgraph "PyTorch Integration"
+            PTPKG["torch_plugin_tt/__init__.py"]
+            PTREG["Registers with torch_xla<br/>plugin system"]
+        end
+        
+        subgraph "Core Plugin Binary"
+            PJRTDIR["pjrt_plugin_tt/"]
+            PJRTSO["pjrt_plugin_tt.so<br/>(PJRT C API implementation)"]
+            PJRTINIT["Exports PJRT_Plugin_Initialize"]
+        end
+        
+        subgraph "Runtime Dependencies"
+            TTMETAL["pjrt_plugin_tt/tt-metal/<br/>(kernels, RISC-V compiler)"]
+            LIBS["pjrt_plugin_tt/lib/<br/>(libTTMLIRCompiler.so,<br/>libTTMLIRRuntime.so)"]
+        end
+    end
+    
+    subgraph "Framework Discovery"
+        JAXLOAD["JAX imports jax_plugin_tt<br/>at startup (entry point)"]
+        PTLOAD["PyTorch/XLA imports torch_plugin_tt<br/>at startup (entry point)"]
+    end
+    
+    WHL --> JAXPKG
+    WHL --> PTPKG
+    WHL --> PJRTDIR
+    WHL --> TTMETAL
+    WHL --> LIBS
+    
+    JAXLOAD --> JAXPKG --> JAXREG --> PJRTSO
+    PTLOAD --> PTPKG --> PTREG --> PJRTSO
+    
+    PJRTSO --> PJRTINIT
+    PJRTSO --> LIBS
+    PJRTSO --> TTMETAL
+```
+
+The plugin uses Python's [entry point mechanism](https://packaging.python.org/en/latest/specifications/entry-points/) to automatically register with JAX and PyTorch/XLA when the packages are imported. This means no manual configuration is needed — just import JAX or PyTorch/XLA and the `tt` backend is available.
+
+Sources: [docs/src/getting_started_build_from_source.md:174-187]()
+
+---
+```
+
 
 **Diagram: Package structure and plugin loading mechanism**
 

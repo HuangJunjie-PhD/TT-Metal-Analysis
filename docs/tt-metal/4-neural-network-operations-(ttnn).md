@@ -98,6 +98,33 @@ TTNN forms the high-level neural network operation layer in the Tenstorrent soft
 
 ### System Stack Mapping
 
+```mermaid
+graph TD
+    UserCode["User Python Code\
+(e.g. ttnn.matmul, ttnn.conv2d)"]
+    PythonPkg["ttnn Python Package\
+(ttnn/ttnn/__init__.py)"]
+    NB_Ext["Nanobind Extension\
+(ttnn/_ttnn.so)"]
+    CoreTensor["tt::tt_metal::Tensor\
+(ttnn/ttnn/types.py)"]
+    DevOp["ttnn::device_operation\
+(ttnn/core/operation.cpp)"]
+    Metalium["TT-Metalium Runtime\
+(tt-metalium/tt_metal.hpp)"]
+
+    UserCode --> PythonPkg
+    PythonPkg --> NB_Ext
+    NB_Ext --> CoreTensor
+    CoreTensor --> DevOp
+    DevOp --> Metalium
+```
+Sources: [ttnn/ttnn/__init__.py:17-21](), [ttnn/ttnn/types.py:49-50](), [ttnn/sources.cmake:28-28]()
+
+---
+```
+
+
 The following diagram bridges the natural language concept of the software stack to the specific code entities and files that implement them.
 
 Title: TTNN Software Stack Mapping
@@ -143,6 +170,29 @@ Sources: [ttnn/ttnn/operations/conv2d.py 13-121](https://github.com/tenstorrent/
 TTNN operations utilize a `DispatchContext` to manage the transition between slow and fast dispatch modes, particularly in multi-device (Mesh) environments.
 
 ### Dispatch Mode Transition
+
+```mermaid
+graph TD
+    DC["DispatchContext\
+(tt_metal/distributed/dispatch_context.cpp)"]
+    FD_Init["initialize_fast_dispatch\
+(tt_metal/distributed/dispatch_context.cpp)"]
+    SD_Stash["StashedQueues\
+(tt_metal/distributed/dispatch_context.cpp)"]
+    FD_Queue["FDMeshCommandQueue\
+(tt_metal/distributed/dispatch_context.cpp)"]
+
+    DC --> FD_Init
+    FD_Init --> SD_Stash
+    SD_Stash --> FD_Queue
+```
+Sources: [tt_metal/distributed/dispatch_context.cpp:25-47](), [tt_metal/distributed/dispatch_context.cpp:88-107]()
+
+The `DispatchContext` allows for manual initialization and termination of Fast Dispatch on supported architectures like Galaxy and Blackhole. It manages the lifecycle of command queues, including stashing Slow Dispatch queues during FD sessions. [tt_metal/distributed/dispatch_context.cpp:47-110]()
+
+---
+```
+
 
 This diagram associates logic steps in the TTNN backend with the code entities that execute them.
 

@@ -69,6 +69,34 @@ The JIT system operates in three primary stages:
 
 ### JIT Tracing and Execution Flow
 
+```mermaid
+graph TD
+    subgraph "Python Space"
+        A["@ttnn_jit.jit()"] --> B["JitFunction.__call__"]
+        B --> C["generate_ir()"]
+        B --> D["JitCache"]
+    end
+
+    subgraph "MLIR Space"
+        C --> E["ttir.func"]
+        E --> F["ttnn_to_ttmetal_pipeline"]
+        F --> G["ttnn_to_flatbuffer_bin"]
+    end
+
+    subgraph "Runtime Space"
+        G --> H["run_binary_from_capsule"]
+        D -- "Cache Hit" --> H
+        H --> I["Device Execution"]
+    end
+```
+Sources: [tools/ttnn-jit/_src/jit.py:29-187](), [tools/ttnn-jit/api.py:11-56](), [docs/src/ttnn-jit.md:139-161](), [tools/ttnn-jit/_src/supported_ops.py:15-23]()
+
+For details, see [TTNN-JIT: Just-In-Time Compilation](#9.1).
+
+---
+```
+
+
 The following diagram illustrates how the Python `JitFunction` interacts with the MLIR generator and runtime dispatch.
 
 **JIT Tracing to Binary Dispatch**
@@ -106,6 +134,32 @@ The compiler supports several standard CCL primitives, including `all_gather`, `
 
 ### Distributed Infrastructure
 
+```mermaid
+graph LR
+    subgraph "Code Entity Space"
+        SD["SystemDesc"]
+        MD["MeshDevice"]
+        CTL["JitFunction"]
+        WRK["run_binary"]
+        SHD["ManualComputationAnalysisCache"]
+    end
+
+    subgraph "Physical Hardware Space"
+        SD -- "Describes" --> HW["Device Mesh"]
+        MD -- "Handles" --> PCIE["Device Topology"]
+        CTL -- "Orchestrates" --> WRK
+        SHD -- "Analyzes" --> HW
+        WRK -- "Executes on" --> Chip["Tenstorrent AI Processor"]
+    end
+```
+Sources: [tools/ttnn-jit/_src/jit.py:82-120](), [test/ttnn-jit/utils.py:85-95](), [tools/ttnn-jit/_src/supported_ops.py:99-104](), [lib/Conversion/StableHLOToTTIR/ShardyToTTIRPatterns.cpp:45-150]()
+
+For details, see [Distributed Execution and Collective Operations](#9.3).
+
+---
+```
+
+
 The system uses a `Controller` to orchestrate execution across multiple workers. It manages `SystemDesc` merging to describe the hardware topology across the mesh [tools/ttnn-jit/_src/jit.py 82-106](https://github.com/tenstorrent/tt-mlir/blob/c7d92e92/tools/ttnn-jit/_src/jit.py#L82-L106) Automatic parallelization is supported via sharding strategies, with utility functions like `get_maximal_block_sharding_grid` used to calculate optimal core grids for partitioned tensors [test/ttnn-jit/utils.py 85-95](https://github.com/tenstorrent/tt-mlir/blob/c7d92e92/test/ttnn-jit/utils.py#L85-L95) The compiler also handles `sdy.manual_computation` blocks from the Shardy dialect, converting them to `ttir.mesh_shard` operations [lib/Conversion/StableHLOToTTIR/ShardyToTTIRPatterns.cpp 152-180](https://github.com/tenstorrent/tt-mlir/blob/c7d92e92/lib/Conversion/StableHLOToTTIR/ShardyToTTIRPatterns.cpp#L152-L180)
 
 **Distributed Entity Mapping**
@@ -128,6 +182,42 @@ The op-by-op execution framework provides a robust environment for isolating, te
 *   **Program Caching**: The `JitCache` mechanism optimizes performance by caching compiled binaries indexed by runtime tensor metadata [tools/ttnn-jit/_src/jit.py 67-69](https://github.com/tenstorrent/tt-mlir/blob/c7d92e92/tools/ttnn-jit/_src/jit.py#L67-L69)
 
 ### Operation Coverage
+
+```mermaid
+graph LR
+    subgraph "Test Configuration"
+        OP["Op Definition"]
+        SH["Tensor Shape"]
+        DT["DataType"]
+    end
+
+    subgraph "Infrastructure"
+        ROT["run_op_test"]
+        MA["MemoryAnalyzer"]
+        JC["JitCache"]
+        TT["tensor_translator.py"]
+    end
+
+    subgraph "Validation"
+        PCC["pcc_check"]
+        ACC["all_close_check"]
+    end
+
+    OP --> ROT
+    SH --> ROT
+    ROT --> MA
+    ROT --> JC
+    ROT --> TT
+    ROT --> PCC
+    ROT --> ACC
+```
+
+Sources: [test/ttnn-jit/utils.py:182-219](), [tools/ttnn-jit/_src/jit.py:155-159](), [tools/ttnn-jit/_src/supported_ops.py:27-97](), [tools/ttnn-jit/_src/jit.py:67-70](), [tools/ttnn-jit/_src/tensor_translator.py:1-20]()
+
+For details, see [Op-by-Op Execution Infrastructure](#9.4).
+43:T3186,
+```
+
 
 The infrastructure facilitates systematic testing across categories defined in `supported_ops.py`:
 
