@@ -1,4 +1,4 @@
-TD
+graph TD
     AST["Python AST"] -->|TTLGenericCompiler| TTL_MLIR["TTL Dialect MLIR"]
     TTL_MLIR -->|TTLInsertCBSync| SYNC_MLIR["Synchronized MLIR<br/>(cb_push/cb_pop)"]
     SYNC_MLIR -->|TTLConvertTTLToCompute| COMP_MLIR["Compute Dialect MLIR"]

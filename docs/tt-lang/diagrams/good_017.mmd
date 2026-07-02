@@ -1,4 +1,4 @@
-TD
+graph TD
     "OperandValue[Value]" --> IsBArg{"Is BlockArgument?"}
     IsBArg -- "Yes" --> "Read cb_index attr from ComputeOp[ComputeOp]"
     "Read cb_index attr from ComputeOp[ComputeOp]" --> "Find BindCBOp[BindCBOp] in Function"

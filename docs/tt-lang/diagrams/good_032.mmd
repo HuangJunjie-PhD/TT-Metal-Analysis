@@ -1,4 +1,4 @@
-LR
+graph LR
     ["Producer Op"] -- "RankedTensor" --> ["Materialization Pass"]
     ["Materialization Pass"] -- "ttl.cb_reserve" --> ["StoreOp"]
     ["StoreOp"] -- "ttl.cb_push" --> ["Intermediate DFB"]

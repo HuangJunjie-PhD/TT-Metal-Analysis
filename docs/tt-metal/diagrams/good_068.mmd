@@ -1,4 +1,4 @@
-LR
+graph LR
     Input["ttml::autograd::Tensor (Input)"] --> Op["ttml::ops::* (Forward)"]
     Op --> Output["ttml::autograd::Tensor (Output)"]
     Output -- "backward()" --> GradOp["ttml::ops::* (Backward)"]

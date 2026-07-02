@@ -1,4 +1,4 @@
-TD
+graph TD
     Host["Host std::vector<T>"] --> Mapper["ttnn::distributed::shard_tensor_to_mesh_mapper"]
     Mapper --> Mesh["ttnn::distributed::distribute_tensor"]
     Mesh --> Device["ttnn::distributed::MeshDevice"]

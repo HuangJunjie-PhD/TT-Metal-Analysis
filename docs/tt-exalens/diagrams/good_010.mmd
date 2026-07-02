@@ -1,4 +1,4 @@
-TB
+graph TB
     RemoteCLI["Remote CLI Instance"] -.->|"Pyro5 RPC"| TTEServer["TTExaLensServer<br/>(server.py:41)"]
     
     TTEServer --> UmdWrapper["UmdApiWrapper<br/>(server.py:83)"]

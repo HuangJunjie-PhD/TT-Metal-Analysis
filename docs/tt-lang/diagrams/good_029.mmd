@@ -1,4 +1,4 @@
-LR
+graph LR
     Start["Start pytest"] --> Reset["reset_context()"]
     Reset --> Setup["Shadow sys.modules<br/>'ttl' and 'ttnn'"]
     Setup --> Run["execute_script_with_simulator()"]

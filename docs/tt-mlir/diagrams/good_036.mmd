@@ -1,4 +1,4 @@
-TD
+graph TD
     "tt::runtime::system_desc::getCurrentSystemDesc" -- "instantiates" --> "tt::tt_metal::distributed::MeshDevice"
     "tt::tt_metal::distributed::MeshDevice" -- "provides_data_to" --> "getAllDeviceConnections"
     "tt::tt_metal::distributed::MeshDevice" -- "provides_data_to" --> "getCurrentSystemDescImpl"

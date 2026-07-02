@@ -1,4 +1,4 @@
-TB
+graph TB
     CMakeBuild["cmake --build build"] --> ExternalProject["ExternalProject_Add(tt-mlir)"]
     ExternalProject --> Patch["PATCH_COMMAND"]
     Patch --> InstallScript["venv/install_ttmlir_requirements.sh"]

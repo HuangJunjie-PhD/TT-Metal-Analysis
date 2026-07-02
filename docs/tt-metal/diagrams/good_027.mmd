@@ -1,4 +1,4 @@
-TD
+graph TD
     Start["conv2d_L1() Entry"] --> CheckMM{"use_matmul_for_1x1_conv()?"}
     CheckMM -->|Yes| MM["Execute via ttnn::matmul"]
     CheckMM -->|No| AutoShard{"Auto-shard needed?"}

@@ -1,4 +1,4 @@
-TD
+graph TD
     PythonAPI["Python API: ttnn.<op> (nanobind binding)"] --> CppOp["Operation C++ API: <op> function"]
     CppOp --> DeviceOp["Device Operation Class: DeviceOperation<op>"]
     DeviceOp --> ProgFactory["Program Factory: create_mesh_workload / create_at"]

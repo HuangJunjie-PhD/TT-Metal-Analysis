@@ -1,4 +1,4 @@
-TD
+graph TD
     A[ttnn::reduce()] --> B{ReduceType?}
     B -- Sum/Mean/Var/Std --> C[reduce_impl()]
     B -- Max --> D[reduce_impl(MAX)]

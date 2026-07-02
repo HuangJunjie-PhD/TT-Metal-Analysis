@@ -1,4 +1,4 @@
-TB
+graph TB
     "TestFile[.mlir]" -->|"Parse RUN"| "LitRunner[lit.cfg.py]"
     "LitRunner[lit.cfg.py]" -->|"Execute"| "ttmlir-opt"
     "ttmlir-opt" -->|"Apply Pipeline"| "PassManager"

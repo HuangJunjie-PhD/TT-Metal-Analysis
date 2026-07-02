@@ -1,4 +1,4 @@
-TD
+graph TD
     base["base (Ubuntu + uv + OMPI)"] --> ci_build["ci-build (ccache + mold + clang-20)"]
     ci_build --> ci_test["ci-test (pytest + torch + triage tools)"]
 

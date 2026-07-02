@@ -1,4 +1,4 @@
-TD
+graph TD
     "Python_DSL"["@ttl.compute / @ttl.datamovement"] --> "TTLGenericCompiler"["TTLGenericCompiler (ttl_ast.py)"]
     "TTLGenericCompiler" -- "inherits" --> "TTCompilerBase"["TTCompilerBase (kernel_ast.py)"]
     "TTCompilerBase" -- "calls" --> "visit_For"["visit_For()"]

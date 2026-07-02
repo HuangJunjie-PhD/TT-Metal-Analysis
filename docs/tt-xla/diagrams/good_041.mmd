@@ -1,4 +1,4 @@
-LR
+graph LR
     Trigger["Workflow Trigger<br/>PR/Push/Schedule"] --> Generate["generate-matrix-test Job<br/>call-generate-matrix.yml"]
     
     Generate --> LoadPreset["Load Preset JSON<br/>test_suite input"]

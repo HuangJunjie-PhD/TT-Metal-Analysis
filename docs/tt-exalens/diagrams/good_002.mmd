@@ -1,4 +1,4 @@
-TB
+graph TB
     ElfFile["ELF File<br/>.elf binary"] --> ParsedElf["ParsedElfFile<br/>(parsed.py)"]
     ParsedElf --> ElfLoader["ElfLoader<br/>(elf_loader.py)"]
     ElfLoader --> Sections["Section Loading<br/>.text, .init, .data"]

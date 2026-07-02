@@ -1,4 +1,4 @@
-LR
+graph LR
     A["env/activate sourced"] --> B{"TTMLIR_TOOLCHAIN_DIR set?"}
     B -- "No" --> C["TTMLIR_TOOLCHAIN_DIR=/opt/ttmlir-toolchain"]
     B -- "Yes" --> D["Use existing value"]

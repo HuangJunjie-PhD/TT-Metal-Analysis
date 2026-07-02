@@ -1,4 +1,4 @@
-LR
+graph LR
     [ttl_kernel_decorator] -- "check_cache" --> [make_cache_key]
     [make_cache_key] -- "cache_miss" --> [TTLGenericCompiler]
     [TTLGenericCompiler] -- "returns" --> [CompiledTTNNKernel]

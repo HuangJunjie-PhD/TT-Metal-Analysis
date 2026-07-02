@@ -1,4 +1,4 @@
-LR
+graph graph LR
     Python["Python AST"] -- "TTLGenericCompiler" --> TTL["TTL Dialect"]
     TTL -- "ttl-insert-intermediate-dfbs" --> IDFB["DFB Materialization"]
     IDFB -- "ttl-auto-sync" --> SYNC["CB Sync (Push/Pop)"]

@@ -1,4 +1,4 @@
-LR
+graph LR
     API["Public API<br/>'createOwnedHostTensor'"] --> DISPATCH["'DISPATCH_TO_CURRENT_RUNTIME'"]
     DISPATCH --> |"DeviceRuntime::TTNN"| TTNN_IMPL["'tt::runtime::ttnn::createOwnedHostTensor'"]
     DISPATCH --> |"DeviceRuntime::TTMetal"| METAL_IMPL["'tt::runtime::ttmetal::createOwnedHostTensor'"]

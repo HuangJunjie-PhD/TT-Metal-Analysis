@@ -1,4 +1,4 @@
-TD
+graph TD
     Start["Program Start"] --> CheckEnv["Check tt::llrt::RunTimeOptions"]
     CheckEnv -- "get_simulator_enabled()" --> Simulator["Simulation Mode"]
     CheckEnv -- "get_mock_enabled()" --> Mock["Mock Mode"]

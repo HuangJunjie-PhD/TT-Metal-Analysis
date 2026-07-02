@@ -1,4 +1,4 @@
-LR
+graph LR
     Collect["pytest --collect-only"] --> CheckNotimeout["Check for notimeout Marker"]
     CheckNotimeout -->|Has notimeout| Default["Default Timeout<br/>240 minutes"]
     CheckNotimeout -->|No notimeout| Calculate["calculate_test_timeout.py"]
